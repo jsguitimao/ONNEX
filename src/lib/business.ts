@@ -2,7 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { addDays, format, set } from "date-fns";
 import { db } from "@/lib/db";
 import { demoBusiness } from "@/lib/demo-data";
-import { sendBookingNotification } from "@/lib/notifications";
+import { sendBookingNotification, sendRepresentativeBookingNotification } from "@/lib/notifications";
 
 const DEMO_OWNER = {
   clerkUserId: "local-demo-owner",
@@ -1185,7 +1185,14 @@ export async function updatePublicBookingByToken(
     },
   });
 
-  await sendBookingNotification(updated.id, action === "confirm" ? "BOOKING_CONFIRMED" : "BOOKING_CANCELLED");
+  if (action === "confirm") {
+    await sendBookingNotification(updated.id, "BOOKING_CONFIRMED");
+  } else {
+    await Promise.all([
+      sendBookingNotification(updated.id, "BOOKING_CANCELLED"),
+      sendRepresentativeBookingNotification(updated.id, "BOOKING_CANCELLED_INTERNAL"),
+    ]);
+  }
 
   return {
     id: updated.id,
@@ -1716,7 +1723,10 @@ export async function updateBookingStatus(
   }
 
   if (status === "CANCELLED") {
-    await sendBookingNotification(updated.id, "BOOKING_CANCELLED");
+    await Promise.all([
+      sendBookingNotification(updated.id, "BOOKING_CANCELLED"),
+      sendRepresentativeBookingNotification(updated.id, "BOOKING_CANCELLED_INTERNAL"),
+    ]);
   }
 
   return updated;

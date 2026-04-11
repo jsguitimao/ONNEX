@@ -19,8 +19,8 @@ export async function POST(req: Request) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const reminderStartMinutes = Number(searchParams.get("start") ?? 90);
-    const reminderEndMinutes = Number(searchParams.get("end") ?? 150);
+    const reminderStartMinutes = Number(searchParams.get("start") ?? 25);
+    const reminderEndMinutes = Number(searchParams.get("end") ?? 35);
 
     const result = await sendUpcomingBookingReminders({
       reminderStartMinutes,
