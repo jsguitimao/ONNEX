@@ -1,3 +1,4 @@
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { addDays, format, set } from "date-fns";
 import { db } from "@/lib/db";
 import { demoBusiness } from "@/lib/demo-data";
@@ -17,6 +18,208 @@ const DEFAULT_AVAILABILITY = [
   { dayOfWeek: 5, startTime: "09:00", endTime: "19:00" },
   { dayOfWeek: 6, startTime: "10:00", endTime: "16:00" },
 ];
+
+function slugify(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
+async function ensureUniqueSlug(seed: string) {
+  const base = slugify(seed) || "meu-estudio";
+
+  for (let index = 0; index < 50; index += 1) {
+    const candidate = index === 0 ? base : `${base}-${index + 1}`;
+    const exists = await db.business.findUnique({ where: { slug: candidate } });
+
+    if (!exists) {
+      return candidate;
+    }
+  }
+
+  return `${base}-${Date.now().toString().slice(-6)}`;
+}
+
+function getPrimaryEmailAddress(user: Awaited<ReturnType<typeof currentUser>>) {
+  if (!user) return null;
+
+  return (
+    user.emailAddresses.find((email) => email.id === user.primaryEmailAddressId)?.emailAddress ??
+    user.emailAddresses[0]?.emailAddress ??
+    null
+  );
+}
+
+async function getCurrentBusiness() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("AUTH_REQUIRED");
+  }
+
+  const clerkUser = await currentUser();
+  if (!clerkUser) {
+    throw new Error("AUTH_REQUIRED");
+  }
+
+  const email = getPrimaryEmailAddress(clerkUser);
+  if (!email) {
+    throw new Error("AUTH_REQUIRED");
+  }
+
+  const appUser = await db.user.upsert({
+    where: { clerkUserId: userId },
+    update: {
+      email,
+      firstName: clerkUser.firstName,
+      lastName: clerkUser.lastName,
+      avatarUrl: clerkUser.imageUrl,
+    },
+    create: {
+      clerkUserId: userId,
+      email,
+      firstName: clerkUser.firstName,
+      lastName: clerkUser.lastName,
+      avatarUrl: clerkUser.imageUrl,
+    },
+  });
+
+  const existingBusiness = await db.business.findFirst({
+    where: { ownerId: appUser.id },
+    orderBy: { createdAt: "asc" },
+    include: {
+      bookingPage: true,
+      services: { orderBy: { displayOrder: "asc" } },
+      staffMembers: {
+        orderBy: { displayOrder: "asc" },
+        include: {
+          services: true,
+          availabilities: true,
+        },
+      },
+      locations: { where: { isDefault: true }, take: 1 },
+      bookings: {
+        include: {
+          service: true,
+          staffMember: true,
+        },
+        orderBy: { startsAt: "desc" },
+      },
+    },
+  });
+
+  if (existingBusiness) {
+    await hydrateOperationalData(existingBusiness.id, { seedBooking: false });
+    return db.business.findUniqueOrThrow({
+      where: { id: existingBusiness.id },
+      include: {
+        bookingPage: true,
+        services: { orderBy: { displayOrder: "asc" } },
+        staffMembers: {
+          orderBy: { displayOrder: "asc" },
+          include: {
+            services: true,
+            availabilities: true,
+          },
+        },
+        locations: { where: { isDefault: true }, take: 1 },
+        bookings: {
+          include: {
+            service: true,
+            staffMember: true,
+          },
+          orderBy: { startsAt: "desc" },
+        },
+      },
+    });
+  }
+
+  const ownerName =
+    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() || "Novo Studio";
+  const businessName = clerkUser.firstName ? `${clerkUser.firstName} Studio` : "Meu Studio";
+  const businessSlug = await ensureUniqueSlug(clerkUser.username || email.split("@")[0] || ownerName);
+
+  const createdBusiness = await db.business.create({
+    data: {
+      ownerId: appUser.id,
+      name: businessName,
+      slug: businessSlug,
+      status: "ACTIVE",
+      contactEmail: email,
+      primaryColor: demoBusiness.primaryColor,
+      accentColor: demoBusiness.accentColor,
+      bookingPage: {
+        create: {
+          headline: demoBusiness.headline,
+          subheadline: demoBusiness.subheadline,
+          welcomeMessage: demoBusiness.welcomeMessage,
+        },
+      },
+      locations: {
+        create: {
+          name: `${businessName} Lisboa`,
+          city: "Lisboa",
+          isDefault: true,
+        },
+      },
+      services: {
+        create: demoBusiness.services.map((service, index) => ({
+          name: service.name,
+          slug: `${slugify(service.name)}-${index + 1}`,
+          description: service.description,
+          durationMinutes: service.durationMinutes,
+          priceCents: service.priceCents,
+          displayOrder: index,
+        })),
+      },
+      staffMembers: {
+        create: {
+          fullName: ownerName,
+          slug: slugify(ownerName),
+          roleTitle: "Founder",
+          bio: "Responsavel pelo atendimento e pela experiencia do negocio.",
+          displayOrder: 0,
+        },
+      },
+      subscription: {
+        create: {
+          tier: "FREE",
+          status: "TRIALING",
+          seats: 1,
+        },
+      },
+    },
+  });
+
+  await hydrateOperationalData(createdBusiness.id, { seedBooking: false });
+
+  return db.business.findUniqueOrThrow({
+    where: { id: createdBusiness.id },
+    include: {
+      bookingPage: true,
+      services: { orderBy: { displayOrder: "asc" } },
+      staffMembers: {
+        orderBy: { displayOrder: "asc" },
+        include: {
+          services: true,
+          availabilities: true,
+        },
+      },
+      locations: { where: { isDefault: true }, take: 1 },
+      bookings: {
+        include: {
+          service: true,
+          staffMember: true,
+        },
+        orderBy: { startsAt: "desc" },
+      },
+    },
+  });
+}
 
 export type OnboardingDraft = {
   businessName: string;
@@ -232,7 +435,12 @@ export async function ensureDemoBusiness() {
   });
 }
 
-async function hydrateOperationalData(businessId: string) {
+async function hydrateOperationalData(
+  businessId: string,
+  options: {
+    seedBooking?: boolean;
+  } = {}
+) {
   const business = await db.business.findUniqueOrThrow({
     where: { id: businessId },
     include: {
@@ -288,7 +496,13 @@ async function hydrateOperationalData(businessId: string) {
     }
   }
 
-  if (business.bookings.length === 0 && location && business.services.length > 0 && business.staffMembers.length > 0) {
+  if (
+    options.seedBooking !== false &&
+    business.bookings.length === 0 &&
+    location &&
+    business.services.length > 0 &&
+    business.staffMembers.length > 0
+  ) {
     const service = business.services[0];
     const staffMember = business.staffMembers[0];
     const start = set(addDays(new Date(), 1), { hours: 10, minutes: 0, seconds: 0, milliseconds: 0 });
@@ -315,13 +529,13 @@ async function hydrateOperationalData(businessId: string) {
 }
 
 export async function getBusinessForOnboarding() {
-  const business = await ensureDemoBusiness();
+  const business = await getCurrentBusiness();
   const location = business.locations[0];
 
   return {
     businessName: business.name,
     slug: business.slug,
-    city: location?.city ?? demoBusiness.city,
+    city: location?.city ?? "Lisboa",
     phone: business.contactPhone ?? "",
     headline: business.bookingPage?.headline ?? demoBusiness.headline,
     subheadline: business.bookingPage?.subheadline ?? demoBusiness.subheadline,
@@ -332,7 +546,7 @@ export async function getBusinessForOnboarding() {
 }
 
 export async function updateBusinessFromOnboarding(input: OnboardingDraft) {
-  const business = await ensureDemoBusiness();
+  const business = await getCurrentBusiness();
 
   return db.business.update({
     where: { id: business.id },
@@ -641,7 +855,7 @@ export async function createPublicBooking(input: {
 }
 
 export async function getDashboardSnapshot() {
-  const business = await ensureDemoBusiness();
+  const business = await getCurrentBusiness();
 
   const monthStart = set(new Date(), { date: 1, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
   const monthlyBookings = business.bookings.filter((booking) => booking.startsAt >= monthStart);
@@ -660,14 +874,14 @@ export async function getDashboardSnapshot() {
     servicesCount: business.services.length,
     staffCount: business.staffMembers.length,
     monthlyRevenueCents: monthlyBookings.reduce((sum, booking) => sum + booking.priceCents, 0),
-    city: business.locations[0]?.city ?? demoBusiness.city,
+    city: business.locations[0]?.city ?? "Lisboa",
     bookingsCount: business.bookings.length,
     recentBookings,
   };
 }
 
 export async function getBookingAgenda(input?: { date?: string; staffMemberId?: string }): Promise<BookingAgendaSnapshot> {
-  const business = await ensureDemoBusiness();
+  const business = await getCurrentBusiness();
   const requestedDate = input?.date ? new Date(`${input.date}T00:00:00`) : new Date();
   const safeDate = Number.isNaN(requestedDate.getTime()) ? new Date() : requestedDate;
   const dayStart = set(safeDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
@@ -712,7 +926,7 @@ export async function getBookingAgenda(input?: { date?: string; staffMemberId?: 
 }
 
 export async function getManagementSnapshot(): Promise<ManagementSnapshot> {
-  const business = await ensureDemoBusiness();
+  const business = await getCurrentBusiness();
 
   return {
     businessId: business.id,
@@ -750,7 +964,7 @@ export async function createService(input: {
   durationMinutes: number;
   priceCents: number;
 }) {
-  const business = await ensureDemoBusiness();
+  const business = await getCurrentBusiness();
 
   const displayOrder = business.services.length;
 
@@ -776,7 +990,14 @@ export async function updateService(
     isActive: boolean;
   }
 ) {
-  const business = await ensureDemoBusiness();
+  const business = await getCurrentBusiness();
+  const service = await db.service.findFirst({
+    where: { id, businessId: business.id },
+  });
+
+  if (!service) {
+    throw new Error("SERVICE_NOT_FOUND");
+  }
 
   return db.service.update({
     where: { id },
@@ -786,7 +1007,6 @@ export async function updateService(
       durationMinutes: input.durationMinutes,
       priceCents: input.priceCents,
       isActive: input.isActive,
-      businessId: business.id,
     },
   });
 }
@@ -798,7 +1018,7 @@ export async function createStaffMember(input: {
   serviceIds: string[];
   availability: AvailabilityInput[];
 }) {
-  const business = await ensureDemoBusiness();
+  const business = await getCurrentBusiness();
   const location = business.locations[0];
 
   const staffMember = await db.staffMember.create({
@@ -838,7 +1058,14 @@ export async function updateStaffMember(
     availability: AvailabilityInput[];
   }
 ) {
-  await ensureDemoBusiness();
+  const business = await getCurrentBusiness();
+  const staffExists = await db.staffMember.findFirst({
+    where: { id, businessId: business.id },
+  });
+
+  if (!staffExists) {
+    throw new Error("STAFF_NOT_FOUND");
+  }
 
   const staffMember = await db.staffMember.update({
     where: { id },
@@ -873,7 +1100,14 @@ export async function updateBookingStatus(
   id: string,
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW"
 ) {
-  await ensureDemoBusiness();
+  const business = await getCurrentBusiness();
+  const booking = await db.booking.findFirst({
+    where: { id, businessId: business.id },
+  });
+
+  if (!booking) {
+    throw new Error("BOOKING_NOT_FOUND");
+  }
 
   return db.booking.update({
     where: { id },

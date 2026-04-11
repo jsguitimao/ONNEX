@@ -1,3 +1,4 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="pt-PT" className={cn("h-full antialiased", fontSans.variable, fontHeading.variable)}>
       <body className="min-h-full bg-background text-foreground">
-        {children}
+        <ClerkProvider>{children}</ClerkProvider>
       </body>
     </html>
   );

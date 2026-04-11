@@ -1,3 +1,4 @@
+import { UserButton } from "@clerk/nextjs";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { OnboardingStudio } from "@/components/onboarding-studio";
@@ -24,10 +25,13 @@ export default async function OnboardingPreviewPage() {
           </p>
         </div>
 
-        <Link href="/dashboard" className={buttonVariants({ variant: "outline", className: "gap-2" })}>
-          Ver dashboard base
-          <ArrowRight className="size-4" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard" className={buttonVariants({ variant: "outline", className: "gap-2" })}>
+            Ver dashboard base
+            <ArrowRight className="size-4" />
+          </Link>
+          <UserButton />
+        </div>
       </div>
 
       <div className="mb-8 flex flex-wrap gap-3 text-sm text-muted-foreground">

@@ -1,3 +1,4 @@
+import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { CalendarRange, Euro, LayoutDashboard, Sparkles, Users } from "lucide-react";
 import { DashboardAgenda } from "@/components/dashboard-agenda";
@@ -61,9 +62,12 @@ export default async function DashboardPreviewPage() {
           </p>
         </div>
 
-        <Link href="/onboarding" className={buttonVariants()}>
-          Ir para onboarding
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/onboarding" className={buttonVariants()}>
+            Ir para onboarding
+          </Link>
+          <UserButton />
+        </div>
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">

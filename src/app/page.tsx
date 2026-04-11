@@ -1,3 +1,4 @@
+import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -62,13 +63,23 @@ export default function HomePage() {
           </Link>
 
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className={buttonVariants({ variant: "ghost" })}>
-              Dashboard
-            </Link>
-            <Link href="/onboarding" className={buttonVariants({ className: "gap-2" })}>
-              Comecar
-              <ArrowRight className="size-4" />
-            </Link>
+            <Show when="signed-out">
+              <SignInButton mode="modal">
+                <button className={buttonVariants({ variant: "ghost" })}>Entrar</button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className={buttonVariants({ className: "gap-2" })}>
+                  Criar conta
+                  <ArrowRight className="size-4" />
+                </button>
+              </SignUpButton>
+            </Show>
+            <Show when="signed-in">
+              <Link href="/dashboard" className={buttonVariants({ variant: "ghost" })}>
+                Dashboard
+              </Link>
+              <UserButton />
+            </Show>
           </div>
         </header>
 
@@ -87,10 +98,20 @@ export default function HomePage() {
             </p>
 
             <div className="mt-10 flex flex-wrap gap-3">
-              <Link href="/onboarding" className={buttonVariants({ size: "lg", className: "gap-2" })}>
-                Ver estrutura inicial
-                <ArrowRight className="size-4" />
-              </Link>
+              <Show when="signed-out">
+                <SignUpButton mode="modal">
+                  <button className={buttonVariants({ size: "lg", className: "gap-2" })}>
+                    Comecar agora
+                    <ArrowRight className="size-4" />
+                  </button>
+                </SignUpButton>
+              </Show>
+              <Show when="signed-in">
+                <Link href="/onboarding" className={buttonVariants({ size: "lg", className: "gap-2" })}>
+                  Abrir onboarding
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Show>
               <Link href="/barbearia-sample" className={buttonVariants({ size: "lg", variant: "outline" })}>
                 Abrir perfil publico de exemplo
               </Link>
