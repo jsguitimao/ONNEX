@@ -1,0 +1,677 @@
+"use client";
+
+import { startTransition, useState } from "react";
+import { Check, LoaderCircle, Plus, Save, UserRound } from "lucide-react";
+import type { AvailabilityInput, ManagementSnapshot } from "@/lib/business";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+const weekdays = [
+  { value: 1, label: "Seg" },
+  { value: 2, label: "Ter" },
+  { value: 3, label: "Qua" },
+  { value: 4, label: "Qui" },
+  { value: 5, label: "Sex" },
+  { value: 6, label: "Sab" },
+  { value: 0, label: "Dom" },
+];
+
+type ServiceDraft = {
+  name: string;
+  description: string;
+  durationMinutes: string;
+  priceEuros: string;
+  isActive: boolean;
+};
+
+type StaffDraft = {
+  fullName: string;
+  roleTitle: string;
+  bio: string;
+  isActive: boolean;
+  serviceIds: string[];
+  availability: AvailabilityInput[];
+};
+
+type DashboardOpsProps = {
+  initialSnapshot: ManagementSnapshot;
+};
+
+function formatEuroFromCents(value: number) {
+  return (value / 100).toFixed(2);
+}
+
+function parseEurosToCents(value: string) {
+  return Math.round(Number(value.replace(",", ".")) * 100);
+}
+
+function defaultAvailability(): AvailabilityInput[] {
+  return [
+    { dayOfWeek: 1, startTime: "09:00", endTime: "18:00" },
+    { dayOfWeek: 2, startTime: "09:00", endTime: "18:00" },
+    { dayOfWeek: 3, startTime: "09:00", endTime: "18:00" },
+    { dayOfWeek: 4, startTime: "09:00", endTime: "18:00" },
+    { dayOfWeek: 5, startTime: "09:00", endTime: "19:00" },
+    { dayOfWeek: 6, startTime: "10:00", endTime: "16:00" },
+  ];
+}
+
+function makeServiceDraft(service?: ManagementSnapshot["services"][number]): ServiceDraft {
+  return {
+    name: service?.name ?? "",
+    description: service?.description ?? "",
+    durationMinutes: service ? String(service.durationMinutes) : "45",
+    priceEuros: service ? formatEuroFromCents(service.priceCents) : "25.00",
+    isActive: service?.isActive ?? true,
+  };
+}
+
+function makeStaffDraft(member?: ManagementSnapshot["staffMembers"][number]): StaffDraft {
+  return {
+    fullName: member?.fullName ?? "",
+    roleTitle: member?.roleTitle ?? "",
+    bio: member?.bio ?? "",
+    isActive: member?.isActive ?? true,
+    serviceIds: member?.serviceIds ?? [],
+    availability: member?.availability.length ? member.availability : defaultAvailability(),
+  };
+}
+
+function AvailabilityEditor({
+  value,
+  onChange,
+}: {
+  value: AvailabilityInput[];
+  onChange: (next: AvailabilityInput[]) => void;
+}) {
+  const entries = weekdays.map((day) => {
+    const slot = value.find((item) => item.dayOfWeek === day.value);
+    return {
+      ...day,
+      enabled: Boolean(slot),
+      startTime: slot?.startTime ?? "09:00",
+      endTime: slot?.endTime ?? "18:00",
+    };
+  });
+
+  return (
+    <div className="grid gap-3">
+      {entries.map((entry) => (
+        <div
+          key={entry.value}
+          className="grid gap-3 rounded-2xl border border-border/70 bg-background/70 p-3 md:grid-cols-[72px_1fr_1fr]"
+        >
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={entry.enabled}
+              onChange={(event) => {
+                if (event.target.checked) {
+                  onChange([
+                    ...value.filter((item) => item.dayOfWeek !== entry.value),
+                    { dayOfWeek: entry.value, startTime: entry.startTime, endTime: entry.endTime },
+                  ]);
+                  return;
+                }
+
+                onChange(value.filter((item) => item.dayOfWeek !== entry.value));
+              }}
+            />
+            {entry.label}
+          </label>
+
+          <Input
+            type="time"
+            value={entry.startTime}
+            disabled={!entry.enabled}
+            onChange={(event) =>
+              onChange(
+                value.map((item) =>
+                  item.dayOfWeek === entry.value ? { ...item, startTime: event.target.value } : item
+                )
+              )
+            }
+          />
+
+          <Input
+            type="time"
+            value={entry.endTime}
+            disabled={!entry.enabled}
+            onChange={(event) =>
+              onChange(
+                value.map((item) =>
+                  item.dayOfWeek === entry.value ? { ...item, endTime: event.target.value } : item
+                )
+              )
+            }
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
+  const [snapshot, setSnapshot] = useState(initialSnapshot);
+  const [serviceDrafts, setServiceDrafts] = useState<Record<string, ServiceDraft>>(
+    Object.fromEntries(initialSnapshot.services.map((service) => [service.id, makeServiceDraft(service)]))
+  );
+  const [staffDrafts, setStaffDrafts] = useState<Record<string, StaffDraft>>(
+    Object.fromEntries(initialSnapshot.staffMembers.map((member) => [member.id, makeStaffDraft(member)]))
+  );
+  const [newService, setNewService] = useState<ServiceDraft>(makeServiceDraft());
+  const [newStaff, setNewStaff] = useState<StaffDraft>(makeStaffDraft());
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function refreshSnapshot() {
+    const response = await fetch("/api/dashboard/setup", { cache: "no-store" });
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Erro ao atualizar o dashboard.");
+    }
+
+    setSnapshot(payload);
+    setServiceDrafts(
+      Object.fromEntries(
+        payload.services.map((service: ManagementSnapshot["services"][number]) => [
+          service.id,
+          makeServiceDraft(service),
+        ])
+      )
+    );
+    setStaffDrafts(
+      Object.fromEntries(
+        payload.staffMembers.map((member: ManagementSnapshot["staffMembers"][number]) => [
+          member.id,
+          makeStaffDraft(member),
+        ])
+      )
+    );
+  }
+
+  async function submit(url: string, method: "POST" | "PATCH", body: unknown, successMessage: string) {
+    setLoading(true);
+    setError(null);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Nao foi possivel guardar as alteracoes.");
+      }
+
+      await refreshSnapshot();
+      setFeedback(successMessage);
+      startTransition(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Erro inesperado.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-6">
+      <Card className="border-primary/15 bg-gradient-to-br from-background via-background to-primary/5">
+        <CardHeader className="gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle className="font-heading text-2xl">Mesa de operacao</CardTitle>
+            <CardDescription>
+              Servicos, equipa e disponibilidade ja editaveis. E aqui que o produto comeca a
+              deixar de parecer demo.
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">{snapshot.services.length} servicos</Badge>
+            <Badge variant="secondary">{snapshot.staffMembers.length} profissionais</Badge>
+            <Badge variant="secondary">/{snapshot.slug}</Badge>
+          </div>
+        </CardHeader>
+        {(feedback || error) && (
+          <CardContent className="pt-0">
+            {feedback ? (
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
+                {feedback}
+              </div>
+            ) : null}
+            {error ? (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {error}
+              </div>
+            ) : null}
+          </CardContent>
+        )}
+      </Card>
+
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card className="border-border/70">
+          <CardHeader>
+            <CardTitle className="font-heading text-xl">Servicos</CardTitle>
+            <CardDescription>
+              Mantem a oferta atualizada e controla o que aparece na pagina publica.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {snapshot.services.map((service) => {
+              const draft = serviceDrafts[service.id] ?? makeServiceDraft(service);
+
+              return (
+                <details
+                  key={service.id}
+                  className="rounded-3xl border border-border/70 bg-muted/20 p-4"
+                >
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{service.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {service.durationMinutes} min · {formatEuroFromCents(service.priceCents)} €
+                      </p>
+                    </div>
+                    <Badge variant={service.isActive ? "secondary" : "outline"}>
+                      {service.isActive ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </summary>
+
+                  <div className="mt-4 grid gap-3">
+                    <Input
+                      value={draft.name}
+                      onChange={(event) =>
+                        setServiceDrafts((current) => ({
+                          ...current,
+                          [service.id]: { ...draft, name: event.target.value },
+                        }))
+                      }
+                      placeholder="Nome do servico"
+                    />
+                    <textarea
+                      className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      value={draft.description}
+                      onChange={(event) =>
+                        setServiceDrafts((current) => ({
+                          ...current,
+                          [service.id]: { ...draft, description: event.target.value },
+                        }))
+                      }
+                      placeholder="Descricao curta para a pagina publica"
+                    />
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <Input
+                        type="number"
+                        min="10"
+                        max="240"
+                        step="5"
+                        value={draft.durationMinutes}
+                        onChange={(event) =>
+                          setServiceDrafts((current) => ({
+                            ...current,
+                            [service.id]: { ...draft, durationMinutes: event.target.value },
+                          }))
+                        }
+                        placeholder="Duracao em minutos"
+                      />
+                      <Input
+                        type="number"
+                        min="5"
+                        step="0.5"
+                        value={draft.priceEuros}
+                        onChange={(event) =>
+                          setServiceDrafts((current) => ({
+                            ...current,
+                            [service.id]: { ...draft, priceEuros: event.target.value },
+                          }))
+                        }
+                        placeholder="Preco em euros"
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={draft.isActive}
+                        onChange={(event) =>
+                          setServiceDrafts((current) => ({
+                            ...current,
+                            [service.id]: { ...draft, isActive: event.target.checked },
+                          }))
+                        }
+                      />
+                      Mostrar este servico na pagina publica
+                    </label>
+                    <div className="flex justify-end">
+                      <Button
+                        disabled={loading}
+                        onClick={() =>
+                          void submit(`/api/dashboard/services/${service.id}`, "PATCH", {
+                            name: draft.name,
+                            description: draft.description || undefined,
+                            durationMinutes: Number(draft.durationMinutes),
+                            priceCents: parseEurosToCents(draft.priceEuros),
+                            isActive: draft.isActive,
+                          }, "Servico atualizado.")
+                        }
+                      >
+                        {loading ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
+                        Guardar servico
+                      </Button>
+                    </div>
+                  </div>
+                </details>
+              );
+            })}
+
+            <div className="rounded-3xl border border-dashed border-primary/30 bg-primary/5 p-4">
+              <div className="mb-4 flex items-center gap-2">
+                <Plus className="size-4 text-primary" />
+                <p className="font-medium">Novo servico</p>
+              </div>
+              <div className="grid gap-3">
+                <Input
+                  value={newService.name}
+                  onChange={(event) => setNewService((current) => ({ ...current, name: event.target.value }))}
+                  placeholder="Ex: Corte + barba"
+                />
+                <textarea
+                  className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  value={newService.description}
+                  onChange={(event) =>
+                    setNewService((current) => ({ ...current, description: event.target.value }))
+                  }
+                  placeholder="Descricao do servico"
+                />
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    type="number"
+                    min="10"
+                    max="240"
+                    step="5"
+                    value={newService.durationMinutes}
+                    onChange={(event) =>
+                      setNewService((current) => ({ ...current, durationMinutes: event.target.value }))
+                    }
+                    placeholder="Duracao"
+                  />
+                  <Input
+                    type="number"
+                    min="5"
+                    step="0.5"
+                    value={newService.priceEuros}
+                    onChange={(event) =>
+                      setNewService((current) => ({ ...current, priceEuros: event.target.value }))
+                    }
+                    placeholder="Preco"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    disabled={loading}
+                    onClick={async () => {
+                      await submit("/api/dashboard/services", "POST", {
+                        name: newService.name,
+                        description: newService.description || undefined,
+                        durationMinutes: Number(newService.durationMinutes),
+                        priceCents: parseEurosToCents(newService.priceEuros),
+                      }, "Servico criado.");
+                      setNewService(makeServiceDraft());
+                    }}
+                  >
+                    {loading ? <LoaderCircle className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                    Criar servico
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70">
+          <CardHeader>
+            <CardTitle className="font-heading text-xl">Equipa e agenda base</CardTitle>
+            <CardDescription>
+              Define quem executa cada servico e em que janelas semanais pode receber reservas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {snapshot.staffMembers.map((member) => {
+              const draft = staffDrafts[member.id] ?? makeStaffDraft(member);
+
+              return (
+                <details
+                  key={member.id}
+                  className="rounded-3xl border border-border/70 bg-muted/20 p-4"
+                >
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <UserRound className="size-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{member.fullName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {member.roleTitle ?? "Profissional"} · {member.serviceIds.length} servicos
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={member.isActive ? "secondary" : "outline"}>
+                      {member.isActive ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </summary>
+
+                  <div className="mt-4 grid gap-4">
+                    <Input
+                      value={draft.fullName}
+                      onChange={(event) =>
+                        setStaffDrafts((current) => ({
+                          ...current,
+                          [member.id]: { ...draft, fullName: event.target.value },
+                        }))
+                      }
+                      placeholder="Nome completo"
+                    />
+                    <Input
+                      value={draft.roleTitle}
+                      onChange={(event) =>
+                        setStaffDrafts((current) => ({
+                          ...current,
+                          [member.id]: { ...draft, roleTitle: event.target.value },
+                        }))
+                      }
+                      placeholder="Funcao"
+                    />
+                    <textarea
+                      className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      value={draft.bio}
+                      onChange={(event) =>
+                        setStaffDrafts((current) => ({
+                          ...current,
+                          [member.id]: { ...draft, bio: event.target.value },
+                        }))
+                      }
+                      placeholder="Bio curta ou especialidades"
+                    />
+
+                    <div className="grid gap-2">
+                      <p className="text-sm font-medium">Servicos que este profissional executa</p>
+                      <div className="grid gap-2">
+                        {snapshot.services.map((service) => (
+                          <label
+                            key={service.id}
+                            className={cn(
+                              "flex items-center justify-between rounded-2xl border px-3 py-2 text-sm",
+                              draft.serviceIds.includes(service.id)
+                                ? "border-primary/40 bg-primary/5"
+                                : "border-border/70"
+                            )}
+                          >
+                            <span>{service.name}</span>
+                            <input
+                              type="checkbox"
+                              checked={draft.serviceIds.includes(service.id)}
+                              onChange={(event) =>
+                                setStaffDrafts((current) => ({
+                                  ...current,
+                                  [member.id]: {
+                                    ...draft,
+                                    serviceIds: event.target.checked
+                                      ? [...draft.serviceIds, service.id]
+                                      : draft.serviceIds.filter((serviceId) => serviceId !== service.id),
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <p className="text-sm font-medium">Disponibilidade semanal</p>
+                      <AvailabilityEditor
+                        value={draft.availability}
+                        onChange={(next) =>
+                          setStaffDrafts((current) => ({
+                            ...current,
+                            [member.id]: { ...draft, availability: next },
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={draft.isActive}
+                        onChange={(event) =>
+                          setStaffDrafts((current) => ({
+                            ...current,
+                            [member.id]: { ...draft, isActive: event.target.checked },
+                          }))
+                        }
+                      />
+                      Profissional disponivel para novas reservas
+                    </label>
+
+                    <div className="flex justify-end">
+                      <Button
+                        disabled={loading}
+                        onClick={() =>
+                          void submit(`/api/dashboard/team/${member.id}`, "PATCH", {
+                            fullName: draft.fullName,
+                            roleTitle: draft.roleTitle || undefined,
+                            bio: draft.bio || undefined,
+                            isActive: draft.isActive,
+                            serviceIds: draft.serviceIds,
+                            availability: draft.availability,
+                          }, "Profissional atualizado.")
+                        }
+                      >
+                        {loading ? <LoaderCircle className="size-4 animate-spin" /> : <Check className="size-4" />}
+                        Guardar profissional
+                      </Button>
+                    </div>
+                  </div>
+                </details>
+              );
+            })}
+
+            <div className="rounded-3xl border border-dashed border-primary/30 bg-primary/5 p-4">
+              <div className="mb-4 flex items-center gap-2">
+                <Plus className="size-4 text-primary" />
+                <p className="font-medium">Novo profissional</p>
+              </div>
+
+              <div className="grid gap-3">
+                <Input
+                  value={newStaff.fullName}
+                  onChange={(event) => setNewStaff((current) => ({ ...current, fullName: event.target.value }))}
+                  placeholder="Nome completo"
+                />
+                <Input
+                  value={newStaff.roleTitle}
+                  onChange={(event) => setNewStaff((current) => ({ ...current, roleTitle: event.target.value }))}
+                  placeholder="Funcao"
+                />
+                <textarea
+                  className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  value={newStaff.bio}
+                  onChange={(event) => setNewStaff((current) => ({ ...current, bio: event.target.value }))}
+                  placeholder="Bio ou especialidades"
+                />
+
+                <div className="grid gap-2">
+                  <p className="text-sm font-medium">Servicos atendidos</p>
+                  <div className="grid gap-2">
+                    {snapshot.services.map((service) => (
+                      <label
+                        key={service.id}
+                        className={cn(
+                          "flex items-center justify-between rounded-2xl border px-3 py-2 text-sm",
+                          newStaff.serviceIds.includes(service.id)
+                            ? "border-primary/40 bg-primary/5"
+                            : "border-border/70"
+                        )}
+                      >
+                        <span>{service.name}</span>
+                        <input
+                          type="checkbox"
+                          checked={newStaff.serviceIds.includes(service.id)}
+                          onChange={(event) =>
+                            setNewStaff((current) => ({
+                              ...current,
+                              serviceIds: event.target.checked
+                                ? [...current.serviceIds, service.id]
+                                : current.serviceIds.filter((serviceId) => serviceId !== service.id),
+                            }))
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <p className="text-sm font-medium">Disponibilidade semanal</p>
+                  <AvailabilityEditor
+                    value={newStaff.availability}
+                    onChange={(next) => setNewStaff((current) => ({ ...current, availability: next }))}
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    disabled={loading}
+                    onClick={async () => {
+                      await submit("/api/dashboard/team", "POST", {
+                        fullName: newStaff.fullName,
+                        roleTitle: newStaff.roleTitle || undefined,
+                        bio: newStaff.bio || undefined,
+                        serviceIds: newStaff.serviceIds,
+                        availability: newStaff.availability,
+                      }, "Profissional criado.");
+                      setNewStaff(makeStaffDraft());
+                    }}
+                  >
+                    {loading ? <LoaderCircle className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                    Criar profissional
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

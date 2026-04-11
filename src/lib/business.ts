@@ -61,6 +61,35 @@ export type BookingSlot = {
   label: string;
 };
 
+export type AvailabilityInput = {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+};
+
+export type ManagementSnapshot = {
+  businessId: string;
+  businessName: string;
+  slug: string;
+  services: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    durationMinutes: number;
+    priceCents: number;
+    isActive: boolean;
+  }>;
+  staffMembers: Array<{
+    id: string;
+    fullName: string;
+    roleTitle: string | null;
+    bio: string | null;
+    isActive: boolean;
+    serviceIds: string[];
+    availability: AvailabilityInput[];
+  }>;
+};
+
 export async function ensureDemoBusiness() {
   const owner = await db.user.upsert({
     where: { clerkUserId: DEMO_OWNER.clerkUserId },
@@ -612,4 +641,179 @@ export async function getDashboardSnapshot() {
     bookingsCount: business.bookings.length,
     recentBookings,
   };
+}
+
+export async function getManagementSnapshot(): Promise<ManagementSnapshot> {
+  const business = await ensureDemoBusiness();
+
+  return {
+    businessId: business.id,
+    businessName: business.name,
+    slug: business.slug,
+    services: business.services.map((service) => ({
+      id: service.id,
+      name: service.name,
+      description: service.description,
+      durationMinutes: service.durationMinutes,
+      priceCents: service.priceCents,
+      isActive: service.isActive,
+    })),
+    staffMembers: business.staffMembers.map((member) => ({
+      id: member.id,
+      fullName: member.fullName,
+      roleTitle: member.roleTitle,
+      bio: member.bio,
+      isActive: member.isActive,
+      serviceIds: member.services.map((assignment) => assignment.serviceId),
+      availability: member.availabilities
+        .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime))
+        .map((slot) => ({
+          dayOfWeek: slot.dayOfWeek,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        })),
+    })),
+  };
+}
+
+export async function createService(input: {
+  name: string;
+  description?: string;
+  durationMinutes: number;
+  priceCents: number;
+}) {
+  const business = await ensureDemoBusiness();
+
+  const displayOrder = business.services.length;
+
+  return db.service.create({
+    data: {
+      businessId: business.id,
+      name: input.name,
+      description: input.description || null,
+      durationMinutes: input.durationMinutes,
+      priceCents: input.priceCents,
+      displayOrder,
+    },
+  });
+}
+
+export async function updateService(
+  id: string,
+  input: {
+    name: string;
+    description?: string;
+    durationMinutes: number;
+    priceCents: number;
+    isActive: boolean;
+  }
+) {
+  const business = await ensureDemoBusiness();
+
+  return db.service.update({
+    where: { id },
+    data: {
+      name: input.name,
+      description: input.description || null,
+      durationMinutes: input.durationMinutes,
+      priceCents: input.priceCents,
+      isActive: input.isActive,
+      businessId: business.id,
+    },
+  });
+}
+
+export async function createStaffMember(input: {
+  fullName: string;
+  roleTitle?: string;
+  bio?: string;
+  serviceIds: string[];
+  availability: AvailabilityInput[];
+}) {
+  const business = await ensureDemoBusiness();
+  const location = business.locations[0];
+
+  const staffMember = await db.staffMember.create({
+    data: {
+      businessId: business.id,
+      locationId: location?.id,
+      fullName: input.fullName,
+      roleTitle: input.roleTitle || null,
+      bio: input.bio || null,
+      displayOrder: business.staffMembers.length,
+    },
+  });
+
+  if (input.serviceIds.length > 0) {
+    await db.staffService.createMany({
+      data: input.serviceIds.map((serviceId) => ({
+        staffMemberId: staffMember.id,
+        serviceId,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  await replaceStaffAvailability(staffMember.id, input.availability);
+
+  return staffMember;
+}
+
+export async function updateStaffMember(
+  id: string,
+  input: {
+    fullName: string;
+    roleTitle?: string;
+    bio?: string;
+    isActive: boolean;
+    serviceIds: string[];
+    availability: AvailabilityInput[];
+  }
+) {
+  await ensureDemoBusiness();
+
+  const staffMember = await db.staffMember.update({
+    where: { id },
+    data: {
+      fullName: input.fullName,
+      roleTitle: input.roleTitle || null,
+      bio: input.bio || null,
+      isActive: input.isActive,
+    },
+  });
+
+  await db.staffService.deleteMany({
+    where: { staffMemberId: id },
+  });
+
+  if (input.serviceIds.length > 0) {
+    await db.staffService.createMany({
+      data: input.serviceIds.map((serviceId) => ({
+        staffMemberId: id,
+        serviceId,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  await replaceStaffAvailability(id, input.availability);
+
+  return staffMember;
+}
+
+async function replaceStaffAvailability(staffMemberId: string, availability: AvailabilityInput[]) {
+  await db.weeklyAvailability.deleteMany({
+    where: { staffMemberId },
+  });
+
+  if (availability.length > 0) {
+    await db.weeklyAvailability.createMany({
+      data: availability.map((slot) => ({
+        staffMemberId,
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      })),
+    });
+  }
 }
