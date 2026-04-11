@@ -1,43 +1,47 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, MapPin, Palette, Phone, Store, UserRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2, MapPin, Palette, Phone, Store, UserRound } from "lucide-react";
 import { demoBusiness, formatEuro } from "@/lib/demo-data";
+import type { OnboardingDraft } from "@/lib/business";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-type FormState = {
-  businessName: string;
-  slug: string;
-  city: string;
-  phone: string;
-  headline: string;
-  subheadline: string;
-  welcomeMessage: string;
-  primaryColor: string;
-  accentColor: string;
-};
+export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft }) {
+  const [form, setForm] = useState<OnboardingDraft>(initialData);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [message, setMessage] = useState("");
 
-const initialState: FormState = {
-  businessName: demoBusiness.name,
-  slug: demoBusiness.slug,
-  city: demoBusiness.city,
-  phone: "+351 912 345 678",
-  headline: demoBusiness.headline,
-  subheadline: demoBusiness.subheadline,
-  welcomeMessage: demoBusiness.welcomeMessage,
-  primaryColor: demoBusiness.primaryColor,
-  accentColor: demoBusiness.accentColor,
-};
-
-export function OnboardingStudio() {
-  const [form, setForm] = useState<FormState>(initialState);
-
-  const updateField = (field: keyof FormState, value: string) => {
+  const updateField = (field: keyof OnboardingDraft, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    setStatus("saving");
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/onboarding", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "Não foi possível guardar.");
+      }
+
+      setStatus("saved");
+      setMessage("Configuração guardada com sucesso.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Erro inesperado ao guardar.");
+    }
   };
 
   return (
@@ -120,6 +124,34 @@ export function OnboardingStudio() {
               </div>
             </div>
           </section>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-muted/50 p-4">
+            <div className="text-sm text-muted-foreground">
+              Estas alterações já são persistidas no Neon e alimentam a rota pública por slug.
+            </div>
+            <button
+              type="button"
+              className={cn(buttonVariants({ className: "gap-2" }))}
+              onClick={handleSave}
+              disabled={status === "saving"}
+            >
+              {status === "saving" ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+              Guardar onboarding
+            </button>
+          </div>
+
+          {message ? (
+            <div
+              className={cn(
+                "rounded-2xl border px-4 py-3 text-sm",
+                status === "error"
+                  ? "border-destructive/30 bg-destructive/10 text-destructive"
+                  : "border-primary/20 bg-primary/5 text-foreground"
+              )}
+            >
+              {message}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

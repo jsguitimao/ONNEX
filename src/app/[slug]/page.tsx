@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
 import { Clock3, MapPin, UserRound } from "lucide-react";
-import { demoBusiness, formatEuro } from "@/lib/demo-data";
+import { getBusinessBySlug } from "@/lib/business";
+import { formatEuro } from "@/lib/demo-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const dynamic = "force-dynamic";
 
 type PublicPageProps = {
   params: Promise<{ slug: string }>;
@@ -11,10 +14,13 @@ type PublicPageProps = {
 
 export default async function PublicBookingPage({ params }: PublicPageProps) {
   const { slug } = await params;
+  const business = await getBusinessBySlug(slug);
 
-  if (slug !== demoBusiness.slug) {
+  if (!business) {
     notFound();
   }
+
+  const location = business.locations[0];
 
   return (
     <main className="min-h-screen bg-muted/30 px-6 py-12">
@@ -23,30 +29,35 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           <Badge variant="secondary" className="mb-5">
             Página pública do negócio
           </Badge>
-          <h1 className="font-heading text-4xl font-semibold tracking-tight">{demoBusiness.name}</h1>
+          <h1 className="font-heading text-4xl font-semibold tracking-tight">{business.name}</h1>
           <p className="mt-4 max-w-2xl text-muted-foreground">
-            {demoBusiness.headline}
+            {business.bookingPage?.headline}
           </p>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{demoBusiness.subheadline}</p>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+            {business.bookingPage?.subheadline}
+          </p>
 
           <div className="mt-5 flex flex-wrap gap-3 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1.5">
               <MapPin className="size-4" />
-              {demoBusiness.city}
+              {location?.city ?? "Portugal"}
             </span>
             <span className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1.5">
               <UserRound className="size-4" />
-              {demoBusiness.team.length} profissionais
+              {business.staffMembers.length} profissionais
             </span>
           </div>
 
-          <div className="mt-6 rounded-3xl p-5 text-primary-foreground" style={{ backgroundColor: demoBusiness.primaryColor }}>
+          <div
+            className="mt-6 rounded-3xl p-5 text-primary-foreground"
+            style={{ backgroundColor: business.primaryColor ?? "#1570ef" }}
+          >
             <p className="text-sm font-medium uppercase tracking-[0.18em] text-primary-foreground/70">Mensagem de boas-vindas</p>
-            <p className="mt-3 max-w-2xl text-sm leading-7">{demoBusiness.welcomeMessage}</p>
+            <p className="mt-3 max-w-2xl text-sm leading-7">{business.bookingPage?.welcomeMessage}</p>
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            {demoBusiness.services.map((service) => (
+            {business.services.map((service) => (
               <Card key={service.id}>
                 <CardHeader>
                   <CardTitle className="font-heading text-lg">{service.name}</CardTitle>
@@ -68,13 +79,13 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           <div className="mt-8">
             <h2 className="font-heading text-2xl font-semibold tracking-tight">Profissionais</h2>
             <div className="mt-4 grid gap-3">
-              {demoBusiness.team.map((member) => (
+              {business.staffMembers.map((member) => (
                 <div key={member.id} className="rounded-2xl border bg-background p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-medium">{member.name}</p>
-                      <p className="text-sm text-muted-foreground">{member.role}</p>
-                      <p className="mt-2 text-sm text-muted-foreground">{member.specialties.join(" · ")}</p>
+                      <p className="font-medium">{member.fullName}</p>
+                      <p className="text-sm text-muted-foreground">{member.roleTitle}</p>
+                      <p className="mt-2 text-sm text-muted-foreground">{member.bio}</p>
                     </div>
                     <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">
                       Disponível
@@ -96,11 +107,11 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           <div className="mt-8 space-y-4">
             <div className="rounded-2xl border bg-muted/50 p-4">
               <p className="text-sm font-medium">1. Serviço</p>
-              <p className="mt-1 text-sm text-muted-foreground">{demoBusiness.services[0].name}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{business.services[0]?.name ?? "Sem serviços"}</p>
             </div>
             <div className="rounded-2xl border bg-muted/50 p-4">
               <p className="text-sm font-medium">2. Profissional</p>
-              <p className="mt-1 text-sm text-muted-foreground">{demoBusiness.team[0].name}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{business.staffMembers[0]?.fullName ?? "A definir"}</p>
             </div>
             <div className="rounded-2xl border bg-muted/50 p-4">
               <p className="text-sm font-medium">3. Data e hora</p>

@@ -1,10 +1,15 @@
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { OnboardingStudio } from "@/components/onboarding-studio";
+import { getBusinessForOnboarding } from "@/lib/business";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 
-export default function OnboardingPreviewPage() {
+export const dynamic = "force-dynamic";
+
+export default async function OnboardingPreviewPage() {
+  const initialData = await getBusinessForOnboarding();
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-6 py-12">
       <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
@@ -40,7 +45,7 @@ export default function OnboardingPreviewPage() {
         </span>
       </div>
 
-      <OnboardingStudio />
+      <OnboardingStudio initialData={initialData} />
     </main>
   );
 }

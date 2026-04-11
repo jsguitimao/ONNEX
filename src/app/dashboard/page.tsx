@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { CalendarRange, Euro, LayoutDashboard, Sparkles, Users } from "lucide-react";
-import { demoBusiness, formatEuro } from "@/lib/demo-data";
+import { getDashboardSnapshot } from "@/lib/business";
+import { formatEuro } from "@/lib/demo-data";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const dynamic = "force-dynamic";
 
 const panels = [
   {
@@ -26,13 +29,14 @@ const panels = [
   },
 ];
 
-const stats = [
-  { label: "Serviços ativos", value: demoBusiness.services.length.toString(), icon: Sparkles },
-  { label: "Profissionais", value: demoBusiness.team.length.toString(), icon: Users },
-  { label: "Ticket médio alvo", value: formatEuro(1760), icon: Euro },
-];
+export default async function DashboardPreviewPage() {
+  const snapshot = await getDashboardSnapshot();
+  const stats = [
+    { label: "Serviços ativos", value: snapshot.servicesCount.toString(), icon: Sparkles },
+    { label: "Profissionais", value: snapshot.staffCount.toString(), icon: Users },
+    { label: "Receita de referência", value: formatEuro(snapshot.monthlyRevenueCents), icon: Euro },
+  ];
 
-export default function DashboardPreviewPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-12">
       <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
@@ -40,10 +44,13 @@ export default function DashboardPreviewPage() {
           <Badge variant="secondary" className="mb-4">
             Preview estrutural
           </Badge>
-          <h1 className="font-heading text-4xl font-semibold tracking-tight">Dashboard do negócio</h1>
+          <h1 className="font-heading text-4xl font-semibold tracking-tight">{snapshot.businessName}</h1>
           <p className="mt-3 text-muted-foreground">
             Esta área já está desenhada para o fluxo autenticado do negócio. A partir daqui vamos
             ligar onboarding, persistência, agenda e automações sem trocar a estrutura do app.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Cidade principal: {snapshot.city} · Página pública: /{snapshot.slug}
           </p>
         </div>
 
