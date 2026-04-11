@@ -603,10 +603,13 @@ export type BookingAgendaItem = {
   endsAt: Date;
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
   source: "ONLINE" | "MANUAL" | "IMPORTED";
+  serviceId: string;
+  staffMemberId: string | null;
   priceCents: number;
   customerName: string;
   customerEmail: string | null;
   customerPhone: string | null;
+  internalNotes: string | null;
   serviceName: string;
   staffName: string;
 };
@@ -1470,10 +1473,13 @@ export async function getBookingAgenda(input?: { date?: string; staffMemberId?: 
       endsAt: booking.endsAt,
       status: booking.status,
       source: booking.source,
+      serviceId: booking.serviceId,
+      staffMemberId: booking.staffMemberId,
       priceCents: booking.priceCents,
       customerName: booking.customerName,
       customerEmail: booking.customerEmail,
       customerPhone: booking.customerPhone,
+      internalNotes: booking.internalNotes,
       serviceName: booking.service.name,
       staffName: booking.staffMember?.fullName ?? "Sem profissional",
     })),
@@ -1884,6 +1890,126 @@ export async function updateBookingStatus(
   }
 
   if (status === "CANCELLED") {
+    await Promise.all([
+      sendBookingNotification(updated.id, "BOOKING_CANCELLED"),
+      sendRepresentativeBookingNotification(updated.id, "BOOKING_CANCELLED_INTERNAL"),
+    ]);
+  }
+
+  return updated;
+}
+
+export async function updateDashboardBooking(
+  id: string,
+  input: {
+    status?: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+    startsAt?: string;
+    internalNotes?: string;
+  }
+) {
+  const business = await getCurrentBusiness();
+  const booking = await db.booking.findFirst({
+    where: { id, businessId: business.id },
+    include: {
+      business: true,
+      service: true,
+      staffMember: {
+        include: {
+          services: true,
+        },
+      },
+    },
+  });
+
+  if (!booking) {
+    throw new Error("BOOKING_NOT_FOUND");
+  }
+
+  const nextStatus = input.status ?? booking.status;
+  let startsAt = booking.startsAt;
+  let endsAt = booking.endsAt;
+
+  if (input.startsAt) {
+    if (!booking.staffMemberId || !booking.staffMember) {
+      throw new Error("BOOKING_RESCHEDULE_NOT_ALLOWED");
+    }
+
+    const nextStartsAt = new Date(input.startsAt);
+    if (Number.isNaN(nextStartsAt.getTime())) {
+      throw new Error("DATA_INVALIDA");
+    }
+
+    if (!booking.staffMember.services.some((assignment) => assignment.serviceId === booking.serviceId)) {
+      throw new Error("PROFISSIONAL_INCOMPATIVEL");
+    }
+
+    const nextEndsAt = new Date(nextStartsAt.getTime() + booking.service.durationMinutes * 60_000);
+    const conflict = await db.booking.findFirst({
+      where: {
+        businessId: booking.businessId,
+        staffMemberId: booking.staffMemberId,
+        id: { not: booking.id },
+        status: {
+          notIn: ["CANCELLED", "NO_SHOW"],
+        },
+        startsAt: {
+          lt: nextEndsAt,
+        },
+        endsAt: {
+          gt: nextStartsAt,
+        },
+      },
+    });
+
+    if (conflict) {
+      throw new Error("HORARIO_OCUPADO");
+    }
+
+    const blocked = await db.scheduleBlock.findFirst({
+      where: {
+        businessId: booking.businessId,
+        OR: [{ staffMemberId: booking.staffMemberId }, { staffMemberId: null }],
+        startsAt: {
+          lt: nextEndsAt,
+        },
+        endsAt: {
+          gt: nextStartsAt,
+        },
+      },
+    });
+
+    if (blocked) {
+      throw new Error("HORARIO_BLOQUEADO");
+    }
+
+    startsAt = nextStartsAt;
+    endsAt = nextEndsAt;
+  }
+
+  const updated = await db.booking.update({
+    where: { id: booking.id },
+    data: {
+      status: nextStatus,
+      startsAt,
+      endsAt,
+      internalNotes: input.internalNotes === undefined ? booking.internalNotes : input.internalNotes || null,
+    },
+    include: {
+      business: true,
+      service: true,
+      staffMember: true,
+    },
+  });
+
+  if (input.startsAt && startsAt.getTime() !== booking.startsAt.getTime()) {
+    await sendBookingNotification(updated.id, "BOOKING_RESCHEDULED");
+  }
+
+  if (booking.status !== nextStatus && nextStatus === "CONFIRMED") {
+    await sendBookingNotification(updated.id, "BOOKING_CONFIRMED");
+  }
+
+  if (booking.status !== nextStatus && nextStatus === "CANCELLED") {
     await Promise.all([
       sendBookingNotification(updated.id, "BOOKING_CANCELLED"),
       sendRepresentativeBookingNotification(updated.id, "BOOKING_CANCELLED_INTERNAL"),

@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  FileText,
   LoaderCircle,
   Phone,
   RefreshCw,
@@ -44,6 +45,11 @@ const statusTone: Record<string, string> = {
   NO_SHOW: "bg-zinc-500/10 text-zinc-700 border-zinc-500/20",
 };
 
+function toDateTimeLocalValue(date: Date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
 export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [date, setDate] = useState(initialSnapshot.date);
@@ -56,6 +62,19 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
   });
   const [showManualForm, setShowManualForm] = useState(false);
   const [showBlockForm, setShowBlockForm] = useState(false);
+  const [bookingDrafts, setBookingDrafts] = useState<
+    Record<string, { startsAt: string; internalNotes: string }>
+  >(
+    Object.fromEntries(
+      initialSnapshot.bookings.map((booking) => [
+        booking.id,
+        {
+          startsAt: toDateTimeLocalValue(new Date(booking.startsAt)),
+          internalNotes: booking.internalNotes ?? "",
+        },
+      ])
+    )
+  );
   const [manualDraft, setManualDraft] = useState({
     customerName: "",
     customerEmail: "",
@@ -76,6 +95,21 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+
+  function syncBookingDrafts(bookings: BookingAgendaSnapshot["bookings"]) {
+    setBookingDrafts((current) => ({
+      ...current,
+      ...Object.fromEntries(
+        bookings.map((booking) => [
+          booking.id,
+          {
+            startsAt: current[booking.id]?.startsAt ?? toDateTimeLocalValue(new Date(booking.startsAt)),
+            internalNotes: current[booking.id]?.internalNotes ?? booking.internalNotes ?? "",
+          },
+        ])
+      ),
+    }));
+  }
 
   const summary = useMemo(() => {
     return {
@@ -119,6 +153,7 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
       }
 
       setSnapshot(payload);
+      syncBookingDrafts(payload.bookings);
     } catch (agendaError) {
       setError(agendaError instanceof Error ? agendaError.message : "Erro ao carregar agenda.");
     } finally {
@@ -183,6 +218,37 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
       await Promise.all([refreshAgenda(), refreshWeek()]);
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "Erro ao atualizar reserva.");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function saveBooking(bookingId: string, currentStatus: string) {
+    const draft = bookingDrafts[bookingId];
+    if (!draft) return;
+
+    setUpdatingId(bookingId);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/dashboard/bookings/${bookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: currentStatus,
+          startsAt: new Date(draft.startsAt).toISOString(),
+          internalNotes: draft.internalNotes,
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Nao foi possivel atualizar a reserva.");
+      }
+
+      await Promise.all([refreshAgenda(), refreshWeek()]);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Erro ao guardar reserva.");
     } finally {
       setUpdatingId(null);
     }
@@ -681,6 +747,50 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
                       </div>
                     </div>
                   </div>
+
+                  <div className="grid gap-3 rounded-2xl border border-border/70 bg-muted/20 p-3">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="grid gap-2">
+                        <span className="text-sm font-medium">Remarcar no painel</span>
+                        <Input
+                          type="datetime-local"
+                          value={
+                            bookingDrafts[booking.id]?.startsAt ?? toDateTimeLocalValue(new Date(booking.startsAt))
+                          }
+                          onChange={(event) =>
+                            setBookingDrafts((current) => ({
+                              ...current,
+                              [booking.id]: {
+                                startsAt: event.target.value,
+                                internalNotes: current[booking.id]?.internalNotes ?? booking.internalNotes ?? "",
+                              },
+                            }))
+                          }
+                        />
+                      </label>
+
+                      <label className="grid gap-2">
+                        <span className="inline-flex items-center gap-2 text-sm font-medium">
+                          <FileText className="size-4 text-primary" />
+                          Notas internas
+                        </span>
+                        <textarea
+                          className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          value={bookingDrafts[booking.id]?.internalNotes ?? booking.internalNotes ?? ""}
+                          onChange={(event) =>
+                            setBookingDrafts((current) => ({
+                              ...current,
+                              [booking.id]: {
+                                startsAt: current[booking.id]?.startsAt ?? toDateTimeLocalValue(new Date(booking.startsAt)),
+                                internalNotes: event.target.value,
+                              },
+                            }))
+                          }
+                          placeholder="Observacoes internas para a equipa..."
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-start gap-2 lg:w-[240px] lg:justify-end">
@@ -717,6 +827,15 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
                     onClick={() => void updateStatus(booking.id, "CANCELLED")}
                   >
                     Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={updatingId === booking.id}
+                    onClick={() => void saveBooking(booking.id, booking.status)}
+                  >
+                    {updatingId === booking.id ? <LoaderCircle className="size-4 animate-spin" /> : <FileText className="size-4" />}
+                    Guardar
                   </Button>
                 </div>
               </div>
