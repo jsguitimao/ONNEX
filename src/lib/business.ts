@@ -96,6 +96,182 @@ function getCancellationDeadline(startsAt: Date, business: { cancellationWindowH
   return new Date(startsAt.getTime() - cancellationWindowHours * 60 * 60_000);
 }
 
+async function listBookingSlots(input: {
+  businessId: string;
+  onlineBooking: boolean;
+  bookingLeadTimeHours?: number | null;
+  bookingWindowDays?: number | null;
+  slotIntervalMinutes?: number | null;
+  serviceId: string;
+  staffMemberId: string;
+  date: string;
+  ignoreBookingId?: string;
+}) {
+  if (!input.onlineBooking) return [];
+
+  const policy = getBookingPolicySettings(input);
+  const { minBookableAt, maxBookableAt } = getBookableRange(input);
+
+  const service = await db.service.findFirst({
+    where: {
+      id: input.serviceId,
+      businessId: input.businessId,
+      isActive: true,
+    },
+  });
+
+  const staffMember = await db.staffMember.findFirst({
+    where: {
+      id: input.staffMemberId,
+      businessId: input.businessId,
+      isActive: true,
+    },
+    include: {
+      availabilities: {
+        where: { isActive: true },
+      },
+      services: true,
+    },
+  });
+
+  if (!service || !staffMember) return [];
+
+  const hasService = staffMember.services.some((assignment) => assignment.serviceId === service.id);
+  if (!hasService) return [];
+
+  const requestedDate = new Date(`${input.date}T00:00:00`);
+  if (Number.isNaN(requestedDate.getTime())) return [];
+  const dayStart = set(requestedDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
+  const dayEnd = set(requestedDate, { hours: 23, minutes: 59, seconds: 59, milliseconds: 999 });
+  if (dayEnd < minBookableAt || dayStart > maxBookableAt) return [];
+
+  const dayOfWeek = requestedDate.getDay();
+  const windows = staffMember.availabilities.filter((slot) => slot.dayOfWeek === dayOfWeek);
+  if (windows.length === 0) return [];
+
+  const existingBookings = await db.booking.findMany({
+    where: {
+      businessId: input.businessId,
+      staffMemberId: staffMember.id,
+      startsAt: {
+        gte: dayStart,
+        lte: dayEnd,
+      },
+      status: {
+        notIn: ["CANCELLED", "NO_SHOW"],
+      },
+      ...(input.ignoreBookingId ? { id: { not: input.ignoreBookingId } } : {}),
+    },
+    select: {
+      startsAt: true,
+      endsAt: true,
+    },
+  });
+
+  const scheduleBlocks = await db.scheduleBlock.findMany({
+    where: {
+      businessId: input.businessId,
+      OR: [{ staffMemberId: staffMember.id }, { staffMemberId: null }],
+      startsAt: {
+        gte: dayStart,
+        lte: dayEnd,
+      },
+    },
+    select: {
+      startsAt: true,
+      endsAt: true,
+    },
+  });
+
+  const slots: BookingSlot[] = [];
+
+  for (const window of windows) {
+    const [startHour, startMinute] = window.startTime.split(":").map(Number);
+    const [endHour, endMinute] = window.endTime.split(":").map(Number);
+    let cursor = set(requestedDate, {
+      hours: startHour,
+      minutes: startMinute,
+      seconds: 0,
+      milliseconds: 0,
+    });
+    const windowEnd = set(requestedDate, {
+      hours: endHour,
+      minutes: endMinute,
+      seconds: 0,
+      milliseconds: 0,
+    });
+
+    while (cursor.getTime() + service.durationMinutes * 60_000 <= windowEnd.getTime()) {
+      const candidateEnd = new Date(cursor.getTime() + service.durationMinutes * 60_000);
+      const overlaps = existingBookings.some(
+        (booking) => cursor < booking.endsAt && candidateEnd > booking.startsAt
+      );
+      const overlapsBlock = scheduleBlocks.some(
+        (block) => cursor < block.endsAt && candidateEnd > block.startsAt
+      );
+
+      if (!overlaps && !overlapsBlock && cursor >= minBookableAt && candidateEnd <= maxBookableAt) {
+        slots.push({
+          iso: cursor.toISOString(),
+          label: format(cursor, "HH:mm"),
+        });
+      }
+
+      cursor = new Date(cursor.getTime() + policy.slotIntervalMinutes * 60_000);
+    }
+  }
+
+  return slots;
+}
+
+function buildPublicBookingDetails(booking: {
+  id: string;
+  publicToken: string | null;
+  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  startsAt: Date;
+  endsAt: Date;
+  customerName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  service: { id: string; name: string };
+  staffMember: { id: string; fullName: string } | null;
+  business: {
+    name: string;
+    slug: string;
+    bookingLeadTimeHours?: number | null;
+    bookingWindowDays?: number | null;
+    cancellationWindowHours?: number | null;
+  };
+}): PublicBookingDetails {
+  const cancellationDeadline = getCancellationDeadline(booking.startsAt, booking.business);
+  const canManageTime = ["PENDING", "CONFIRMED"].includes(booking.status) && new Date() < cancellationDeadline;
+  const policy = getBookingPolicySettings(booking.business);
+
+  return {
+    id: booking.id,
+    publicToken: booking.publicToken ?? "",
+    status: booking.status,
+    startsAt: booking.startsAt,
+    endsAt: booking.endsAt,
+    serviceId: booking.service.id,
+    staffMemberId: booking.staffMember?.id ?? null,
+    customerName: booking.customerName,
+    customerEmail: booking.customerEmail,
+    customerPhone: booking.customerPhone,
+    serviceName: booking.service.name,
+    staffName: booking.staffMember?.fullName ?? null,
+    businessName: booking.business.name,
+    businessSlug: booking.business.slug,
+    canConfirm: booking.status === "PENDING" && new Date() < booking.startsAt,
+    canCancel: canManageTime,
+    canReschedule: canManageTime && Boolean(booking.staffMember?.id),
+    cancellationWindowHours: policy.cancellationWindowHours,
+    cancellationDeadline,
+    bookingLeadTimeHours: policy.bookingLeadTimeHours,
+    bookingWindowDays: policy.bookingWindowDays,
+  };
+}
+
 function slugify(value: string) {
   return value
     .normalize("NFD")
@@ -369,6 +545,8 @@ export type PublicBookingDetails = {
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
   startsAt: Date;
   endsAt: Date;
+  serviceId: string;
+  staffMemberId: string | null;
   customerName: string;
   customerEmail: string | null;
   customerPhone: string | null;
@@ -378,8 +556,11 @@ export type PublicBookingDetails = {
   businessSlug: string;
   canConfirm: boolean;
   canCancel: boolean;
+  canReschedule: boolean;
   cancellationWindowHours: number;
   cancellationDeadline: Date;
+  bookingLeadTimeHours: number;
+  bookingWindowDays: number;
 };
 
 export type BookingSlot = {
@@ -868,118 +1049,43 @@ export async function getAvailableSlots(input: {
   date: string;
 }) {
   const business = await getBusinessBySlug(input.slug);
-  if (!business || !business.onlineBooking) return [];
-  const policy = getBookingPolicySettings(business);
-  const { minBookableAt, maxBookableAt } = getBookableRange(business);
+  if (!business) return [];
 
-  const service = await db.service.findFirst({
-    where: {
-      id: input.serviceId,
-      businessId: business.id,
-      isActive: true,
-    },
+  return listBookingSlots({
+    businessId: business.id,
+    onlineBooking: business.onlineBooking,
+    bookingLeadTimeHours: business.bookingLeadTimeHours,
+    bookingWindowDays: business.bookingWindowDays,
+    slotIntervalMinutes: business.slotIntervalMinutes,
+    serviceId: input.serviceId,
+    staffMemberId: input.staffMemberId,
+    date: input.date,
   });
+}
 
-  const staffMember = await db.staffMember.findFirst({
-    where: {
-      id: input.staffMemberId,
-      businessId: business.id,
-      isActive: true,
-    },
+export async function getPublicBookingRescheduleSlots(token: string, date: string) {
+  const booking = await db.booking.findUnique({
+    where: { publicToken: token },
     include: {
-      availabilities: {
-        where: { isActive: true },
-      },
-      services: true,
+      business: true,
+      service: true,
+      staffMember: true,
     },
   });
 
-  if (!service || !staffMember) return [];
+  if (!booking || !booking.staffMemberId) return null;
 
-  const hasService = staffMember.services.some((assignment) => assignment.serviceId === service.id);
-  if (!hasService) return [];
-
-  const requestedDate = new Date(`${input.date}T00:00:00`);
-  if (Number.isNaN(requestedDate.getTime())) return [];
-  const dayStart = set(requestedDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
-  const dayEnd = set(requestedDate, { hours: 23, minutes: 59, seconds: 59, milliseconds: 999 });
-  if (dayEnd < minBookableAt || dayStart > maxBookableAt) return [];
-
-  const dayOfWeek = requestedDate.getDay();
-  const windows = staffMember.availabilities.filter((slot) => slot.dayOfWeek === dayOfWeek);
-  if (windows.length === 0) return [];
-
-  const existingBookings = await db.booking.findMany({
-    where: {
-      businessId: business.id,
-      staffMemberId: staffMember.id,
-      startsAt: {
-        gte: dayStart,
-        lte: dayEnd,
-      },
-      status: {
-        notIn: ["CANCELLED", "NO_SHOW"],
-      },
-    },
-    select: {
-      startsAt: true,
-      endsAt: true,
-    },
+  return listBookingSlots({
+    businessId: booking.businessId,
+    onlineBooking: booking.business.onlineBooking,
+    bookingLeadTimeHours: booking.business.bookingLeadTimeHours,
+    bookingWindowDays: booking.business.bookingWindowDays,
+    slotIntervalMinutes: booking.business.slotIntervalMinutes,
+    serviceId: booking.serviceId,
+    staffMemberId: booking.staffMemberId,
+    date,
+    ignoreBookingId: booking.id,
   });
-  const scheduleBlocks = await db.scheduleBlock.findMany({
-    where: {
-      businessId: business.id,
-      OR: [{ staffMemberId: staffMember.id }, { staffMemberId: null }],
-      startsAt: {
-        gte: dayStart,
-        lte: dayEnd,
-      },
-    },
-    select: {
-      startsAt: true,
-      endsAt: true,
-    },
-  });
-
-  const slots: BookingSlot[] = [];
-
-  for (const window of windows) {
-    const [startHour, startMinute] = window.startTime.split(":").map(Number);
-    const [endHour, endMinute] = window.endTime.split(":").map(Number);
-    let cursor = set(requestedDate, {
-      hours: startHour,
-      minutes: startMinute,
-      seconds: 0,
-      milliseconds: 0,
-    });
-    const windowEnd = set(requestedDate, {
-      hours: endHour,
-      minutes: endMinute,
-      seconds: 0,
-      milliseconds: 0,
-    });
-
-    while (cursor.getTime() + service.durationMinutes * 60_000 <= windowEnd.getTime()) {
-      const candidateEnd = new Date(cursor.getTime() + service.durationMinutes * 60_000);
-      const overlaps = existingBookings.some(
-        (booking) => cursor < booking.endsAt && candidateEnd > booking.startsAt
-      );
-      const overlapsBlock = scheduleBlocks.some(
-        (block) => cursor < block.endsAt && candidateEnd > block.startsAt
-      );
-
-      if (!overlaps && !overlapsBlock && cursor >= minBookableAt && candidateEnd <= maxBookableAt) {
-        slots.push({
-          iso: cursor.toISOString(),
-          label: format(cursor, "HH:mm"),
-        });
-      }
-
-      cursor = new Date(cursor.getTime() + policy.slotIntervalMinutes * 60_000);
-    }
-  }
-
-  return slots;
 }
 
 export async function createPublicBooking(input: {
@@ -1123,28 +1229,8 @@ export async function getPublicBookingByToken(token: string): Promise<PublicBook
   });
 
   if (!booking) return null;
-  const cancellationDeadline = getCancellationDeadline(booking.startsAt, booking.business);
-  const canCancel =
-    ["PENDING", "CONFIRMED"].includes(booking.status) && new Date() < cancellationDeadline;
 
-  return {
-    id: booking.id,
-    publicToken: booking.publicToken ?? "",
-    status: booking.status,
-    startsAt: booking.startsAt,
-    endsAt: booking.endsAt,
-    customerName: booking.customerName,
-    customerEmail: booking.customerEmail,
-    customerPhone: booking.customerPhone,
-    serviceName: booking.service.name,
-    staffName: booking.staffMember?.fullName ?? null,
-    businessName: booking.business.name,
-    businessSlug: booking.business.slug,
-    canConfirm: booking.status === "PENDING" && new Date() < booking.startsAt,
-    canCancel,
-    cancellationWindowHours: getBookingPolicySettings(booking.business).cancellationWindowHours,
-    cancellationDeadline,
-  };
+  return buildPublicBookingDetails(booking);
 }
 
 export async function updatePublicBookingByToken(
@@ -1194,26 +1280,101 @@ export async function updatePublicBookingByToken(
     ]);
   }
 
-  return {
-    id: updated.id,
-    publicToken: updated.publicToken ?? "",
-    status: updated.status,
-    startsAt: updated.startsAt,
-    endsAt: updated.endsAt,
-    customerName: updated.customerName,
-    customerEmail: updated.customerEmail,
-    customerPhone: updated.customerPhone,
-    serviceName: updated.service.name,
-    staffName: updated.staffMember?.fullName ?? null,
-    businessName: updated.business.name,
-    businessSlug: updated.business.slug,
-    canConfirm: updated.status === "PENDING" && new Date() < updated.startsAt,
-    canCancel:
-      ["PENDING", "CONFIRMED"].includes(updated.status) &&
-      new Date() < getCancellationDeadline(updated.startsAt, updated.business),
-    cancellationWindowHours: getBookingPolicySettings(updated.business).cancellationWindowHours,
-    cancellationDeadline: getCancellationDeadline(updated.startsAt, updated.business),
-  };
+  return buildPublicBookingDetails(updated);
+}
+
+export async function reschedulePublicBookingByToken(
+  token: string,
+  startsAtIso: string
+): Promise<PublicBookingDetails | null> {
+  const booking = await db.booking.findUnique({
+    where: { publicToken: token },
+    include: {
+      business: true,
+      service: true,
+      staffMember: {
+        include: {
+          services: true,
+        },
+      },
+    },
+  });
+
+  if (!booking || !booking.staffMemberId || !booking.staffMember) return null;
+
+  if (!["PENDING", "CONFIRMED"].includes(booking.status)) {
+    throw new Error("BOOKING_ACTION_NOT_ALLOWED");
+  }
+
+  if (new Date() >= getCancellationDeadline(booking.startsAt, booking.business)) {
+    throw new Error("RESCHEDULE_WINDOW_EXPIRED");
+  }
+
+  const startsAt = new Date(startsAtIso);
+  const { minBookableAt, maxBookableAt } = getBookableRange(booking.business);
+  if (Number.isNaN(startsAt.getTime()) || startsAt < minBookableAt || startsAt > maxBookableAt) {
+    throw new Error("DATA_INVALIDA");
+  }
+
+  if (!booking.staffMember.services.some((assignment) => assignment.serviceId === booking.serviceId)) {
+    throw new Error("PROFISSIONAL_INCOMPATIVEL");
+  }
+
+  const endsAt = new Date(startsAt.getTime() + booking.service.durationMinutes * 60_000);
+  const conflict = await db.booking.findFirst({
+    where: {
+      businessId: booking.businessId,
+      staffMemberId: booking.staffMemberId,
+      id: { not: booking.id },
+      status: {
+        notIn: ["CANCELLED", "NO_SHOW"],
+      },
+      startsAt: {
+        lt: endsAt,
+      },
+      endsAt: {
+        gt: startsAt,
+      },
+    },
+  });
+
+  if (conflict) {
+    throw new Error("HORARIO_OCUPADO");
+  }
+
+  const blocked = await db.scheduleBlock.findFirst({
+    where: {
+      businessId: booking.businessId,
+      OR: [{ staffMemberId: booking.staffMemberId }, { staffMemberId: null }],
+      startsAt: {
+        lt: endsAt,
+      },
+      endsAt: {
+        gt: startsAt,
+      },
+    },
+  });
+
+  if (blocked) {
+    throw new Error("HORARIO_BLOQUEADO");
+  }
+
+  const updated = await db.booking.update({
+    where: { id: booking.id },
+    data: {
+      startsAt,
+      endsAt,
+    },
+    include: {
+      business: true,
+      service: true,
+      staffMember: true,
+    },
+  });
+
+  await sendBookingNotification(updated.id, "BOOKING_RESCHEDULED");
+
+  return buildPublicBookingDetails(updated);
 }
 
 export async function getDashboardSnapshot() {

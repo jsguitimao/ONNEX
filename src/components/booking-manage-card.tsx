@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CheckCircle2, Loader2, ShieldAlert, XCircle } from "lucide-react";
-import type { PublicBookingDetails } from "@/lib/business";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, CheckCircle2, Loader2, ShieldAlert, XCircle } from "lucide-react";
+import type { BookingSlot, PublicBookingDetails } from "@/lib/business";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type BookingManageCardProps = {
   initialBooking: PublicBookingDetails;
@@ -17,10 +18,19 @@ const statusLabel: Record<PublicBookingDetails["status"], string> = {
   NO_SHOW: "No-show",
 };
 
+function toDateInputValue(date: Date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
+}
+
 export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
   const [booking, setBooking] = useState(initialBooking);
-  const [loadingAction, setLoadingAction] = useState<"confirm" | "cancel" | null>(null);
+  const [loadingAction, setLoadingAction] = useState<"confirm" | "cancel" | "reschedule" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState(toDateInputValue(new Date(initialBooking.startsAt)));
+  const [slots, setSlots] = useState<BookingSlot[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState("");
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const cancellationDeadlineLabel = useMemo(
     () =>
@@ -30,6 +40,55 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
       }),
     [booking.cancellationDeadline]
   );
+
+  const minDate = useMemo(() => {
+    const date = new Date(Date.now() + booking.bookingLeadTimeHours * 60 * 60_000);
+    return toDateInputValue(date);
+  }, [booking.bookingLeadTimeHours]);
+
+  const maxDate = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + booking.bookingWindowDays);
+    return toDateInputValue(date);
+  }, [booking.bookingWindowDays]);
+
+  useEffect(() => {
+    setSlots([]);
+    setSelectedSlot("");
+
+    if (!booking.canReschedule || !booking.staffMemberId || !rescheduleDate) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadSlots() {
+      setLoadingSlots(true);
+      try {
+        const params = new URLSearchParams({ date: rescheduleDate });
+        const response = await fetch(`/api/public/booking/${booking.publicToken}/availability?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as { slots?: BookingSlot[]; error?: string };
+
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Nao foi possivel carregar horarios.");
+        }
+
+        setSlots(payload.slots ?? []);
+      } catch (slotError) {
+        if ((slotError as Error).name !== "AbortError") {
+          setError(slotError instanceof Error ? slotError.message : "Erro ao carregar horarios.");
+        }
+      } finally {
+        setLoadingSlots(false);
+      }
+    }
+
+    void loadSlots();
+
+    return () => controller.abort();
+  }, [booking.canReschedule, booking.publicToken, booking.staffMemberId, rescheduleDate]);
 
   async function handleAction(action: "confirm" | "cancel") {
     setLoadingAction(action);
@@ -48,6 +107,34 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
       }
 
       setBooking(payload);
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Erro inesperado.");
+    } finally {
+      setLoadingAction(null);
+    }
+  }
+
+  async function handleReschedule() {
+    if (!selectedSlot) return;
+
+    setLoadingAction("reschedule");
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/public/booking/${booking.publicToken}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reschedule", startsAt: selectedSlot }),
+      });
+      const payload = (await response.json()) as PublicBookingDetails & { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Nao foi possivel remarcar a reserva.");
+      }
+
+      setBooking(payload);
+      setRescheduleDate(toDateInputValue(new Date(payload.startsAt)));
+      setSelectedSlot("");
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : "Erro inesperado.");
     } finally {
@@ -95,11 +182,74 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
           <div className="grid gap-1">
             <p className="font-medium text-foreground">Politica desta reserva</p>
             <p>Confirmacao disponivel enquanto a reserva estiver pendente.</p>
-            <p>Cancelamento disponivel ate {booking.cancellationWindowHours}h antes do horario.</p>
-            <p>Prazo atual para cancelar: {cancellationDeadlineLabel}.</p>
+            <p>Cancelamento e remarcacao disponiveis ate {booking.cancellationWindowHours}h antes do horario.</p>
+            <p>Prazo atual para gerir a reserva: {cancellationDeadlineLabel}.</p>
           </div>
         </div>
       </div>
+
+      {booking.canReschedule ? (
+        <div className="mt-5 rounded-[1.5rem] border bg-background p-4">
+          <div className="mb-3">
+            <p className="font-medium">Remarcar horario</p>
+            <p className="text-sm text-muted-foreground">
+              Mantem o mesmo servico e profissional, escolhendo apenas um novo slot disponivel.
+            </p>
+          </div>
+
+          <label className="grid gap-2">
+            <span className="inline-flex items-center gap-2 text-sm font-medium">
+              <CalendarDays className="size-4 text-primary" />
+              Nova data
+            </span>
+            <input
+              type="date"
+              className="rounded-xl border border-input bg-transparent px-3 py-2 text-sm outline-none"
+              value={rescheduleDate}
+              min={minDate}
+              max={maxDate}
+              onChange={(event) => setRescheduleDate(event.target.value)}
+            />
+          </label>
+
+          <div className="mt-4">
+            <p className="mb-3 text-sm font-medium">Novos horarios disponiveis</p>
+            {loadingSlots ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                A carregar horarios...
+              </div>
+            ) : slots.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {slots.map((slot) => (
+                  <button
+                    key={slot.iso}
+                    type="button"
+                    onClick={() => setSelectedSlot(slot.iso)}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-sm transition",
+                      selectedSlot === slot.iso ? "border-primary bg-primary text-primary-foreground" : "hover:border-primary/30"
+                    )}
+                  >
+                    {slot.label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Nao ha horarios disponiveis para esta data.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <Button disabled={!selectedSlot || loadingAction !== null} onClick={() => void handleReschedule()}>
+              {loadingAction === "reschedule" ? <Loader2 className="size-4 animate-spin" /> : null}
+              Remarcar reserva
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-5 flex flex-wrap gap-3">
         {booking.canConfirm ? (
@@ -119,14 +269,14 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
 
       {!booking.canCancel && ["PENDING", "CONFIRMED"].includes(booking.status) ? (
         <p className="mt-4 text-sm text-muted-foreground">
-          O prazo automatico de cancelamento ja expirou. Para ajuda, entra em contacto direto com a barbearia.
+          O prazo automatico para gerir esta reserva ja expirou. Para ajuda, entra em contacto direto com a barbearia.
         </p>
       ) : null}
 
       {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
 
       <p className="mt-5 text-sm text-muted-foreground">
-        Podes guardar este link para voltar a consultar ou acompanhar o estado da reserva.
+        Podes guardar este link para voltar a consultar, remarcar ou acompanhar o estado da reserva.
       </p>
     </div>
   );

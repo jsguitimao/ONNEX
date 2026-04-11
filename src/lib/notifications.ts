@@ -7,6 +7,7 @@ type NotificationKind =
   | "BOOKING_CONFIRMED"
   | "BOOKING_CANCELLED"
   | "BOOKING_CANCELLED_INTERNAL"
+  | "BOOKING_RESCHEDULED"
   | "BOOKING_REMINDER";
 
 type BookingNotificationPayload = {
@@ -107,6 +108,19 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
             <p>Ola ${representativeName}, a reserva abaixo foi cancelada pelo cliente ou pelo painel.</p>
             <p><strong>Cliente:</strong> ${booking.customerName}<br /><strong>Servico:</strong> ${booking.service.name}<br /><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
             <p>Podes reabrir a agenda ou acompanhar a reserva no link abaixo.</p>
+            <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Ver reserva</a></p>
+          </div>
+        `,
+      };
+    case "BOOKING_RESCHEDULED":
+      return {
+        subject: `Reserva remarcada em ${booking.business.name}`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
+            <h1 style="font-size:24px;margin-bottom:12px;">Reserva remarcada</h1>
+            <p>Ola ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi atualizada.</p>
+            <p><strong>Novo horario:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
+            <p>Podes rever os detalhes sempre que precisares.</p>
             <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Ver reserva</a></p>
           </div>
         `,
