@@ -90,6 +90,29 @@ export type ManagementSnapshot = {
   }>;
 };
 
+export type BookingAgendaItem = {
+  id: string;
+  startsAt: Date;
+  endsAt: Date;
+  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  source: "ONLINE" | "MANUAL" | "IMPORTED";
+  priceCents: number;
+  customerName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  serviceName: string;
+  staffName: string;
+};
+
+export type BookingAgendaSnapshot = {
+  date: string;
+  staffMembers: Array<{
+    id: string;
+    fullName: string;
+  }>;
+  bookings: BookingAgendaItem[];
+};
+
 export async function ensureDemoBusiness() {
   const owner = await db.user.upsert({
     where: { clerkUserId: DEMO_OWNER.clerkUserId },
@@ -643,6 +666,51 @@ export async function getDashboardSnapshot() {
   };
 }
 
+export async function getBookingAgenda(input?: { date?: string; staffMemberId?: string }): Promise<BookingAgendaSnapshot> {
+  const business = await ensureDemoBusiness();
+  const requestedDate = input?.date ? new Date(`${input.date}T00:00:00`) : new Date();
+  const safeDate = Number.isNaN(requestedDate.getTime()) ? new Date() : requestedDate;
+  const dayStart = set(safeDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
+  const dayEnd = set(safeDate, { hours: 23, minutes: 59, seconds: 59, milliseconds: 999 });
+
+  const bookings = await db.booking.findMany({
+    where: {
+      businessId: business.id,
+      startsAt: {
+        gte: dayStart,
+        lte: dayEnd,
+      },
+      ...(input?.staffMemberId ? { staffMemberId: input.staffMemberId } : {}),
+    },
+    include: {
+      service: true,
+      staffMember: true,
+    },
+    orderBy: { startsAt: "asc" },
+  });
+
+  return {
+    date: format(dayStart, "yyyy-MM-dd"),
+    staffMembers: business.staffMembers.map((member) => ({
+      id: member.id,
+      fullName: member.fullName,
+    })),
+    bookings: bookings.map((booking) => ({
+      id: booking.id,
+      startsAt: booking.startsAt,
+      endsAt: booking.endsAt,
+      status: booking.status,
+      source: booking.source,
+      priceCents: booking.priceCents,
+      customerName: booking.customerName,
+      customerEmail: booking.customerEmail,
+      customerPhone: booking.customerPhone,
+      serviceName: booking.service.name,
+      staffName: booking.staffMember?.fullName ?? "Sem profissional",
+    })),
+  };
+}
+
 export async function getManagementSnapshot(): Promise<ManagementSnapshot> {
   const business = await ensureDemoBusiness();
 
@@ -799,6 +867,22 @@ export async function updateStaffMember(
   await replaceStaffAvailability(id, input.availability);
 
   return staffMember;
+}
+
+export async function updateBookingStatus(
+  id: string,
+  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW"
+) {
+  await ensureDemoBusiness();
+
+  return db.booking.update({
+    where: { id },
+    data: { status },
+    include: {
+      service: true,
+      staffMember: true,
+    },
+  });
 }
 
 async function replaceStaffAvailability(staffMemberId: string, availability: AvailabilityInput[]) {

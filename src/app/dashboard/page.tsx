@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { CalendarRange, Euro, LayoutDashboard, Sparkles, Users } from "lucide-react";
+import { DashboardAgenda } from "@/components/dashboard-agenda";
 import { DashboardOps } from "@/components/dashboard-ops";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getDashboardSnapshot, getManagementSnapshot } from "@/lib/business";
+import { getBookingAgenda, getDashboardSnapshot, getManagementSnapshot } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,11 @@ const panels = [
 ];
 
 export default async function DashboardPreviewPage() {
-  const [snapshot, management] = await Promise.all([getDashboardSnapshot(), getManagementSnapshot()]);
+  const [snapshot, management, agenda] = await Promise.all([
+    getDashboardSnapshot(),
+    getManagementSnapshot(),
+    getBookingAgenda(),
+  ]);
 
   const stats = [
     { label: "Servicos ativos", value: snapshot.servicesCount.toString(), icon: Sparkles },
@@ -120,6 +125,8 @@ export default async function DashboardPreviewPage() {
           ))}
         </CardContent>
       </Card>
+
+      <DashboardAgenda initialSnapshot={agenda} />
 
       <section className="mt-6">
         <DashboardOps initialSnapshot={management} />
