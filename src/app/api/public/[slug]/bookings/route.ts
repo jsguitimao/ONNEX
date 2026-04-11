@@ -21,7 +21,7 @@ export async function POST(req: Request, { params }: RouteProps) {
   const result = schema.safeParse(body);
 
   if (!result.success) {
-    return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
+    return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
   }
 
   try {
@@ -48,10 +48,12 @@ export async function POST(req: Request, { params }: RouteProps) {
     const message = error instanceof Error ? error.message : "ERRO";
     const mapped =
       message === "HORARIO_OCUPADO"
-        ? { status: 409, error: "Este horário acabou de ficar indisponível." }
-        : message === "DATA_INVALIDA"
-          ? { status: 400, error: "Escolhe um horário futuro válido." }
-          : { status: 400, error: "Não foi possível criar a reserva." };
+        ? { status: 409, error: "Este horario acabou de ficar indisponivel." }
+        : message === "ONLINE_BOOKING_DISABLED"
+          ? { status: 403, error: "As reservas online estao desativadas para esta pagina." }
+          : message === "DATA_INVALIDA"
+            ? { status: 400, error: "Escolhe um horario dentro da antecedencia e janela permitidas." }
+            : { status: 400, error: "Nao foi possivel criar a reserva." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }

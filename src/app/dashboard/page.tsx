@@ -21,19 +21,19 @@ const panels = [
   {
     title: "Agenda com visao diaria e lista de marcacoes",
     description:
-      "O proximo passo aqui e a agenda operacional, com filtros por profissional, origem da marcacao e confirmacao de presenca.",
+      "O painel agora cobre agenda, filtros, mudanca de estado, reservas manuais e bloqueios de horario.",
     icon: LayoutDashboard,
   },
   {
     title: "Gestao de servicos, equipa e disponibilidade",
     description:
-      "A base ja preve servicos por negocio, profissionais, localizacoes e disponibilidade semanal reutilizavel na pagina publica.",
+      "A base ja suporta servicos por negocio, profissionais, localizacoes e disponibilidade semanal reutilizavel na pagina publica.",
     icon: Users,
   },
   {
     title: "Clientes, notas e historico de marcacoes",
     description:
-      "A camada de CRM vai consolidar historico, preferencias, observacoes internas e recorrencia por cliente.",
+      "A camada de CRM consolida historico, preferencias, observacoes internas e recorrencia por cliente.",
     icon: CalendarRange,
   },
 ];
@@ -61,11 +61,11 @@ export default async function DashboardPreviewPage() {
           </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight">{snapshot.businessName}</h1>
           <p className="mt-3 text-muted-foreground">
-            Esta area ja esta desenhada para o fluxo autenticado do negocio. Agora ela tambem
-            permite gerir servicos, equipa e disponibilidade sem sair do dashboard.
+            Esta area ja esta desenhada para o fluxo autenticado do negocio. Agora tambem
+            permite gerir servicos, equipa, disponibilidade e regras principais da agenda.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Cidade principal: {snapshot.city} · Pagina publica: /{snapshot.slug}
+            Cidade principal: {snapshot.city} - Pagina publica: /{snapshot.slug}
           </p>
         </div>
 
@@ -119,12 +119,12 @@ export default async function DashboardPreviewPage() {
               <div>
                 <p className="font-medium">{booking.customerName}</p>
                 <p className="text-sm text-muted-foreground">
-                  {booking.serviceName} · {booking.staffName}
+                  {booking.serviceName} - {booking.staffName}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">
-                  {new Date(booking.startsAt).toLocaleDateString("pt-PT")} ·{" "}
+                  {new Date(booking.startsAt).toLocaleDateString("pt-PT")} -{" "}
                   {new Date(booking.startsAt).toLocaleTimeString("pt-PT", {
                     hour: "2-digit",
                     minute: "2-digit",

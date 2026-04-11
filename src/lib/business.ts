@@ -20,6 +20,82 @@ const DEFAULT_AVAILABILITY = [
   { dayOfWeek: 6, startTime: "10:00", endTime: "16:00" },
 ];
 
+const DEFAULT_BOOKING_POLICY = {
+  bookingLeadTimeHours: 1,
+  bookingWindowDays: 30,
+  slotIntervalMinutes: 30,
+  cancellationWindowHours: 2,
+};
+
+function clampInteger(value: number | null | undefined, min: number, max: number, fallback: number) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function getBookingPolicySettings(business: {
+  bookingLeadTimeHours?: number | null;
+  bookingWindowDays?: number | null;
+  slotIntervalMinutes?: number | null;
+  cancellationWindowHours?: number | null;
+}) {
+  return {
+    bookingLeadTimeHours: clampInteger(
+      business.bookingLeadTimeHours,
+      0,
+      168,
+      DEFAULT_BOOKING_POLICY.bookingLeadTimeHours
+    ),
+    bookingWindowDays: clampInteger(
+      business.bookingWindowDays,
+      1,
+      365,
+      DEFAULT_BOOKING_POLICY.bookingWindowDays
+    ),
+    slotIntervalMinutes: clampInteger(
+      business.slotIntervalMinutes,
+      5,
+      120,
+      DEFAULT_BOOKING_POLICY.slotIntervalMinutes
+    ),
+    cancellationWindowHours: clampInteger(
+      business.cancellationWindowHours,
+      0,
+      168,
+      DEFAULT_BOOKING_POLICY.cancellationWindowHours
+    ),
+  };
+}
+
+function getBookableRange(business: {
+  bookingLeadTimeHours?: number | null;
+  bookingWindowDays?: number | null;
+}) {
+  const policy = getBookingPolicySettings(business);
+  const now = new Date();
+  const minBookableAt = new Date(now.getTime() + policy.bookingLeadTimeHours * 60 * 60_000);
+  const maxBookableAt = set(addDays(now, policy.bookingWindowDays), {
+    hours: 23,
+    minutes: 59,
+    seconds: 59,
+    milliseconds: 999,
+  });
+
+  return {
+    ...policy,
+    now,
+    minBookableAt,
+    maxBookableAt,
+  };
+}
+
+function getCancellationDeadline(startsAt: Date, business: { cancellationWindowHours?: number | null }) {
+  const { cancellationWindowHours } = getBookingPolicySettings(business);
+  return new Date(startsAt.getTime() - cancellationWindowHours * 60 * 60_000);
+}
+
 function slugify(value: string) {
   return value
     .normalize("NFD")
@@ -227,11 +303,24 @@ export type OnboardingDraft = {
   slug: string;
   city: string;
   phone: string;
+  contactEmail: string;
+  websiteUrl: string;
+  description: string;
   headline: string;
   subheadline: string;
   welcomeMessage: string;
   primaryColor: string;
   accentColor: string;
+  logoUrl: string;
+  coverImageUrl: string;
+  onlineBooking: boolean;
+  showTeam: boolean;
+  showPrices: boolean;
+  showDurations: boolean;
+  bookingLeadTimeHours: number;
+  bookingWindowDays: number;
+  slotIntervalMinutes: number;
+  cancellationWindowHours: number;
 };
 
 export type PublicBusinessPayload = {
@@ -240,11 +329,24 @@ export type PublicBusinessPayload = {
   slug: string;
   city: string;
   phone: string | null;
+  contactEmail: string | null;
+  websiteUrl: string | null;
+  description: string | null;
   primaryColor: string | null;
   accentColor: string | null;
+  logoUrl: string | null;
+  coverImageUrl: string | null;
   headline: string | null;
   subheadline: string | null;
   welcomeMessage: string | null;
+  onlineBooking: boolean;
+  showTeam: boolean;
+  showPrices: boolean;
+  showDurations: boolean;
+  bookingLeadTimeHours: number;
+  bookingWindowDays: number;
+  slotIntervalMinutes: number;
+  cancellationWindowHours: number;
   services: Array<{
     id: string;
     name: string;
@@ -257,6 +359,7 @@ export type PublicBusinessPayload = {
     fullName: string;
     roleTitle: string | null;
     bio: string | null;
+    serviceIds: string[];
   }>;
 };
 
@@ -275,6 +378,8 @@ export type PublicBookingDetails = {
   businessSlug: string;
   canConfirm: boolean;
   canCancel: boolean;
+  cancellationWindowHours: number;
+  cancellationDeadline: Date;
 };
 
 export type BookingSlot = {
@@ -578,42 +683,83 @@ async function hydrateOperationalData(
 export async function getBusinessForOnboarding() {
   const business = await getCurrentBusiness();
   const location = business.locations[0];
+  const policy = getBookingPolicySettings(business);
 
   return {
     businessName: business.name,
     slug: business.slug,
     city: location?.city ?? "Lisboa",
     phone: business.contactPhone ?? "",
+    contactEmail: business.contactEmail ?? "",
+    websiteUrl: business.websiteUrl ?? "",
+    description: business.description ?? "",
     headline: business.bookingPage?.headline ?? demoBusiness.headline,
     subheadline: business.bookingPage?.subheadline ?? demoBusiness.subheadline,
     welcomeMessage: business.bookingPage?.welcomeMessage ?? demoBusiness.welcomeMessage,
     primaryColor: business.primaryColor ?? demoBusiness.primaryColor,
     accentColor: business.accentColor ?? demoBusiness.accentColor,
+    logoUrl: business.logoUrl ?? "",
+    coverImageUrl: business.coverImageUrl ?? "",
+    onlineBooking: business.onlineBooking,
+    showTeam: business.bookingPage?.showTeam ?? true,
+    showPrices: business.bookingPage?.showPrices ?? true,
+    showDurations: business.bookingPage?.showDurations ?? true,
+    bookingLeadTimeHours: policy.bookingLeadTimeHours,
+    bookingWindowDays: policy.bookingWindowDays,
+    slotIntervalMinutes: policy.slotIntervalMinutes,
+    cancellationWindowHours: policy.cancellationWindowHours,
   } satisfies OnboardingDraft;
 }
 
 export async function updateBusinessFromOnboarding(input: OnboardingDraft) {
   const business = await getCurrentBusiness();
 
+  if (input.slug !== business.slug) {
+    const existing = await db.business.findUnique({
+      where: { slug: input.slug },
+      select: { id: true },
+    });
+
+    if (existing && existing.id !== business.id) {
+      throw new Error("SLUG_ALREADY_TAKEN");
+    }
+  }
+
   return db.business.update({
     where: { id: business.id },
     data: {
       name: input.businessName,
       slug: input.slug,
+      description: input.description,
       contactPhone: input.phone,
+      contactEmail: input.contactEmail || null,
+      websiteUrl: input.websiteUrl || null,
       primaryColor: input.primaryColor,
       accentColor: input.accentColor,
+      logoUrl: input.logoUrl || null,
+      coverImageUrl: input.coverImageUrl || null,
+      onlineBooking: input.onlineBooking,
+      bookingLeadTimeHours: input.bookingLeadTimeHours,
+      bookingWindowDays: input.bookingWindowDays,
+      slotIntervalMinutes: input.slotIntervalMinutes,
+      cancellationWindowHours: input.cancellationWindowHours,
       bookingPage: {
         upsert: {
           create: {
             headline: input.headline,
             subheadline: input.subheadline,
             welcomeMessage: input.welcomeMessage,
+            showTeam: input.showTeam,
+            showPrices: input.showPrices,
+            showDurations: input.showDurations,
           },
           update: {
             headline: input.headline,
             subheadline: input.subheadline,
             welcomeMessage: input.welcomeMessage,
+            showTeam: input.showTeam,
+            showPrices: input.showPrices,
+            showDurations: input.showDurations,
           },
         },
       },
@@ -652,6 +798,9 @@ export async function getBusinessBySlug(slug: string) {
       staffMembers: {
         where: { isActive: true },
         orderBy: { displayOrder: "asc" },
+        include: {
+          services: true,
+        },
       },
       locations: {
         where: { isDefault: true },
@@ -669,6 +818,7 @@ export async function getBusinessBySlug(slug: string) {
 export async function getPublicBusinessPayload(slug: string): Promise<PublicBusinessPayload | null> {
   const business = await getBusinessBySlug(slug);
   if (!business) return null;
+  const policy = getBookingPolicySettings(business);
 
   return {
     id: business.id,
@@ -676,11 +826,24 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
     slug: business.slug,
     city: business.locations[0]?.city ?? "Portugal",
     phone: business.contactPhone,
+    contactEmail: business.contactEmail,
+    websiteUrl: business.websiteUrl,
+    description: business.description,
     primaryColor: business.primaryColor,
     accentColor: business.accentColor,
+    logoUrl: business.logoUrl,
+    coverImageUrl: business.coverImageUrl,
     headline: business.bookingPage?.headline ?? null,
     subheadline: business.bookingPage?.subheadline ?? null,
     welcomeMessage: business.bookingPage?.welcomeMessage ?? null,
+    onlineBooking: business.onlineBooking,
+    showTeam: business.bookingPage?.showTeam ?? true,
+    showPrices: business.bookingPage?.showPrices ?? true,
+    showDurations: business.bookingPage?.showDurations ?? true,
+    bookingLeadTimeHours: policy.bookingLeadTimeHours,
+    bookingWindowDays: policy.bookingWindowDays,
+    slotIntervalMinutes: policy.slotIntervalMinutes,
+    cancellationWindowHours: policy.cancellationWindowHours,
     services: business.services.map((service) => ({
       id: service.id,
       name: service.name,
@@ -693,6 +856,7 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
       fullName: member.fullName,
       roleTitle: member.roleTitle,
       bio: member.bio,
+      serviceIds: member.services.map((assignment) => assignment.serviceId),
     })),
   };
 }
@@ -704,7 +868,9 @@ export async function getAvailableSlots(input: {
   date: string;
 }) {
   const business = await getBusinessBySlug(input.slug);
-  if (!business) return [];
+  if (!business || !business.onlineBooking) return [];
+  const policy = getBookingPolicySettings(business);
+  const { minBookableAt, maxBookableAt } = getBookableRange(business);
 
   const service = await db.service.findFirst({
     where: {
@@ -735,6 +901,9 @@ export async function getAvailableSlots(input: {
 
   const requestedDate = new Date(`${input.date}T00:00:00`);
   if (Number.isNaN(requestedDate.getTime())) return [];
+  const dayStart = set(requestedDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
+  const dayEnd = set(requestedDate, { hours: 23, minutes: 59, seconds: 59, milliseconds: 999 });
+  if (dayEnd < minBookableAt || dayStart > maxBookableAt) return [];
 
   const dayOfWeek = requestedDate.getDay();
   const windows = staffMember.availabilities.filter((slot) => slot.dayOfWeek === dayOfWeek);
@@ -745,8 +914,8 @@ export async function getAvailableSlots(input: {
       businessId: business.id,
       staffMemberId: staffMember.id,
       startsAt: {
-        gte: set(requestedDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }),
-        lte: set(requestedDate, { hours: 23, minutes: 59, seconds: 59, milliseconds: 999 }),
+        gte: dayStart,
+        lte: dayEnd,
       },
       status: {
         notIn: ["CANCELLED", "NO_SHOW"],
@@ -762,8 +931,8 @@ export async function getAvailableSlots(input: {
       businessId: business.id,
       OR: [{ staffMemberId: staffMember.id }, { staffMemberId: null }],
       startsAt: {
-        gte: set(requestedDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }),
-        lte: set(requestedDate, { hours: 23, minutes: 59, seconds: 59, milliseconds: 999 }),
+        gte: dayStart,
+        lte: dayEnd,
       },
     },
     select: {
@@ -772,7 +941,6 @@ export async function getAvailableSlots(input: {
     },
   });
 
-  const now = new Date();
   const slots: BookingSlot[] = [];
 
   for (const window of windows) {
@@ -800,14 +968,14 @@ export async function getAvailableSlots(input: {
         (block) => cursor < block.endsAt && candidateEnd > block.startsAt
       );
 
-      if (!overlaps && !overlapsBlock && cursor > now) {
+      if (!overlaps && !overlapsBlock && cursor >= minBookableAt && candidateEnd <= maxBookableAt) {
         slots.push({
           iso: cursor.toISOString(),
           label: format(cursor, "HH:mm"),
         });
       }
 
-      cursor = new Date(cursor.getTime() + 30 * 60_000);
+      cursor = new Date(cursor.getTime() + policy.slotIntervalMinutes * 60_000);
     }
   }
 
@@ -827,6 +995,11 @@ export async function createPublicBooking(input: {
   if (!business) {
     throw new Error("NEGOCIO_NAO_ENCONTRADO");
   }
+  if (!business.onlineBooking) {
+    throw new Error("ONLINE_BOOKING_DISABLED");
+  }
+
+  const { minBookableAt, maxBookableAt } = getBookableRange(business);
 
   const service = await db.service.findFirst({
     where: { id: input.serviceId, businessId: business.id, isActive: true },
@@ -846,7 +1019,7 @@ export async function createPublicBooking(input: {
   }
 
   const startsAt = new Date(input.startsAt);
-  if (Number.isNaN(startsAt.getTime()) || startsAt <= new Date()) {
+  if (Number.isNaN(startsAt.getTime()) || startsAt < minBookableAt || startsAt > maxBookableAt) {
     throw new Error("DATA_INVALIDA");
   }
 
@@ -950,6 +1123,9 @@ export async function getPublicBookingByToken(token: string): Promise<PublicBook
   });
 
   if (!booking) return null;
+  const cancellationDeadline = getCancellationDeadline(booking.startsAt, booking.business);
+  const canCancel =
+    ["PENDING", "CONFIRMED"].includes(booking.status) && new Date() < cancellationDeadline;
 
   return {
     id: booking.id,
@@ -964,8 +1140,10 @@ export async function getPublicBookingByToken(token: string): Promise<PublicBook
     staffName: booking.staffMember?.fullName ?? null,
     businessName: booking.business.name,
     businessSlug: booking.business.slug,
-    canConfirm: booking.status === "PENDING",
-    canCancel: ["PENDING", "CONFIRMED"].includes(booking.status),
+    canConfirm: booking.status === "PENDING" && new Date() < booking.startsAt,
+    canCancel,
+    cancellationWindowHours: getBookingPolicySettings(booking.business).cancellationWindowHours,
+    cancellationDeadline,
   };
 }
 
@@ -990,6 +1168,9 @@ export async function updatePublicBookingByToken(
 
   if (action === "cancel" && !["PENDING", "CONFIRMED"].includes(booking.status)) {
     throw new Error("BOOKING_ACTION_NOT_ALLOWED");
+  }
+  if (action === "cancel" && new Date() >= getCancellationDeadline(booking.startsAt, booking.business)) {
+    throw new Error("CANCEL_WINDOW_EXPIRED");
   }
 
   const updated = await db.booking.update({
@@ -1019,8 +1200,12 @@ export async function updatePublicBookingByToken(
     staffName: updated.staffMember?.fullName ?? null,
     businessName: updated.business.name,
     businessSlug: updated.business.slug,
-    canConfirm: updated.status === "PENDING",
-    canCancel: ["PENDING", "CONFIRMED"].includes(updated.status),
+    canConfirm: updated.status === "PENDING" && new Date() < updated.startsAt,
+    canCancel:
+      ["PENDING", "CONFIRMED"].includes(updated.status) &&
+      new Date() < getCancellationDeadline(updated.startsAt, updated.business),
+    cancellationWindowHours: getBookingPolicySettings(updated.business).cancellationWindowHours,
+    cancellationDeadline: getCancellationDeadline(updated.startsAt, updated.business),
   };
 }
 
@@ -1028,7 +1213,9 @@ export async function getDashboardSnapshot() {
   const business = await getCurrentBusiness();
 
   const monthStart = set(new Date(), { date: 1, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
-  const monthlyBookings = business.bookings.filter((booking) => booking.startsAt >= monthStart);
+  const monthlyBookings = business.bookings.filter(
+    (booking) => booking.startsAt >= monthStart && !["CANCELLED", "NO_SHOW"].includes(booking.status)
+  );
   const recentBookings = business.bookings.slice(0, 6).map((booking) => ({
     id: booking.id,
     customerName: booking.customerName,

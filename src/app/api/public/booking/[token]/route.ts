@@ -43,7 +43,9 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     const mapped =
       message === "BOOKING_ACTION_NOT_ALLOWED"
         ? { status: 409, error: "Esta acao ja nao esta disponivel para a reserva." }
-        : { status: 500, error: "Nao foi possivel atualizar a reserva." };
+        : message === "CANCEL_WINDOW_EXPIRED"
+          ? { status: 409, error: "O prazo automatico de cancelamento ja expirou." }
+          : { status: 500, error: "Nao foi possivel atualizar a reserva." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }

@@ -16,12 +16,12 @@ export default async function OnboardingPreviewPage() {
       <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
         <div>
           <Badge variant="secondary" className="mb-4">
-            Setup do negócio
+            Setup do negocio
           </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight">Primeiro contacto com o produto</h1>
           <p className="mt-3 max-w-3xl text-muted-foreground">
-            O objetivo desta etapa é chegar rápido a uma página pública credível, com identidade,
-            serviços e estrutura suficiente para começar a receber marcações.
+            O objetivo desta etapa e chegar rapido a uma pagina publica credivel, com identidade,
+            servicos e estrutura suficiente para comecar a receber marcacoes.
           </p>
         </div>
 
@@ -37,15 +37,15 @@ export default async function OnboardingPreviewPage() {
       <div className="mb-8 flex flex-wrap gap-3 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-2">
           <CheckCircle2 className="size-4 text-primary" />
-          Slug público e branding
+          Slug publico e branding
         </span>
         <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-2">
           <CheckCircle2 className="size-4 text-primary" />
-          Equipa e serviços modelados
+          Equipa e servicos modelados
         </span>
         <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-2">
           <CheckCircle2 className="size-4 text-primary" />
-          Preview vivo da página pública
+          Preview vivo da pagina publica
         </span>
       </div>
 

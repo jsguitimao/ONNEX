@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: RouteProps) {
   });
 
   if (!result.success) {
-    return NextResponse.json({ error: "Parâmetros inválidos." }, { status: 400 });
+    return NextResponse.json({ error: "Parametros invalidos." }, { status: 400 });
   }
 
   const slots = await getAvailableSlots({

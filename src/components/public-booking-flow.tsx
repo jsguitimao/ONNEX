@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Loader2, UserRound } from "lucide-react";
-import type { PublicBusinessPayload, BookingSlot } from "@/lib/business";
+import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Loader2, ShieldCheck, UserRound } from "lucide-react";
+import type { BookingSlot, PublicBusinessPayload } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,9 +12,14 @@ type Props = {
   business: PublicBusinessPayload;
 };
 
+function toDateInputValue(date: Date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
+}
+
 export function PublicBookingFlow({ business }: Props) {
   const [serviceId, setServiceId] = useState(business.services[0]?.id ?? "");
-  const [staffMemberId, setStaffMemberId] = useState(business.staffMembers[0]?.id ?? "");
+  const [staffMemberId, setStaffMemberId] = useState("");
   const [date, setDate] = useState("");
   const [slots, setSlots] = useState<BookingSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState("");
@@ -31,6 +36,28 @@ export function PublicBookingFlow({ business }: Props) {
     () => business.services.find((service) => service.id === serviceId),
     [business.services, serviceId]
   );
+
+  const compatibleStaffMembers = useMemo(
+    () => business.staffMembers.filter((member) => member.serviceIds.includes(serviceId)),
+    [business.staffMembers, serviceId]
+  );
+
+  const minDate = useMemo(() => {
+    const date = new Date(Date.now() + business.bookingLeadTimeHours * 60 * 60_000);
+    return toDateInputValue(date);
+  }, [business.bookingLeadTimeHours]);
+
+  const maxDate = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + business.bookingWindowDays);
+    return toDateInputValue(date);
+  }, [business.bookingWindowDays]);
+
+  useEffect(() => {
+    if (!compatibleStaffMembers.some((member) => member.id === staffMemberId)) {
+      setStaffMemberId(compatibleStaffMembers[0]?.id ?? "");
+    }
+  }, [compatibleStaffMembers, staffMemberId]);
 
   useEffect(() => {
     setSelectedSlot("");
@@ -57,13 +84,13 @@ export function PublicBookingFlow({ business }: Props) {
         const data = (await response.json()) as { slots?: BookingSlot[]; error?: string };
 
         if (!response.ok) {
-          throw new Error(data.error ?? "Não foi possível carregar horários.");
+          throw new Error(data.error ?? "Nao foi possivel carregar horarios.");
         }
 
         setSlots(data.slots ?? []);
       } catch (fetchError) {
         if ((fetchError as Error).name !== "AbortError") {
-          setError(fetchError instanceof Error ? fetchError.message : "Erro ao carregar horários.");
+          setError(fetchError instanceof Error ? fetchError.message : "Erro ao carregar horarios.");
         }
       } finally {
         setLoadingSlots(false);
@@ -102,10 +129,10 @@ export function PublicBookingFlow({ business }: Props) {
       };
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Não foi possível concluir a reserva.");
+        throw new Error(data.error ?? "Nao foi possivel concluir a reserva.");
       }
 
-      setMessage(`Reserva criada para ${data.serviceName} em ${new Date(data.startsAt!).toLocaleString("pt-PT")}.`);
+      setMessage(`Reserva criada para ${data.serviceName} em ${new Date(data.startsAt ?? "").toLocaleString("pt-PT")}.`);
       setCustomerName("");
       setCustomerEmail("");
       setCustomerPhone("");
@@ -124,10 +151,22 @@ export function PublicBookingFlow({ business }: Props) {
     <section id="booking" className="rounded-[2rem] border bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">Reserva rápida</p>
-          <h2 className="font-heading text-2xl font-semibold">Marca já o teu horário</h2>
+          <p className="text-sm text-muted-foreground">Reserva rapida</p>
+          <h2 className="font-heading text-2xl font-semibold">Marca ja o teu horario</h2>
         </div>
         <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">Ao vivo</span>
+      </div>
+
+      <div className="mb-5 rounded-[1.5rem] border bg-muted/50 p-4 text-sm text-muted-foreground">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="mt-0.5 size-4 text-primary" />
+          <div className="grid gap-1">
+            <p className="font-medium text-foreground">Politica de marcacao</p>
+            <p>Antecedencia minima: {business.bookingLeadTimeHours}h.</p>
+            <p>Janela de reservas: ate {business.bookingWindowDays} dias.</p>
+            <p>Cancelamento automatico pelo cliente: ate {business.cancellationWindowHours}h antes.</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-3">
@@ -153,7 +192,7 @@ export function PublicBookingFlow({ business }: Props) {
                 <Clock3 className="size-4" />
                 {service.durationMinutes} min
               </span>
-              <span className="font-semibold text-foreground">{formatEuro(service.priceCents)}</span>
+              {business.showPrices ? <span className="font-semibold text-foreground">{formatEuro(service.priceCents)}</span> : null}
             </div>
           </button>
         ))}
@@ -165,23 +204,29 @@ export function PublicBookingFlow({ business }: Props) {
           Profissional
         </div>
         <div className="grid gap-2">
-          {business.staffMembers.map((member) => (
-            <button
-              key={member.id}
-              type="button"
-              onClick={() => setStaffMemberId(member.id)}
-              className={cn(
-                "flex items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition",
-                member.id === staffMemberId ? "border-primary/40 bg-primary/5" : "hover:border-primary/20 hover:bg-muted/40"
-              )}
-            >
-              <div>
-                <p className="font-medium">{member.fullName}</p>
-                <p className="text-muted-foreground">{member.roleTitle}</p>
-              </div>
-              {member.id === staffMemberId ? <CheckCircle2 className="size-4 text-primary" /> : null}
-            </button>
-          ))}
+          {compatibleStaffMembers.length > 0 ? (
+            compatibleStaffMembers.map((member) => (
+              <button
+                key={member.id}
+                type="button"
+                onClick={() => setStaffMemberId(member.id)}
+                className={cn(
+                  "flex items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition",
+                  member.id === staffMemberId ? "border-primary/40 bg-primary/5" : "hover:border-primary/20 hover:bg-muted/40"
+                )}
+              >
+                <div>
+                  <p className="font-medium">{member.fullName}</p>
+                  <p className="text-muted-foreground">{member.roleTitle}</p>
+                </div>
+                {member.id === staffMemberId ? <CheckCircle2 className="size-4 text-primary" /> : null}
+              </button>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Ainda nao ha profissionais configurados para este servico.
+            </p>
+          )}
         </div>
       </div>
 
@@ -196,18 +241,22 @@ export function PublicBookingFlow({ business }: Props) {
               type="date"
               className="rounded-xl border border-input bg-transparent px-3 py-2 text-sm outline-none"
               value={date}
-              min={new Date().toISOString().slice(0, 10)}
+              min={minDate}
+              max={maxDate}
               onChange={(event) => setDate(event.target.value)}
             />
           </label>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Slots de {business.slotIntervalMinutes} em {business.slotIntervalMinutes} minutos.
+          </p>
         </div>
 
         <div className="rounded-[1.5rem] border bg-background p-4">
-          <p className="mb-3 text-sm font-medium">Horários disponíveis</p>
+          <p className="mb-3 text-sm font-medium">Horarios disponiveis</p>
           {loadingSlots ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
-              A carregar horários...
+              A carregar horarios...
             </div>
           ) : slots.length > 0 ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -226,7 +275,11 @@ export function PublicBookingFlow({ business }: Props) {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Escolhe data, serviço e profissional para ver horários.</p>
+            <p className="text-sm text-muted-foreground">
+              {date
+                ? "Nao ha horarios disponiveis para os filtros escolhidos."
+                : "Escolhe data, servico e profissional para ver horarios."}
+            </p>
           )}
         </div>
       </div>
@@ -260,13 +313,13 @@ export function PublicBookingFlow({ business }: Props) {
         <button
           type="button"
           onClick={handleBooking}
-          disabled={!selectedService || !selectedSlot || !customerName || submitting}
+          disabled={!selectedService || !selectedSlot || !customerName || !staffMemberId || submitting}
           className={cn(
             buttonVariants({ size: "lg", className: "mt-4 h-12 w-full justify-between rounded-2xl px-5" }),
             submitting && "opacity-80"
           )}
         >
-          {submitting ? "A criar reserva..." : "Confirmar marcação"}
+          {submitting ? "A criar reserva..." : "Confirmar marcacao"}
           {submitting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
         </button>
 

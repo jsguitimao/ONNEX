@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { CheckCircle2, Loader2, ShieldAlert, XCircle } from "lucide-react";
 import type { PublicBookingDetails } from "@/lib/business";
 import { Button } from "@/components/ui/button";
 
@@ -21,6 +21,15 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
   const [booking, setBooking] = useState(initialBooking);
   const [loadingAction, setLoadingAction] = useState<"confirm" | "cancel" | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const cancellationDeadlineLabel = useMemo(
+    () =>
+      new Date(booking.cancellationDeadline).toLocaleString("pt-PT", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }),
+    [booking.cancellationDeadline]
+  );
 
   async function handleAction(action: "confirm" | "cancel") {
     setLoadingAction(action);
@@ -70,13 +79,25 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground">Quando</span>
           <span className="font-medium">
-            {new Date(booking.startsAt).toLocaleDateString("pt-PT")} ·{" "}
+            {new Date(booking.startsAt).toLocaleDateString("pt-PT")} -{" "}
             {new Date(booking.startsAt).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground">Cliente</span>
           <span className="font-medium">{booking.customerName}</span>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-[1.5rem] border bg-muted/50 p-4 text-sm text-muted-foreground">
+        <div className="flex items-start gap-3">
+          <ShieldAlert className="mt-0.5 size-4 text-primary" />
+          <div className="grid gap-1">
+            <p className="font-medium text-foreground">Politica desta reserva</p>
+            <p>Confirmacao disponivel enquanto a reserva estiver pendente.</p>
+            <p>Cancelamento disponivel ate {booking.cancellationWindowHours}h antes do horario.</p>
+            <p>Prazo atual para cancelar: {cancellationDeadlineLabel}.</p>
+          </div>
         </div>
       </div>
 
@@ -89,21 +110,23 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
         ) : null}
 
         {booking.canCancel ? (
-          <Button
-            variant="outline"
-            disabled={loadingAction !== null}
-            onClick={() => void handleAction("cancel")}
-          >
+          <Button variant="outline" disabled={loadingAction !== null} onClick={() => void handleAction("cancel")}>
             {loadingAction === "cancel" ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />}
             Cancelar reserva
           </Button>
         ) : null}
       </div>
 
+      {!booking.canCancel && ["PENDING", "CONFIRMED"].includes(booking.status) ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          O prazo automatico de cancelamento ja expirou. Para ajuda, entra em contacto direto com a barbearia.
+        </p>
+      ) : null}
+
       {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
 
       <p className="mt-5 text-sm text-muted-foreground">
-        Podes guardar este link para voltar a consultar ou atualizar o estado da reserva.
+        Podes guardar este link para voltar a consultar ou acompanhar o estado da reserva.
       </p>
     </div>
   );

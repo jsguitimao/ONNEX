@@ -4,10 +4,15 @@ import { useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
+  Globe,
+  ImageIcon,
   Loader2,
+  Mail,
   MapPin,
   Palette,
   Phone,
+  Settings2,
+  ShieldCheck,
   Sparkles,
   Store,
   UserRound,
@@ -25,7 +30,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState("");
 
-  const updateField = (field: keyof OnboardingDraft, value: string) => {
+  const updateField = <K extends keyof OnboardingDraft>(field: K, value: OnboardingDraft[K]) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
@@ -43,11 +48,11 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
       const data = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Não foi possível guardar.");
+        throw new Error(data.error ?? "Nao foi possivel guardar.");
       }
 
       setStatus("saved");
-      setMessage("Configuração guardada com sucesso.");
+      setMessage("Configuracao guardada com sucesso.");
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Erro inesperado ao guardar.");
@@ -59,21 +64,21 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
       <Card className="border-border/70">
         <CardHeader className="space-y-3">
           <Badge variant="secondary" className="w-fit">
-            Onboarding realista
+            Setup realista
           </Badge>
-          <CardTitle className="font-heading text-2xl">Estrutura do primeiro setup do negócio</CardTitle>
+          <CardTitle className="font-heading text-2xl">Configuracoes essenciais da barbearia</CardTitle>
         </CardHeader>
         <CardContent className="space-y-8">
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Store className="size-4 text-primary" />
-              Dados do negócio
+              Dados do negocio
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Nome do negócio">
+              <Field label="Nome do negocio">
                 <Input value={form.businessName} onChange={(e) => updateField("businessName", e.target.value)} />
               </Field>
-              <Field label="Slug público">
+              <Field label="Slug publico">
                 <Input value={form.slug} onChange={(e) => updateField("slug", e.target.value.toLowerCase())} />
               </Field>
               <Field label="Cidade">
@@ -82,13 +87,45 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               <Field label="Telefone">
                 <Input value={form.phone} onChange={(e) => updateField("phone", e.target.value)} />
               </Field>
+              <Field label="Email de contacto">
+                <Input type="email" value={form.contactEmail} onChange={(e) => updateField("contactEmail", e.target.value)} />
+              </Field>
+              <Field label="Website">
+                <Input value={form.websiteUrl} onChange={(e) => updateField("websiteUrl", e.target.value)} placeholder="https://..." />
+              </Field>
+            </div>
+            <Field label="Descricao curta do negocio">
+              <textarea
+                className="min-h-24 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring/50"
+                value={form.description}
+                onChange={(e) => updateField("description", e.target.value)}
+              />
+            </Field>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <ImageIcon className="size-4 text-primary" />
+              Visuais
+            </div>
+            <div className="grid gap-4">
+              <Field label="Logo por URL">
+                <Input value={form.logoUrl} onChange={(e) => updateField("logoUrl", e.target.value)} placeholder="https://..." />
+              </Field>
+              <Field label="Imagem de capa por URL">
+                <Input
+                  value={form.coverImageUrl}
+                  onChange={(e) => updateField("coverImageUrl", e.target.value)}
+                  placeholder="https://..."
+                />
+              </Field>
             </div>
           </section>
 
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Palette className="size-4 text-primary" />
-              Marca e comunicação
+              Marca e comunicacao
             </div>
             <div className="grid gap-4">
               <Field label="Headline">
@@ -135,9 +172,84 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
             </div>
           </section>
 
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Settings2 className="size-4 text-primary" />
+              Preferencias operacionais
+            </div>
+            <div className="grid gap-3">
+              <ToggleRow
+                label="Permitir reservas online"
+                checked={form.onlineBooking}
+                onChange={(checked) => updateField("onlineBooking", checked)}
+              />
+              <ToggleRow
+                label="Mostrar equipa na pagina publica"
+                checked={form.showTeam}
+                onChange={(checked) => updateField("showTeam", checked)}
+              />
+              <ToggleRow
+                label="Mostrar precos"
+                checked={form.showPrices}
+                onChange={(checked) => updateField("showPrices", checked)}
+              />
+              <ToggleRow
+                label="Mostrar duracoes"
+                checked={form.showDurations}
+                onChange={(checked) => updateField("showDurations", checked)}
+              />
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <ShieldCheck className="size-4 text-primary" />
+              Regras de marcacao
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Antecedencia minima (horas)">
+                <Input
+                  type="number"
+                  min={0}
+                  max={168}
+                  value={form.bookingLeadTimeHours}
+                  onChange={(e) => updateField("bookingLeadTimeHours", Number(e.target.value))}
+                />
+              </Field>
+              <Field label="Janela de reservas (dias)">
+                <Input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={form.bookingWindowDays}
+                  onChange={(e) => updateField("bookingWindowDays", Number(e.target.value))}
+                />
+              </Field>
+              <Field label="Intervalo entre slots (min)">
+                <Input
+                  type="number"
+                  min={5}
+                  max={120}
+                  step={5}
+                  value={form.slotIntervalMinutes}
+                  onChange={(e) => updateField("slotIntervalMinutes", Number(e.target.value))}
+                />
+              </Field>
+              <Field label="Cancelamento automatico ate (horas)">
+                <Input
+                  type="number"
+                  min={0}
+                  max={168}
+                  value={form.cancellationWindowHours}
+                  onChange={(e) => updateField("cancellationWindowHours", Number(e.target.value))}
+                />
+              </Field>
+            </div>
+          </section>
+
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-muted/50 p-4">
             <div className="text-sm text-muted-foreground">
-              Estas alterações já são persistidas no Neon e alimentam a rota pública por slug.
+              Estas alteracoes ja sao persistidas e alimentam imediatamente a pagina publica.
             </div>
             <button
               type="button"
@@ -146,7 +258,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               disabled={status === "saving"}
             >
               {status === "saving" ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-              Guardar onboarding
+              Guardar configuracoes
             </button>
           </div>
 
@@ -172,8 +284,23 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
             background: `linear-gradient(180deg, ${form.primaryColor} 0%, ${form.accentColor} 100%)`,
           }}
         >
-          <div className="mx-auto flex size-24 items-center justify-center rounded-[1.75rem] border border-white/20 bg-white/12 text-3xl font-semibold shadow-lg shadow-black/10">
-            {form.businessName.charAt(0)}
+          {form.coverImageUrl ? (
+            <div
+              className="mb-5 h-36 rounded-[1.75rem] bg-cover bg-center"
+              style={{ backgroundImage: `linear-gradient(rgba(0,0,0,.2), rgba(0,0,0,.35)), url(${form.coverImageUrl})` }}
+            />
+          ) : null}
+
+          <div className="mx-auto flex size-24 items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/20 bg-white/12 text-3xl font-semibold shadow-lg shadow-black/10">
+            {form.logoUrl ? (
+              <div
+                className="h-full w-full bg-cover bg-center"
+                aria-label={form.businessName}
+                style={{ backgroundImage: `url(${form.logoUrl})` }}
+              />
+            ) : (
+              form.businessName.charAt(0)
+            )}
           </div>
           <Badge className="mt-5 border-white/20 bg-white/12 text-white hover:bg-white/12">Preview ao vivo</Badge>
           <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight">{form.businessName}</h2>
@@ -187,18 +314,58 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               <Phone className="size-4" />
               {form.phone}
             </span>
+            {form.contactEmail ? (
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
+                <Mail className="size-4" />
+                {form.contactEmail}
+              </span>
+            ) : null}
+            {form.websiteUrl ? (
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
+                <Globe className="size-4" />
+                Website
+              </span>
+            ) : null}
           </div>
         </div>
 
         <CardContent className="grid gap-5 p-5">
+          <div className="rounded-2xl border bg-muted/50 p-4 text-left">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+              <Sparkles className="size-4 text-primary" />
+              Posicionamento da barbearia
+            </div>
+            <p className="text-sm leading-7 text-muted-foreground">{form.description}</p>
+          </div>
+
+          <div className="rounded-2xl border bg-muted/50 p-4 text-left">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+              <ShieldCheck className="size-4 text-primary" />
+              Politicas de marcacao
+            </div>
+            <div className="grid gap-2 text-sm text-muted-foreground">
+              <p>Antecedencia minima: {form.bookingLeadTimeHours}h.</p>
+              <p>Janela de reservas: ate {form.bookingWindowDays} dias.</p>
+              <p>Intervalo entre horarios: {form.slotIntervalMinutes} min.</p>
+              <p>Cancelamento pelo cliente: ate {form.cancellationWindowHours}h antes.</p>
+            </div>
+          </div>
+
           <div className="grid gap-3">
-            <a
-              href={`/${form.slug || "barbearia-sample"}`}
-              className={cn(buttonVariants({ size: "lg", className: "h-12 w-full justify-between rounded-2xl px-5" }))}
-            >
-              Reservar agora
-              <ArrowRight className="size-4" />
-            </a>
+            {form.onlineBooking ? (
+              <a
+                href={`/${form.slug || "barbearia-sample"}`}
+                className={cn(buttonVariants({ size: "lg", className: "h-12 w-full justify-between rounded-2xl px-5" }))}
+              >
+                Reservar agora
+                <ArrowRight className="size-4" />
+              </a>
+            ) : (
+              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-700">
+                As reservas online estao desativadas. A pagina publica vai mostrar contacto e branding, mas sem CTA de marcacao.
+              </div>
+            )}
+
             <div className="rounded-2xl border bg-muted/50 p-4 text-left">
               <div className="mb-2 flex items-center gap-2 text-sm font-medium">
                 <Sparkles className="size-4 text-primary" />
@@ -217,59 +384,65 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                     <h3 className="font-medium">{service.name}</h3>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">{service.description}</p>
                   </div>
-                  <span
-                    className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                    style={{ backgroundColor: `${form.accentColor}20`, color: form.accentColor }}
-                  >
-                    {service.durationMinutes} min
-                  </span>
+                  {form.showDurations ? (
+                    <span
+                      className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                      style={{ backgroundColor: `${form.accentColor}20`, color: form.accentColor }}
+                    >
+                      {service.durationMinutes} min
+                    </span>
+                  ) : null}
                 </div>
-                <p className="mt-4 font-semibold" style={{ color: form.primaryColor }}>
-                  {formatEuro(service.priceCents)}
-                </p>
+                {form.showPrices ? (
+                  <p className="mt-4 font-semibold" style={{ color: form.primaryColor }}>
+                    {formatEuro(service.priceCents)}
+                  </p>
+                ) : null}
               </div>
             ))}
           </div>
 
-          <div>
-            <div className="mb-4 flex items-center gap-2 text-sm font-medium">
-              <UserRound className="size-4" />
-              Equipa visível na página pública
-            </div>
-            <div className="grid gap-3">
-              {demoBusiness.team.map((member) => (
-                <div key={member.id} className="flex items-start justify-between gap-3 rounded-[1.5rem] border p-4">
-                  <div className="flex gap-3">
-                    <div
-                      className="flex size-12 items-center justify-center rounded-2xl text-sm font-semibold text-white"
-                      style={{ background: `linear-gradient(135deg, ${form.primaryColor}, ${form.accentColor})` }}
+          {form.showTeam ? (
+            <div>
+              <div className="mb-4 flex items-center gap-2 text-sm font-medium">
+                <UserRound className="size-4" />
+                Equipa visivel na pagina publica
+              </div>
+              <div className="grid gap-3">
+                {demoBusiness.team.map((member) => (
+                  <div key={member.id} className="flex items-start justify-between gap-3 rounded-[1.5rem] border p-4">
+                    <div className="flex gap-3">
+                      <div
+                        className="flex size-12 items-center justify-center rounded-2xl text-sm font-semibold text-white"
+                        style={{ background: `linear-gradient(135deg, ${form.primaryColor}, ${form.accentColor})` }}
+                      >
+                        {member.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-medium">{member.name}</p>
+                        <p className="text-sm text-muted-foreground">{member.role}</p>
+                        <p className="mt-2 text-sm text-muted-foreground">{member.specialties.join(" / ")}</p>
+                      </div>
+                    </div>
+                    <span
+                      className="rounded-full px-3 py-1 text-xs font-semibold"
+                      style={{ backgroundColor: `${form.primaryColor}14`, color: form.primaryColor }}
                     >
-                      {member.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-medium">{member.name}</p>
-                      <p className="text-sm text-muted-foreground">{member.role}</p>
-                      <p className="mt-2 text-sm text-muted-foreground">{member.specialties.join(" · ")}</p>
-                    </div>
+                      Disponivel
+                    </span>
                   </div>
-                  <span
-                    className="rounded-full px-3 py-1 text-xs font-semibold"
-                    style={{ backgroundColor: `${form.primaryColor}14`, color: form.primaryColor }}
-                  >
-                    Disponível
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-muted/50 p-4">
             <div>
-              <p className="text-sm font-medium">Rota pública prevista</p>
-              <p className="text-sm text-muted-foreground">/{form.slug || "nome-do-negocio"}</p>
+              <p className="text-sm font-medium">Rota publica prevista</p>
+              <p className="text-sm text-muted-foreground">/{form.slug || "nome-da-barbearia"}</p>
             </div>
             <a href={`/${form.slug || "barbearia-sample"}`} className={cn(buttonVariants({ className: "gap-2" }))}>
-              Ver página pública
+              Ver pagina publica
               <ArrowRight className="size-4" />
             </a>
           </div>
@@ -284,6 +457,23 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <label className="grid gap-2">
       <span className="text-sm font-medium">{label}</span>
       {children}
+    </label>
+  );
+}
+
+function ToggleRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center justify-between gap-3 rounded-2xl border bg-background px-4 py-3 text-sm">
+      <span>{label}</span>
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
     </label>
   );
 }
