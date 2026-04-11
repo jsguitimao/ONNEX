@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { addDays, format, set } from "date-fns";
 import { db } from "@/lib/db";
 import { demoBusiness } from "@/lib/demo-data";
+import { sendBookingNotification } from "@/lib/notifications";
 
 const DEMO_OWNER = {
   clerkUserId: "local-demo-owner",
@@ -885,6 +886,8 @@ export async function createPublicBooking(input: {
     },
   });
 
+  await sendBookingNotification(booking.id, "BOOKING_CREATED");
+
   return booking;
 }
 
@@ -952,6 +955,8 @@ export async function updatePublicBookingByToken(
       staffMember: true,
     },
   });
+
+  await sendBookingNotification(updated.id, action === "confirm" ? "BOOKING_CONFIRMED" : "BOOKING_CANCELLED");
 
   return {
     id: updated.id,
@@ -1260,7 +1265,7 @@ export async function updateBookingStatus(
     throw new Error("BOOKING_NOT_FOUND");
   }
 
-  return db.booking.update({
+  const updated = await db.booking.update({
     where: { id },
     data: { status },
     include: {
@@ -1268,6 +1273,16 @@ export async function updateBookingStatus(
       staffMember: true,
     },
   });
+
+  if (status === "CONFIRMED") {
+    await sendBookingNotification(updated.id, "BOOKING_CONFIRMED");
+  }
+
+  if (status === "CANCELLED") {
+    await sendBookingNotification(updated.id, "BOOKING_CANCELLED");
+  }
+
+  return updated;
 }
 
 export async function updateCustomer(
