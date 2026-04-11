@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Loader2, UserRound } from "lucide-react";
 import type { PublicBusinessPayload, BookingSlot } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
@@ -24,6 +25,7 @@ export function PublicBookingFlow({ business }: Props) {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [manageUrl, setManageUrl] = useState("");
 
   const selectedService = useMemo(
     () => business.services.find((service) => service.id === serviceId),
@@ -35,6 +37,7 @@ export function PublicBookingFlow({ business }: Props) {
     setSlots([]);
     setMessage("");
     setError("");
+    setManageUrl("");
 
     if (!date || !serviceId || !staffMemberId) return;
 
@@ -91,7 +94,12 @@ export function PublicBookingFlow({ business }: Props) {
         }),
       });
 
-      const data = (await response.json()) as { error?: string; startsAt?: string; serviceName?: string };
+      const data = (await response.json()) as {
+        error?: string;
+        startsAt?: string;
+        serviceName?: string;
+        manageUrl?: string;
+      };
 
       if (!response.ok) {
         throw new Error(data.error ?? "Não foi possível concluir a reserva.");
@@ -104,6 +112,7 @@ export function PublicBookingFlow({ business }: Props) {
       setSelectedSlot("");
       setDate("");
       setSlots([]);
+      setManageUrl(data.manageUrl ?? "");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Erro ao criar reserva.");
     } finally {
@@ -262,6 +271,15 @@ export function PublicBookingFlow({ business }: Props) {
         </button>
 
         {message ? <p className="mt-3 text-sm text-green-700">{message}</p> : null}
+        {manageUrl ? (
+          <Link
+            href={manageUrl}
+            className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          >
+            Gerir esta reserva
+            <ArrowRight className="size-4" />
+          </Link>
+        ) : null}
         {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
       </div>
     </section>

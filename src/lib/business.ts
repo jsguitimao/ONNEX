@@ -259,6 +259,23 @@ export type PublicBusinessPayload = {
   }>;
 };
 
+export type PublicBookingDetails = {
+  id: string;
+  publicToken: string;
+  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  startsAt: Date;
+  endsAt: Date;
+  customerName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  serviceName: string;
+  staffName: string | null;
+  businessName: string;
+  businessSlug: string;
+  canConfirm: boolean;
+  canCancel: boolean;
+};
+
 export type BookingSlot = {
   iso: string;
   label: string;
@@ -802,6 +819,7 @@ export async function createPublicBooking(input: {
   }
 
   const endsAt = new Date(startsAt.getTime() + service.durationMinutes * 60_000);
+  const publicToken = crypto.randomUUID();
 
   const conflict = await db.booking.findFirst({
     where: {
@@ -853,6 +871,7 @@ export async function createPublicBooking(input: {
       status: "PENDING",
       source: "ONLINE",
       paymentStatus: "UNPAID",
+      publicToken,
       startsAt,
       endsAt,
       priceCents: service.priceCents,
@@ -867,6 +886,89 @@ export async function createPublicBooking(input: {
   });
 
   return booking;
+}
+
+export async function getPublicBookingByToken(token: string): Promise<PublicBookingDetails | null> {
+  const booking = await db.booking.findUnique({
+    where: { publicToken: token },
+    include: {
+      business: true,
+      service: true,
+      staffMember: true,
+    },
+  });
+
+  if (!booking) return null;
+
+  return {
+    id: booking.id,
+    publicToken: booking.publicToken ?? "",
+    status: booking.status,
+    startsAt: booking.startsAt,
+    endsAt: booking.endsAt,
+    customerName: booking.customerName,
+    customerEmail: booking.customerEmail,
+    customerPhone: booking.customerPhone,
+    serviceName: booking.service.name,
+    staffName: booking.staffMember?.fullName ?? null,
+    businessName: booking.business.name,
+    businessSlug: booking.business.slug,
+    canConfirm: booking.status === "PENDING",
+    canCancel: ["PENDING", "CONFIRMED"].includes(booking.status),
+  };
+}
+
+export async function updatePublicBookingByToken(
+  token: string,
+  action: "confirm" | "cancel"
+): Promise<PublicBookingDetails | null> {
+  const booking = await db.booking.findUnique({
+    where: { publicToken: token },
+    include: {
+      business: true,
+      service: true,
+      staffMember: true,
+    },
+  });
+
+  if (!booking) return null;
+
+  if (action === "confirm" && booking.status !== "PENDING") {
+    throw new Error("BOOKING_ACTION_NOT_ALLOWED");
+  }
+
+  if (action === "cancel" && !["PENDING", "CONFIRMED"].includes(booking.status)) {
+    throw new Error("BOOKING_ACTION_NOT_ALLOWED");
+  }
+
+  const updated = await db.booking.update({
+    where: { id: booking.id },
+    data: {
+      status: action === "confirm" ? "CONFIRMED" : "CANCELLED",
+    },
+    include: {
+      business: true,
+      service: true,
+      staffMember: true,
+    },
+  });
+
+  return {
+    id: updated.id,
+    publicToken: updated.publicToken ?? "",
+    status: updated.status,
+    startsAt: updated.startsAt,
+    endsAt: updated.endsAt,
+    customerName: updated.customerName,
+    customerEmail: updated.customerEmail,
+    customerPhone: updated.customerPhone,
+    serviceName: updated.service.name,
+    staffName: updated.staffMember?.fullName ?? null,
+    businessName: updated.business.name,
+    businessSlug: updated.business.slug,
+    canConfirm: updated.status === "PENDING",
+    canCancel: ["PENDING", "CONFIRMED"].includes(updated.status),
+  };
 }
 
 export async function getDashboardSnapshot() {

@@ -37,10 +37,12 @@ export async function POST(req: Request, { params }: RouteProps) {
 
     return NextResponse.json({
       id: booking.id,
+      publicToken: booking.publicToken,
       status: booking.status,
       serviceName: booking.service.name,
       staffName: booking.staffMember?.fullName ?? null,
       startsAt: booking.startsAt,
+      manageUrl: `/booking/${booking.publicToken}`,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "ERRO";
