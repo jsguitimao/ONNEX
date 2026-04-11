@@ -1,0 +1,297 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String               @id @default(cuid())
+  clerkUserId     String               @unique
+  email           String               @unique
+  firstName       String?
+  lastName        String?
+  avatarUrl       String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  ownedBusinesses Business[]           @relation("BusinessOwner")
+  memberships     BusinessMembership[]
+}
+
+model Business {
+  id               String               @id @default(cuid())
+  ownerId          String
+  name             String
+  slug             String               @unique
+  description      String?
+  contactEmail     String?
+  contactPhone     String?
+  websiteUrl       String?
+  timezone         String               @default("Europe/Lisbon")
+  locale           String               @default("pt-PT")
+  status           BusinessStatus       @default(DRAFT)
+  plan             PlanTier             @default(FREE)
+  logoUrl          String?
+  coverImageUrl    String?
+  primaryColor     String?
+  accentColor      String?
+  onlineBooking    Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  owner            User                 @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  bookingPage      BookingPage?
+  memberships      BusinessMembership[]
+  locations        Location[]
+  staffMembers     StaffMember[]
+  services         Service[]
+  customers        Customer[]
+  bookings         Booking[]
+  subscription     Subscription?
+
+  @@index([ownerId])
+}
+
+model BusinessMembership {
+  id          String         @id @default(cuid())
+  businessId  String
+  userId      String
+  role        MembershipRole @default(ADMIN)
+  createdAt   DateTime       @default(now())
+
+  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+}
+
+model BookingPage {
+  id                String   @id @default(cuid())
+  businessId        String   @unique
+  headline          String?
+  subheadline       String?
+  welcomeMessage    String?
+  showTeam          Boolean  @default(true)
+  showPrices        Boolean  @default(true)
+  showDurations     Boolean  @default(true)
+  customDomain      String?  @unique
+  seoTitle          String?
+  seoDescription    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  business          Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model Location {
+  id              String      @id @default(cuid())
+  businessId      String
+  name            String
+  addressLine1    String?
+  addressLine2    String?
+  city            String?
+  postalCode      String?
+  countryCode     String?     @default("PT")
+  isDefault       Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  business        Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staffMembers    StaffMember[]
+  bookings        Booking[]
+
+  @@index([businessId])
+}
+
+model StaffMember {
+  id              String              @id @default(cuid())
+  businessId      String
+  locationId      String?
+  fullName        String
+  slug            String?
+  roleTitle       String?
+  bio             String?
+  avatarUrl       String?
+  email           String?
+  phone           String?
+  isActive        Boolean             @default(true)
+  displayOrder    Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  business        Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location        Location?           @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  services        StaffService[]
+  availabilities  WeeklyAvailability[]
+  bookings        Booking[]
+
+  @@index([businessId])
+}
+
+model Service {
+  id               String         @id @default(cuid())
+  businessId       String
+  name             String
+  slug             String?
+  description      String?
+  durationMinutes  Int
+  priceCents       Int
+  color            String?
+  isActive         Boolean        @default(true)
+  displayOrder     Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  business         Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staffAssignments StaffService[]
+  bookings         Booking[]
+
+  @@index([businessId])
+}
+
+model StaffService {
+  staffMemberId   String
+  serviceId       String
+
+  staffMember     StaffMember @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+  service         Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([staffMemberId, serviceId])
+}
+
+model WeeklyAvailability {
+  id             String      @id @default(cuid())
+  staffMemberId  String
+  dayOfWeek      Int
+  startTime      String
+  endTime        String
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  staffMember    StaffMember @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+
+  @@index([staffMemberId, dayOfWeek])
+}
+
+model Customer {
+  id               String      @id @default(cuid())
+  businessId       String
+  fullName         String
+  email            String?
+  phone            String?
+  notes            String?
+  marketingOptIn   Boolean     @default(false)
+  lastBookedAt     DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  business         Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  bookings         Booking[]
+
+  @@index([businessId])
+}
+
+model Booking {
+  id               String          @id @default(cuid())
+  businessId       String
+  locationId       String?
+  serviceId        String
+  staffMemberId    String?
+  customerId       String?
+  status           BookingStatus   @default(PENDING)
+  source           BookingSource   @default(ONLINE)
+  paymentStatus    PaymentStatus   @default(UNPAID)
+  startsAt         DateTime
+  endsAt           DateTime
+  priceCents       Int
+  customerName     String
+  customerEmail    String?
+  customerPhone    String?
+  internalNotes    String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  business         Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location         Location?       @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  service          Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  staffMember      StaffMember?    @relation(fields: [staffMemberId], references: [id], onDelete: SetNull)
+  customer         Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, startsAt])
+  @@index([staffMemberId, startsAt])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  businessId           String             @unique
+  tier                 PlanTier           @default(FREE)
+  status               SubscriptionStatus @default(TRIALING)
+  seats                Int                @default(1)
+  billingCycle         BillingCycle       @default(MONTHLY)
+  provider             String?
+  providerCustomerId   String?
+  providerPriceId      String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  business             Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+enum BusinessStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+enum PlanTier {
+  FREE
+  PRO
+  PRO_PLUS
+  ENTERPRISE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingSource {
+  ONLINE
+  MANUAL
+  IMPORTED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  REFUNDED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
