@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Clock3, MapPin, Phone, Sparkles, UserRound } from "lucide-react";
-import { getBusinessBySlug } from "@/lib/business";
-import { formatEuro } from "@/lib/demo-data";
+import { ArrowRight, MapPin, Phone, Sparkles, UserRound } from "lucide-react";
+import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { PublicBookingFlow } from "@/components/public-booking-flow";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +15,9 @@ type PublicPageProps = {
 export default async function PublicBookingPage({ params }: PublicPageProps) {
   const { slug } = await params;
   const business = await getBusinessBySlug(slug);
+  const publicBusiness = await getPublicBusinessPayload(slug);
 
-  if (!business) {
+  if (!business || !publicBusiness) {
     notFound();
   }
 
@@ -97,40 +98,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           </div>
         </section>
 
-        <section id="booking" className="rounded-[2rem] border bg-card p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Reserva rápida</p>
-              <h2 className="font-heading text-2xl font-semibold">Escolha um serviço</h2>
-            </div>
-            <Badge variant="secondary">Bio flow</Badge>
-          </div>
-
-          <div className="grid gap-3">
-            {business.services.map((service) => (
-              <button
-                key={service.id}
-                type="button"
-                className="group rounded-[1.5rem] border bg-background p-4 text-left transition hover:border-primary/30 hover:bg-muted/40"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="font-medium">{service.name}</h3>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{service.description}</p>
-                  </div>
-                  <ArrowRight className="mt-1 size-4 text-muted-foreground transition group-hover:text-primary" />
-                </div>
-                <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-muted-foreground">
-                    <Clock3 className="size-4" />
-                    {service.durationMinutes} min
-                  </span>
-                  <span className="font-semibold text-foreground">{formatEuro(service.priceCents)}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
+        <PublicBookingFlow business={publicBusiness} />
 
         <section className="rounded-[2rem] border bg-card p-5 shadow-sm">
           <div className="mb-4">

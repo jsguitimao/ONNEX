@@ -90,6 +90,30 @@ export default async function DashboardPreviewPage() {
           </Card>
         ))}
       </div>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="font-heading text-2xl">Reservas recentes</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          {snapshot.recentBookings.map((booking) => (
+            <div key={booking.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4">
+              <div>
+                <p className="font-medium">{booking.customerName}</p>
+                <p className="text-sm text-muted-foreground">
+                  {booking.serviceName} · {booking.staffName}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium">
+                  {new Date(booking.startsAt).toLocaleDateString("pt-PT")} · {new Date(booking.startsAt).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+                <p className="text-sm text-muted-foreground">{booking.status}</p>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </main>
   );
 }
