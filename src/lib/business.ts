@@ -337,6 +337,14 @@ export type BookingAgendaSnapshot = {
     durationMinutes: number;
     priceCents: number;
   }>;
+  scheduleBlocks: Array<{
+    id: string;
+    startsAt: Date;
+    endsAt: Date;
+    reason: string | null;
+    staffMemberId: string | null;
+    staffName: string | null;
+  }>;
   bookings: BookingAgendaItem[];
 };
 
@@ -749,6 +757,20 @@ export async function getAvailableSlots(input: {
       endsAt: true,
     },
   });
+  const scheduleBlocks = await db.scheduleBlock.findMany({
+    where: {
+      businessId: business.id,
+      OR: [{ staffMemberId: staffMember.id }, { staffMemberId: null }],
+      startsAt: {
+        gte: set(requestedDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }),
+        lte: set(requestedDate, { hours: 23, minutes: 59, seconds: 59, milliseconds: 999 }),
+      },
+    },
+    select: {
+      startsAt: true,
+      endsAt: true,
+    },
+  });
 
   const now = new Date();
   const slots: BookingSlot[] = [];
@@ -774,8 +796,11 @@ export async function getAvailableSlots(input: {
       const overlaps = existingBookings.some(
         (booking) => cursor < booking.endsAt && candidateEnd > booking.startsAt
       );
+      const overlapsBlock = scheduleBlocks.some(
+        (block) => cursor < block.endsAt && candidateEnd > block.startsAt
+      );
 
-      if (!overlaps && cursor > now) {
+      if (!overlaps && !overlapsBlock && cursor > now) {
         slots.push({
           iso: cursor.toISOString(),
           label: format(cursor, "HH:mm"),
@@ -846,6 +871,23 @@ export async function createPublicBooking(input: {
 
   if (conflict) {
     throw new Error("HORARIO_OCUPADO");
+  }
+
+  const blocked = await db.scheduleBlock.findFirst({
+    where: {
+      businessId: business.id,
+      OR: [{ staffMemberId: staffMember.id }, { staffMemberId: null }],
+      startsAt: {
+        lt: endsAt,
+      },
+      endsAt: {
+        gt: startsAt,
+      },
+    },
+  });
+
+  if (blocked) {
+    throw new Error("HORARIO_BLOQUEADO");
   }
 
   const customer = await db.customer.upsert({
@@ -1030,6 +1072,20 @@ export async function getBookingAgenda(input?: { date?: string; staffMemberId?: 
     },
     orderBy: { startsAt: "asc" },
   });
+  const scheduleBlocks = await db.scheduleBlock.findMany({
+    where: {
+      businessId: business.id,
+      startsAt: {
+        gte: dayStart,
+        lte: dayEnd,
+      },
+      ...(input?.staffMemberId ? { OR: [{ staffMemberId: input.staffMemberId }, { staffMemberId: null }] } : {}),
+    },
+    include: {
+      staffMember: true,
+    },
+    orderBy: { startsAt: "asc" },
+  });
 
   return {
     date: format(dayStart, "yyyy-MM-dd"),
@@ -1045,6 +1101,14 @@ export async function getBookingAgenda(input?: { date?: string; staffMemberId?: 
         durationMinutes: service.durationMinutes,
         priceCents: service.priceCents,
       })),
+    scheduleBlocks: scheduleBlocks.map((block) => ({
+      id: block.id,
+      startsAt: block.startsAt,
+      endsAt: block.endsAt,
+      reason: block.reason,
+      staffMemberId: block.staffMemberId,
+      staffName: block.staffMember?.fullName ?? null,
+    })),
     bookings: bookings.map((booking) => ({
       id: booking.id,
       startsAt: booking.startsAt,
@@ -1114,6 +1178,23 @@ export async function createManualBooking(input: {
     throw new Error("HORARIO_OCUPADO");
   }
 
+  const blocked = await db.scheduleBlock.findFirst({
+    where: {
+      businessId: business.id,
+      OR: [{ staffMemberId: staffMember.id }, { staffMemberId: null }],
+      startsAt: {
+        lt: endsAt,
+      },
+      endsAt: {
+        gt: startsAt,
+      },
+    },
+  });
+
+  if (blocked) {
+    throw new Error("HORARIO_BLOQUEADO");
+  }
+
   const identity = `${business.id}:${input.customerEmail?.toLowerCase() ?? input.customerPhone ?? input.customerName}`;
   const customer = await db.customer.upsert({
     where: { id: identity },
@@ -1164,6 +1245,56 @@ export async function createManualBooking(input: {
   }
 
   return booking;
+}
+
+export async function createScheduleBlock(input: {
+  startsAt: string;
+  endsAt: string;
+  reason?: string;
+  staffMemberId?: string;
+}) {
+  const business = await getCurrentBusiness();
+  const startsAt = new Date(input.startsAt);
+  const endsAt = new Date(input.endsAt);
+
+  if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) {
+    throw new Error("BLOQUEIO_INVALIDO");
+  }
+
+  if (input.staffMemberId) {
+    const staffMember = await db.staffMember.findFirst({
+      where: { id: input.staffMemberId, businessId: business.id },
+    });
+
+    if (!staffMember) {
+      throw new Error("STAFF_NOT_FOUND");
+    }
+  }
+
+  return db.scheduleBlock.create({
+    data: {
+      businessId: business.id,
+      staffMemberId: input.staffMemberId,
+      startsAt,
+      endsAt,
+      reason: input.reason || null,
+    },
+  });
+}
+
+export async function deleteScheduleBlock(id: string) {
+  const business = await getCurrentBusiness();
+  const block = await db.scheduleBlock.findFirst({
+    where: { id, businessId: business.id },
+  });
+
+  if (!block) {
+    throw new Error("BLOQUEIO_NAO_ENCONTRADO");
+  }
+
+  await db.scheduleBlock.delete({
+    where: { id },
+  });
 }
 
 export async function getManagementSnapshot(): Promise<ManagementSnapshot> {

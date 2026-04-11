@@ -13,6 +13,8 @@ import {
   RefreshCw,
   UserRound,
   Plus,
+  ShieldBan,
+  Trash2,
 } from "lucide-react";
 import type { BookingAgendaSnapshot } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
@@ -53,6 +55,7 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
     [initialSnapshot.date]: initialSnapshot.bookings,
   });
   const [showManualForm, setShowManualForm] = useState(false);
+  const [showBlockForm, setShowBlockForm] = useState(false);
   const [manualDraft, setManualDraft] = useState({
     customerName: "",
     customerEmail: "",
@@ -61,6 +64,12 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
     staffMemberId: initialSnapshot.staffMembers[0]?.id ?? "",
     startsAt: `${initialSnapshot.date}T10:00`,
     status: "CONFIRMED" as "PENDING" | "CONFIRMED",
+  });
+  const [blockDraft, setBlockDraft] = useState({
+    startsAt: `${initialSnapshot.date}T12:00`,
+    endsAt: `${initialSnapshot.date}T13:00`,
+    reason: "",
+    staffMemberId: "",
   });
 
   const selectedDate = parseISO(`${date}T00:00:00`);
@@ -214,6 +223,64 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
     }
   }
 
+  async function createBlock() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/dashboard/blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startsAt: new Date(blockDraft.startsAt).toISOString(),
+          endsAt: new Date(blockDraft.endsAt).toISOString(),
+          reason: blockDraft.reason,
+          staffMemberId: blockDraft.staffMemberId,
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Nao foi possivel criar o bloqueio.");
+      }
+
+      setShowBlockForm(false);
+      setBlockDraft({
+        startsAt: `${date}T12:00`,
+        endsAt: `${date}T13:00`,
+        reason: "",
+        staffMemberId: "",
+      });
+      await Promise.all([refreshAgenda(), refreshWeek()]);
+    } catch (blockError) {
+      setError(blockError instanceof Error ? blockError.message : "Erro ao criar bloqueio.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function removeBlock(blockId: string) {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/dashboard/blocks/${blockId}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Nao foi possivel remover o bloqueio.");
+      }
+
+      await Promise.all([refreshAgenda(), refreshWeek()]);
+    } catch (removeError) {
+      setError(removeError instanceof Error ? removeError.message : "Erro ao remover bloqueio.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <Card className="mt-6 border-border/70">
       <CardHeader className="gap-4">
@@ -229,6 +296,10 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
             <Button variant="outline" onClick={() => setShowManualForm((current) => !current)}>
               <Plus className="size-4" />
               Reserva manual
+            </Button>
+            <Button variant="outline" onClick={() => setShowBlockForm((current) => !current)}>
+              <ShieldBan className="size-4" />
+              Bloqueio
             </Button>
             <Button variant="outline" onClick={() => void Promise.all([refreshAgenda(), refreshWeek()])} disabled={loading}>
               {loading ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
@@ -317,6 +388,57 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
               >
                 {loading ? <LoaderCircle className="size-4 animate-spin" /> : <Plus className="size-4" />}
                 Criar reserva
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {showBlockForm ? (
+          <div className="rounded-[1.75rem] border border-amber-500/20 bg-amber-500/5 p-4">
+            <div className="mb-4">
+              <p className="font-medium">Novo bloqueio de agenda</p>
+              <p className="text-sm text-muted-foreground">
+                Usa para pausas, almoco, saida antecipada ou indisponibilidade de um profissional.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <select
+                className="h-8 rounded-lg border border-input bg-background px-3 text-sm outline-none"
+                value={blockDraft.staffMemberId}
+                onChange={(event) => setBlockDraft((current) => ({ ...current, staffMemberId: event.target.value }))}
+              >
+                <option value="">Toda a equipa</option>
+                {snapshot.staffMembers.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.fullName}
+                  </option>
+                ))}
+              </select>
+              <Input
+                value={blockDraft.reason}
+                onChange={(event) => setBlockDraft((current) => ({ ...current, reason: event.target.value }))}
+                placeholder="Motivo do bloqueio"
+              />
+              <Input
+                type="datetime-local"
+                value={blockDraft.startsAt}
+                onChange={(event) => setBlockDraft((current) => ({ ...current, startsAt: event.target.value }))}
+              />
+              <Input
+                type="datetime-local"
+                value={blockDraft.endsAt}
+                onChange={(event) => setBlockDraft((current) => ({ ...current, endsAt: event.target.value }))}
+              />
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowBlockForm(false)}>
+                Fechar
+              </Button>
+              <Button disabled={loading} onClick={() => void createBlock()}>
+                {loading ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldBan className="size-4" />}
+                Criar bloqueio
               </Button>
             </div>
           </div>
@@ -465,6 +587,40 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
         {error ? (
           <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
+          </div>
+        ) : null}
+
+        {snapshot.scheduleBlocks.length > 0 ? (
+          <div className="rounded-[1.75rem] border border-border/70 bg-muted/20 p-4">
+            <div className="mb-4">
+              <p className="font-medium">Bloqueios do dia</p>
+              <p className="text-sm text-muted-foreground">
+                Indisponibilidades aplicadas neste dia para equipa inteira ou profissionais especificos.
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              {snapshot.scheduleBlocks.map((block) => (
+                <div
+                  key={block.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background p-3"
+                >
+                  <div>
+                    <p className="font-medium">{block.reason || "Bloqueio de agenda"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {block.staffName ?? "Toda a equipa"} ·{" "}
+                      {new Date(block.startsAt).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })} -{" "}
+                      {new Date(block.endsAt).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+
+                  <Button size="sm" variant="outline" disabled={loading} onClick={() => void removeBlock(block.id)}>
+                    <Trash2 className="size-4" />
+                    Remover
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
 

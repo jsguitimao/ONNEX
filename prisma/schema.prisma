@@ -50,6 +50,7 @@ model Business {
   services         Service[]
   customers        Customer[]
   bookings         Booking[]
+  scheduleBlocks   ScheduleBlock[]
   notifications    NotificationLog[]
   subscription     Subscription?
 
@@ -128,8 +129,26 @@ model StaffMember {
   services        StaffService[]
   availabilities  WeeklyAvailability[]
   bookings        Booking[]
+  scheduleBlocks  ScheduleBlock[]
 
   @@index([businessId])
+}
+
+model ScheduleBlock {
+  id             String      @id @default(cuid())
+  businessId     String
+  staffMemberId  String?
+  startsAt       DateTime
+  endsAt         DateTime
+  reason         String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  business       Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staffMember    StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, startsAt])
+  @@index([staffMemberId, startsAt])
 }
 
 model Service {
