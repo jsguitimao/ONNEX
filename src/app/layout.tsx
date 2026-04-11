@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Inter, Manrope } from "next/font/google";
 import { cn } from "@/lib/utils";
 import "./globals.css";
@@ -24,18 +23,6 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://bukly.vercel.app"),
 };
 
-function AppProviders({ children }: { children: React.ReactNode }) {
-  const hasClerk =
-    Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
-    Boolean(process.env.CLERK_SECRET_KEY);
-
-  if (!hasClerk) {
-    return <>{children}</>;
-  }
-
-  return <ClerkProvider>{children}</ClerkProvider>;
-}
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -44,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="pt-PT" className={cn("h-full antialiased", fontSans.variable, fontHeading.variable)}>
       <body className="min-h-full bg-background text-foreground">
-        <AppProviders>{children}</AppProviders>
+        {children}
       </body>
     </html>
   );
