@@ -2,11 +2,17 @@ import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { CalendarRange, Euro, LayoutDashboard, Sparkles, Users } from "lucide-react";
 import { DashboardAgenda } from "@/components/dashboard-agenda";
+import { DashboardCustomers } from "@/components/dashboard-customers";
 import { DashboardOps } from "@/components/dashboard-ops";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getBookingAgenda, getDashboardSnapshot, getManagementSnapshot } from "@/lib/business";
+import {
+  getBookingAgenda,
+  getCustomersSnapshot,
+  getDashboardSnapshot,
+  getManagementSnapshot,
+} from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
@@ -33,10 +39,11 @@ const panels = [
 ];
 
 export default async function DashboardPreviewPage() {
-  const [snapshot, management, agenda] = await Promise.all([
+  const [snapshot, management, agenda, customers] = await Promise.all([
     getDashboardSnapshot(),
     getManagementSnapshot(),
     getBookingAgenda(),
+    getCustomersSnapshot(),
   ]);
 
   const stats = [
@@ -131,6 +138,8 @@ export default async function DashboardPreviewPage() {
       </Card>
 
       <DashboardAgenda initialSnapshot={agenda} />
+
+      <DashboardCustomers initialSnapshot={customers} />
 
       <section className="mt-6">
         <DashboardOps initialSnapshot={management} />

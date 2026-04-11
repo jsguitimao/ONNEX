@@ -316,6 +316,21 @@ export type BookingAgendaSnapshot = {
   bookings: BookingAgendaItem[];
 };
 
+export type CustomerSnapshot = {
+  customers: Array<{
+    id: string;
+    fullName: string;
+    email: string | null;
+    phone: string | null;
+    notes: string | null;
+    marketingOptIn: boolean;
+    lastBookedAt: Date | null;
+    totalBookings: number;
+    totalSpentCents: number;
+    lastServiceName: string | null;
+  }>;
+};
+
 export async function ensureDemoBusiness() {
   const owner = await db.user.upsert({
     where: { clerkUserId: DEMO_OWNER.clerkUserId },
@@ -958,6 +973,40 @@ export async function getManagementSnapshot(): Promise<ManagementSnapshot> {
   };
 }
 
+export async function getCustomersSnapshot(): Promise<CustomerSnapshot> {
+  const business = await getCurrentBusiness();
+
+  const customers = await db.customer.findMany({
+    where: { businessId: business.id },
+    include: {
+      bookings: {
+        include: {
+          service: true,
+        },
+        orderBy: { startsAt: "desc" },
+      },
+    },
+    orderBy: [{ lastBookedAt: "desc" }, { createdAt: "desc" }],
+  });
+
+  return {
+    customers: customers.map((customer) => ({
+      id: customer.id,
+      fullName: customer.fullName,
+      email: customer.email,
+      phone: customer.phone,
+      notes: customer.notes,
+      marketingOptIn: customer.marketingOptIn,
+      lastBookedAt: customer.lastBookedAt,
+      totalBookings: customer.bookings.length,
+      totalSpentCents: customer.bookings
+        .filter((booking) => !["CANCELLED", "NO_SHOW"].includes(booking.status))
+        .reduce((sum, booking) => sum + booking.priceCents, 0),
+      lastServiceName: customer.bookings[0]?.service.name ?? null,
+    })),
+  };
+}
+
 export async function createService(input: {
   name: string;
   description?: string;
@@ -1115,6 +1164,37 @@ export async function updateBookingStatus(
     include: {
       service: true,
       staffMember: true,
+    },
+  });
+}
+
+export async function updateCustomer(
+  id: string,
+  input: {
+    fullName: string;
+    email?: string;
+    phone?: string;
+    notes?: string;
+    marketingOptIn: boolean;
+  }
+) {
+  const business = await getCurrentBusiness();
+  const customer = await db.customer.findFirst({
+    where: { id, businessId: business.id },
+  });
+
+  if (!customer) {
+    throw new Error("CUSTOMER_NOT_FOUND");
+  }
+
+  return db.customer.update({
+    where: { id },
+    data: {
+      fullName: input.fullName,
+      email: input.email || null,
+      phone: input.phone || null,
+      notes: input.notes || null,
+      marketingOptIn: input.marketingOptIn,
     },
   });
 }
