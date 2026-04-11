@@ -1,7 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, Loader2, MapPin, Palette, Phone, Store, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  MapPin,
+  Palette,
+  Phone,
+  Sparkles,
+  Store,
+  UserRound,
+} from "lucide-react";
 import { demoBusiness, formatEuro } from "@/lib/demo-data";
 import type { OnboardingDraft } from "@/lib/business";
 import { Badge } from "@/components/ui/badge";
@@ -157,15 +167,18 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
 
       <Card className="overflow-hidden border-border/70">
         <div
-          className="border-b px-6 py-6"
+          className="px-6 pb-8 pt-8 text-center text-white"
           style={{
-            background: `linear-gradient(135deg, ${form.primaryColor} 0%, ${form.accentColor} 100%)`,
+            background: `linear-gradient(180deg, ${form.primaryColor} 0%, ${form.accentColor} 100%)`,
           }}
         >
-          <Badge className="border-white/20 bg-white/12 text-white hover:bg-white/12">Preview ao vivo</Badge>
-          <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-white">{form.businessName}</h2>
-          <p className="mt-3 max-w-xl text-sm leading-7 text-white/82">{form.headline}</p>
-          <div className="mt-4 flex flex-wrap gap-3 text-sm text-white/82">
+          <div className="mx-auto flex size-24 items-center justify-center rounded-[1.75rem] border border-white/20 bg-white/12 text-3xl font-semibold shadow-lg shadow-black/10">
+            {form.businessName.charAt(0)}
+          </div>
+          <Badge className="mt-5 border-white/20 bg-white/12 text-white hover:bg-white/12">Preview ao vivo</Badge>
+          <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight">{form.businessName}</h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-white/82">{form.headline}</p>
+          <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm text-white/82">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
               <MapPin className="size-4" />
               {form.city}
@@ -177,16 +190,29 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           </div>
         </div>
 
-        <CardContent className="grid gap-6 p-6">
-          <div>
-            <p className="text-sm leading-7 text-muted-foreground">{form.subheadline}</p>
-            <p className="mt-3 rounded-2xl bg-muted px-4 py-3 text-sm text-foreground">{form.welcomeMessage}</p>
+        <CardContent className="grid gap-5 p-5">
+          <div className="grid gap-3">
+            <a
+              href={`/${form.slug || "barbearia-sample"}`}
+              className={cn(buttonVariants({ size: "lg", className: "h-12 w-full justify-between rounded-2xl px-5" }))}
+            >
+              Reservar agora
+              <ArrowRight className="size-4" />
+            </a>
+            <div className="rounded-2xl border bg-muted/50 p-4 text-left">
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                <Sparkles className="size-4 text-primary" />
+                Mensagem em destaque
+              </div>
+              <p className="text-sm leading-7 text-muted-foreground">{form.subheadline}</p>
+              <p className="mt-3 rounded-2xl bg-background px-4 py-3 text-sm text-foreground">{form.welcomeMessage}</p>
+            </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3">
             {demoBusiness.services.map((service) => (
-              <div key={service.id} className="rounded-2xl border bg-card p-4">
-                <div className="flex items-start justify-between gap-3">
+              <div key={service.id} className="rounded-[1.5rem] border bg-card p-4">
+                <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="font-medium">{service.name}</h3>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">{service.description}</p>
@@ -212,11 +238,19 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
             </div>
             <div className="grid gap-3">
               {demoBusiness.team.map((member) => (
-                <div key={member.id} className="flex items-start justify-between gap-3 rounded-2xl border p-4">
-                  <div>
-                    <p className="font-medium">{member.name}</p>
-                    <p className="text-sm text-muted-foreground">{member.role}</p>
-                    <p className="mt-2 text-sm text-muted-foreground">{member.specialties.join(" · ")}</p>
+                <div key={member.id} className="flex items-start justify-between gap-3 rounded-[1.5rem] border p-4">
+                  <div className="flex gap-3">
+                    <div
+                      className="flex size-12 items-center justify-center rounded-2xl text-sm font-semibold text-white"
+                      style={{ background: `linear-gradient(135deg, ${form.primaryColor}, ${form.accentColor})` }}
+                    >
+                      {member.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium">{member.name}</p>
+                      <p className="text-sm text-muted-foreground">{member.role}</p>
+                      <p className="mt-2 text-sm text-muted-foreground">{member.specialties.join(" · ")}</p>
+                    </div>
                   </div>
                   <span
                     className="rounded-full px-3 py-1 text-xs font-semibold"
