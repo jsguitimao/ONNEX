@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CheckCheck, Clock3, LoaderCircle, Phone, RefreshCw, UserRound } from "lucide-react";
+import { addDays, endOfWeek, format, isSameDay, parseISO, startOfWeek } from "date-fns";
+import {
+  CalendarDays,
+  CheckCheck,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  LoaderCircle,
+  Phone,
+  RefreshCw,
+  UserRound,
+} from "lucide-react";
 import type { BookingAgendaSnapshot } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
@@ -37,6 +48,14 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
   const [loading, setLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [weekBookings, setWeekBookings] = useState<Record<string, BookingAgendaSnapshot["bookings"]>>({
+    [initialSnapshot.date]: initialSnapshot.bookings,
+  });
+
+  const selectedDate = parseISO(`${date}T00:00:00`);
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
 
   const summary = useMemo(() => {
     return {
@@ -46,6 +65,19 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
       completed: snapshot.bookings.filter((booking) => booking.status === "COMPLETED").length,
     };
   }, [snapshot.bookings]);
+
+  const weekSummary = useMemo(() => {
+    const bookings = Object.values(weekBookings).flat();
+
+    return {
+      total: bookings.length,
+      confirmed: bookings.filter((booking) => booking.status === "CONFIRMED").length,
+      pending: bookings.filter((booking) => booking.status === "PENDING").length,
+      revenue: bookings
+        .filter((booking) => !["CANCELLED", "NO_SHOW"].includes(booking.status))
+        .reduce((sum, booking) => sum + booking.priceCents, 0),
+    };
+  }, [weekBookings]);
 
   async function refreshAgenda(nextDate = date, nextStaffMemberId = staffMemberId) {
     setLoading(true);
@@ -74,8 +106,41 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
     }
   }
 
+  async function refreshWeek(nextDate = date, nextStaffMemberId = staffMemberId) {
+    const anchor = parseISO(`${nextDate}T00:00:00`);
+    const days = Array.from({ length: 7 }, (_, index) =>
+      format(addDays(startOfWeek(anchor, { weekStartsOn: 1 }), index), "yyyy-MM-dd")
+    );
+
+    try {
+      const responses = await Promise.all(
+        days.map(async (day) => {
+          const params = new URLSearchParams({ date: day });
+          if (nextStaffMemberId) {
+            params.set("staffMemberId", nextStaffMemberId);
+          }
+
+          const response = await fetch(`/api/dashboard/bookings?${params.toString()}`, {
+            cache: "no-store",
+          });
+          const payload = (await response.json()) as BookingAgendaSnapshot & { error?: string };
+
+          if (!response.ok) {
+            throw new Error(payload.error ?? "Nao foi possivel carregar a semana.");
+          }
+
+          return [day, payload.bookings] as const;
+        })
+      );
+
+      setWeekBookings(Object.fromEntries(responses));
+    } catch (weekError) {
+      setError(weekError instanceof Error ? weekError.message : "Erro ao carregar semana.");
+    }
+  }
+
   useEffect(() => {
-    void refreshAgenda(date, staffMemberId);
+    void Promise.all([refreshAgenda(date, staffMemberId), refreshWeek(date, staffMemberId)]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, staffMemberId]);
 
@@ -95,7 +160,7 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
         throw new Error(payload.error ?? "Nao foi possivel atualizar o estado.");
       }
 
-      await refreshAgenda();
+      await Promise.all([refreshAgenda(), refreshWeek()]);
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "Erro ao atualizar reserva.");
     } finally {
@@ -110,11 +175,11 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
           <div>
             <CardTitle className="font-heading text-2xl">Agenda operacional</CardTitle>
             <CardDescription>
-              Vista diaria para confirmar presencas, concluir atendimentos e reagir rapido ao que
-              entra pela pagina publica.
+              Vista diaria e semanal para confirmar presencas, concluir atendimentos e equilibrar a
+              operacao da barbearia.
             </CardDescription>
           </div>
-          <Button variant="outline" onClick={() => void refreshAgenda()} disabled={loading}>
+          <Button variant="outline" onClick={() => void Promise.all([refreshAgenda(), refreshWeek()])} disabled={loading}>
             {loading ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
             Atualizar
           </Button>
@@ -160,6 +225,64 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
             </div>
           </div>
         </div>
+
+        <div className="rounded-[1.75rem] border border-border/70 bg-muted/20 p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Semana operacional</p>
+              <p className="font-medium">
+                {format(weekStart, "dd MMM")} - {format(weekEnd, "dd MMM")}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setDate(format(addDays(weekStart, -7), "yyyy-MM-dd"))}
+              >
+                <ChevronLeft className="size-4" />
+                Semana anterior
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setDate(format(addDays(weekStart, 7), "yyyy-MM-dd"))}
+              >
+                Proxima semana
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-2 md:grid-cols-7">
+            {weekDays.map((day) => {
+              const dayKey = format(day, "yyyy-MM-dd");
+              const bookings = weekBookings[dayKey] ?? [];
+              const isSelected = isSameDay(day, selectedDate);
+
+              return (
+                <button
+                  key={dayKey}
+                  type="button"
+                  onClick={() => setDate(dayKey)}
+                  className={cn(
+                    "rounded-2xl border p-3 text-left transition",
+                    isSelected
+                      ? "border-primary bg-primary/10"
+                      : "border-border/70 bg-background hover:border-primary/30"
+                  )}
+                >
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    {format(day, "EEE")}
+                  </p>
+                  <p className="mt-2 font-heading text-2xl font-semibold">{format(day, "dd")}</p>
+                  <p className="mt-3 text-sm text-muted-foreground">{bookings.length} reservas</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent className="grid gap-6">
@@ -179,6 +302,26 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
           <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4">
             <p className="text-sm text-emerald-700">Concluidas</p>
             <p className="mt-2 font-heading text-3xl font-semibold text-emerald-700">{summary.completed}</p>
+          </div>
+          <div className="rounded-3xl border border-primary/20 bg-primary/5 p-4 md:col-span-4">
+            <div className="grid gap-3 md:grid-cols-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Semana atual</p>
+                <p className="mt-2 font-heading text-2xl font-semibold">{weekSummary.total}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Confirmadas</p>
+                <p className="mt-2 font-heading text-2xl font-semibold">{weekSummary.confirmed}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Pendentes</p>
+                <p className="mt-2 font-heading text-2xl font-semibold">{weekSummary.pending}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Receita prevista</p>
+                <p className="mt-2 font-heading text-2xl font-semibold">{formatEuro(weekSummary.revenue)}</p>
+              </div>
+            </div>
           </div>
         </div>
 

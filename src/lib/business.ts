@@ -6,7 +6,7 @@ import { sendBookingNotification } from "@/lib/notifications";
 
 const DEMO_OWNER = {
   clerkUserId: "local-demo-owner",
-  email: "owner@bukly.local",
+  email: "owner@bukbarbearia.local",
   firstName: "Guilherme",
   lastName: "Owner",
 };
@@ -554,7 +554,7 @@ async function hydrateOperationalData(
         endsAt: end,
         priceCents: service.priceCents,
         customerName: "Cliente Demo",
-        customerEmail: "cliente.demo@bukly.local",
+        customerEmail: "cliente.demo@bukbarbearia.local",
         customerPhone: "+351 910 000 000",
       },
     });

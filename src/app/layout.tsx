@@ -16,12 +16,12 @@ const fontHeading = Manrope({
 
 export const metadata: Metadata = {
   title: {
-    default: "Bukly",
-    template: "%s | Bukly",
+    default: "BUKBARBEARIA.COM",
+    template: "%s | BUKBARBEARIA.COM",
   },
   description:
-    "Plataforma de agendamentos para negócios de serviços com página pública por profissional, agenda, equipa e clientes.",
-  metadataBase: new URL("https://bukly.vercel.app"),
+    "Plataforma de agendamentos para barbearias com pagina publica, agenda operacional, equipa, CRM e lembretes.",
+  metadataBase: new URL("https://bukbarbearia.com"),
 };
 
 export default function RootLayout({

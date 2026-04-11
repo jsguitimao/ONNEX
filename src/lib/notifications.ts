@@ -27,7 +27,7 @@ type BookingNotificationPayload = {
 };
 
 function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || "https://buk-next.vercel.app";
+  return process.env.NEXT_PUBLIC_APP_URL || "https://bukbarbearia.com";
 }
 
 function buildManageUrl(booking: BookingNotificationPayload) {

@@ -17,15 +17,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const pillars = [
   {
-    title: "Página pública por negócio",
+    title: "Pagina publica da barbearia",
     description:
-      "Cada profissional ou negócio ganha um endereço público para receber marcações sem depender de mensagens ou chamadas.",
+      "Cada barbearia ganha um endereco publico para receber marcacoes sem depender de mensagens ou chamadas.",
     icon: Store,
   },
   {
-    title: "Agenda e operação",
+    title: "Agenda e operacao",
     description:
-      "Gestão de serviços, equipa, disponibilidade, clientes e marcações numa experiência única e preparada para crescer.",
+      "Gestao de servicos, equipa, disponibilidade, clientes e marcacoes numa experiencia unica e preparada para crescer.",
     icon: LayoutDashboard,
   },
   {
@@ -37,12 +37,12 @@ const pillars = [
 ];
 
 const roadmap = [
-  "Auth com Clerk e onboarding do negócio",
-  "Dashboard com agenda, serviços, equipa e clientes",
-  "Perfil público por slug, tipo /nomedonegocio",
-  "Fluxo de marcação com disponibilidade real",
-  "Base de planos, limites e monetização",
-  "Deploy contínuo na Vercel desde o primeiro ciclo",
+  "Auth com Clerk e onboarding do negocio",
+  "Dashboard com agenda, servicos, equipa e clientes",
+  "Perfil publico por slug, tipo /nomedabarbearia",
+  "Fluxo de marcacao com disponibilidade real",
+  "Base de notificacoes e gestao da reserva",
+  "Deploy continuo desde o primeiro ciclo",
 ];
 
 export default function HomePage() {
@@ -57,8 +57,8 @@ export default function HomePage() {
               <Scissors className="size-5" />
             </div>
             <div>
-              <p className="font-heading text-lg font-semibold tracking-tight">Bukly</p>
-              <p className="text-sm text-muted-foreground">booking software for service businesses</p>
+              <p className="font-heading text-lg font-semibold tracking-tight">BUKBARBEARIA.COM</p>
+              <p className="text-sm text-muted-foreground">software de agendamento para barbearias</p>
             </div>
           </Link>
 
@@ -86,15 +86,15 @@ export default function HomePage() {
         <div className="grid flex-1 items-center gap-16 py-20 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="max-w-3xl">
             <Badge variant="secondary" className="mb-6 rounded-full px-4 py-1.5">
-              Produto novo, arquitetura limpa, deploy desde o inicio
+              Marca nova, arquitetura limpa e foco total na operacao da barbearia
             </Badge>
             <h1 className="font-heading text-5xl font-semibold tracking-tight sm:text-6xl">
-              Um clone inspirado no BUK, refeito com criterio de produto e base tecnica seria.
+              BUKBARBEARIA.COM: agendamento, operacao e crescimento para a tua barbearia.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Estamos a construir uma plataforma de agendamentos para barbearias, estúdios e outros
-              negócios de serviços, com perfis públicos por slug, dashboard privado e camada pronta
-              para crescer sem acumular atalhos ruins logo no arranque.
+              Estamos a construir uma plataforma focada em barbearias, com pagina publica por slug,
+              dashboard privado, CRM, agenda operacional, confirmacoes e lembretes, sem acumular
+              atalhos ruins logo no arranque.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-3">
@@ -113,7 +113,7 @@ export default function HomePage() {
                 </Link>
               </Show>
               <Link href="/barbearia-sample" className={buttonVariants({ size: "lg", variant: "outline" })}>
-                Abrir perfil publico de exemplo
+                Abrir barbearia de exemplo
               </Link>
             </div>
 
@@ -128,7 +128,7 @@ export default function HomePage() {
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-2">
                 <CreditCard className="size-4" />
-                Base para monetizacao
+                Pagamentos para fase final
               </span>
             </div>
           </div>
@@ -136,9 +136,11 @@ export default function HomePage() {
           <Card className="border-border/60 bg-card/80 shadow-2xl shadow-black/5 backdrop-blur">
             <CardHeader className="space-y-3">
               <Badge variant="outline" className="w-fit rounded-full">
-                Fase 1 do produto
+                Base do produto
               </Badge>
-              <CardTitle className="font-heading text-2xl">O que esta pronto para montar agora</CardTitle>
+              <CardTitle className="font-heading text-2xl">
+                O que ja estamos a construir com consistencia
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {roadmap.map((item) => (

@@ -27,14 +27,14 @@ export type DemoBusiness = {
 };
 
 export const demoBusiness: DemoBusiness = {
-  name: "Barbearia Sample",
+  name: "BUKBARBEARIA.COM Studio",
   slug: "barbearia-sample",
   city: "Porto",
-  headline: "Marcações simples para uma barbearia moderna.",
+  headline: "Marcacoes simples para uma barbearia moderna.",
   subheadline:
-    "Página pública personalizada, equipa visível e experiência pensada para converter visitas em reservas.",
+    "Pagina publica personalizada, equipa visivel e experiencia pensada para converter visitas em reservas.",
   welcomeMessage:
-    "Escolha o serviço, selecione o profissional e reserve em poucos cliques.",
+    "Escolha o servico, selecione o profissional e reserve em poucos cliques.",
   primaryColor: "#1570ef",
   accentColor: "#0f9f7a",
   services: [
@@ -43,14 +43,14 @@ export const demoBusiness: DemoBusiness = {
       name: "Corte Tradicional",
       durationMinutes: 30,
       priceCents: 1600,
-      description: "Corte clássico com acabamento limpo para rotina semanal.",
+      description: "Corte classico com acabamento limpo para rotina semanal.",
     },
     {
       id: "svc-2",
       name: "Barba + Toalha Quente",
       durationMinutes: 25,
       priceCents: 1200,
-      description: "Alinhamento de barba com ritual de conforto e finalização.",
+      description: "Alinhamento de barba com ritual de conforto e finalizacao.",
     },
     {
       id: "svc-3",
@@ -65,7 +65,7 @@ export const demoBusiness: DemoBusiness = {
       id: "staff-1",
       name: "Guilherme Silva",
       role: "Master Barber",
-      specialties: ["Fade", "Barba clássica", "Consultoria de estilo"],
+      specialties: ["Fade", "Barba classica", "Consultoria de estilo"],
     },
     {
       id: "staff-2",
