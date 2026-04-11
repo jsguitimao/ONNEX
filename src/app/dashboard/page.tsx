@@ -1,13 +1,35 @@
 import Link from "next/link";
-import { CalendarRange, LayoutDashboard, Users } from "lucide-react";
+import { CalendarRange, Euro, LayoutDashboard, Sparkles, Users } from "lucide-react";
+import { demoBusiness, formatEuro } from "@/lib/demo-data";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const panels = [
-  "Agenda com visão diária e lista de marcações",
-  "Gestão de serviços, equipa e disponibilidade",
-  "Clientes, notas e histórico de marcações",
+  {
+    title: "Agenda com visão diária e lista de marcações",
+    description:
+      "O próximo passo aqui é a agenda operacional, com filtros por profissional, origem da marcação e confirmação de presença.",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Gestão de serviços, equipa e disponibilidade",
+    description:
+      "A base já prevê serviços por negócio, profissionais, localizações e disponibilidade semanal reutilizável na página pública.",
+    icon: Users,
+  },
+  {
+    title: "Clientes, notas e histórico de marcações",
+    description:
+      "A camada de CRM vai consolidar histórico, preferências, observações internas e recorrência por cliente.",
+    icon: CalendarRange,
+  },
+];
+
+const stats = [
+  { label: "Serviços ativos", value: demoBusiness.services.length.toString(), icon: Sparkles },
+  { label: "Profissionais", value: demoBusiness.team.length.toString(), icon: Users },
+  { label: "Ticket médio alvo", value: formatEuro(1760), icon: Euro },
 ];
 
 export default function DashboardPreviewPage() {
@@ -20,8 +42,8 @@ export default function DashboardPreviewPage() {
           </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight">Dashboard do negócio</h1>
           <p className="mt-3 text-muted-foreground">
-            Esta área já está reservada para o fluxo autenticado com Clerk. No próximo ciclo ela
-            receberá agenda, serviços, equipa, clientes e configurações do perfil público.
+            Esta área já está desenhada para o fluxo autenticado do negócio. A partir daqui vamos
+            ligar onboarding, persistência, agenda e automações sem trocar a estrutura do app.
           </p>
         </div>
 
@@ -30,24 +52,33 @@ export default function DashboardPreviewPage() {
         </Link>
       </div>
 
+      <div className="mb-6 grid gap-4 md:grid-cols-3">
+        {stats.map((stat) => (
+          <Card key={stat.label}>
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <stat.icon className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                <p className="font-heading text-2xl font-semibold">{stat.value}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       <div className="grid gap-6 md:grid-cols-3">
-        {panels.map((panel, index) => (
-          <Card key={panel}>
+        {panels.map((panel) => (
+          <Card key={panel.title}>
             <CardHeader>
               <div className="mb-3 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                {index === 0 ? (
-                  <LayoutDashboard className="size-5" />
-                ) : index === 1 ? (
-                  <Users className="size-5" />
-                ) : (
-                  <CalendarRange className="size-5" />
-                )}
+                <panel.icon className="size-5" />
               </div>
-              <CardTitle className="font-heading text-xl">{panel}</CardTitle>
+              <CardTitle className="font-heading text-xl">{panel.title}</CardTitle>
             </CardHeader>
             <CardContent className="text-sm leading-7 text-muted-foreground">
-              A base foi pensada para suportar múltiplos serviços, equipa, disponibilidade semanal,
-              reservas públicas por slug e crescimento de produto sem retrabalho estrutural.
+              {panel.description}
             </CardContent>
           </Card>
         ))}

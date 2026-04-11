@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { Clock3, MapPin, UserRound } from "lucide-react";
+import { demoBusiness, formatEuro } from "@/lib/demo-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +12,7 @@ type PublicPageProps = {
 export default async function PublicBookingPage({ params }: PublicPageProps) {
   const { slug } = await params;
 
-  if (slug !== "barbearia-sample") {
+  if (slug !== demoBusiness.slug) {
     notFound();
   }
 
@@ -19,48 +21,93 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-[2rem] border bg-card p-8 shadow-sm">
           <Badge variant="secondary" className="mb-5">
-            Exemplo de perfil publico
+            Página pública do negócio
           </Badge>
-          <h1 className="font-heading text-4xl font-semibold tracking-tight">Barbearia Sample</h1>
+          <h1 className="font-heading text-4xl font-semibold tracking-tight">{demoBusiness.name}</h1>
           <p className="mt-4 max-w-2xl text-muted-foreground">
-            Esta rota representa o tipo de diretório público que cada negócio terá. O objetivo é
-            permitir marcação simples, com branding próprio, serviços e equipa disponíveis por slug.
+            {demoBusiness.headline}
           </p>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{demoBusiness.subheadline}</p>
+
+          <div className="mt-5 flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1.5">
+              <MapPin className="size-4" />
+              {demoBusiness.city}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1.5">
+              <UserRound className="size-4" />
+              {demoBusiness.team.length} profissionais
+            </span>
+          </div>
+
+          <div className="mt-6 rounded-3xl p-5 text-primary-foreground" style={{ backgroundColor: demoBusiness.primaryColor }}>
+            <p className="text-sm font-medium uppercase tracking-[0.18em] text-primary-foreground/70">Mensagem de boas-vindas</p>
+            <p className="mt-3 max-w-2xl text-sm leading-7">{demoBusiness.welcomeMessage}</p>
+          </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-heading text-lg">Corte Tradicional</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                30 minutos · EUR 16.00
-              </CardContent>
-            </Card>
+            {demoBusiness.services.map((service) => (
+              <Card key={service.id}>
+                <CardHeader>
+                  <CardTitle className="font-heading text-lg">{service.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm text-muted-foreground">
+                  <p>{service.description}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-2">
+                      <Clock3 className="size-4" />
+                      {service.durationMinutes} minutos
+                    </span>
+                    <span className="font-semibold text-foreground">{formatEuro(service.priceCents)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-heading text-lg">Barba + Toalha Quente</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                25 minutos · EUR 12.00
-              </CardContent>
-            </Card>
+          <div className="mt-8">
+            <h2 className="font-heading text-2xl font-semibold tracking-tight">Profissionais</h2>
+            <div className="mt-4 grid gap-3">
+              {demoBusiness.team.map((member) => (
+                <div key={member.id} className="rounded-2xl border bg-background p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-medium">{member.name}</p>
+                      <p className="text-sm text-muted-foreground">{member.role}</p>
+                      <p className="mt-2 text-sm text-muted-foreground">{member.specialties.join(" · ")}</p>
+                    </div>
+                    <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">
+                      Disponível
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
         <section className="rounded-[2rem] border bg-background p-8 shadow-sm">
           <h2 className="font-heading text-2xl font-semibold">Reserva rápida</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Nesta fase ainda é uma maquete funcional de navegação. O formulário real será ligado a
-            disponibilidade, clientes, staff e bookings na próxima etapa.
+            Este bloco já representa o desenho do fluxo final. A próxima etapa vai ligar
+            disponibilidade real, cliente, equipa e criação de booking em base de dados.
           </p>
 
-          <div className="mt-8 space-y-3">
-            <div className="rounded-2xl border bg-muted/50 p-4 text-sm text-muted-foreground">
-              Serviço, profissional, data e hora viverão aqui.
+          <div className="mt-8 space-y-4">
+            <div className="rounded-2xl border bg-muted/50 p-4">
+              <p className="text-sm font-medium">1. Serviço</p>
+              <p className="mt-1 text-sm text-muted-foreground">{demoBusiness.services[0].name}</p>
+            </div>
+            <div className="rounded-2xl border bg-muted/50 p-4">
+              <p className="text-sm font-medium">2. Profissional</p>
+              <p className="mt-1 text-sm text-muted-foreground">{demoBusiness.team[0].name}</p>
+            </div>
+            <div className="rounded-2xl border bg-muted/50 p-4">
+              <p className="text-sm font-medium">3. Data e hora</p>
+              <p className="mt-1 text-sm text-muted-foreground">Slots reais entram na próxima etapa.</p>
             </div>
             <Button className="w-full" size="lg">
-              Continuar para marcacao
+              Continuar para marcação
             </Button>
           </div>
         </section>
