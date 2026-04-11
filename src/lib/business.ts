@@ -331,6 +331,12 @@ export type BookingAgendaSnapshot = {
     id: string;
     fullName: string;
   }>;
+  services: Array<{
+    id: string;
+    name: string;
+    durationMinutes: number;
+    priceCents: number;
+  }>;
   bookings: BookingAgendaItem[];
 };
 
@@ -1031,6 +1037,14 @@ export async function getBookingAgenda(input?: { date?: string; staffMemberId?: 
       id: member.id,
       fullName: member.fullName,
     })),
+    services: business.services
+      .filter((service) => service.isActive)
+      .map((service) => ({
+        id: service.id,
+        name: service.name,
+        durationMinutes: service.durationMinutes,
+        priceCents: service.priceCents,
+      })),
     bookings: bookings.map((booking) => ({
       id: booking.id,
       startsAt: booking.startsAt,
@@ -1045,6 +1059,111 @@ export async function getBookingAgenda(input?: { date?: string; staffMemberId?: 
       staffName: booking.staffMember?.fullName ?? "Sem profissional",
     })),
   };
+}
+
+export async function createManualBooking(input: {
+  serviceId: string;
+  staffMemberId: string;
+  startsAt: string;
+  customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  status?: "PENDING" | "CONFIRMED";
+}) {
+  const business = await getCurrentBusiness();
+  const location = business.locations[0];
+  const service = await db.service.findFirst({
+    where: { id: input.serviceId, businessId: business.id, isActive: true },
+  });
+  const staffMember = await db.staffMember.findFirst({
+    where: { id: input.staffMemberId, businessId: business.id, isActive: true },
+    include: { services: true },
+  });
+
+  if (!location || !service || !staffMember) {
+    throw new Error("DADOS_INVALIDOS");
+  }
+
+  if (!staffMember.services.some((assignment) => assignment.serviceId === service.id)) {
+    throw new Error("PROFISSIONAL_INCOMPATIVEL");
+  }
+
+  const startsAt = new Date(input.startsAt);
+  if (Number.isNaN(startsAt.getTime())) {
+    throw new Error("DATA_INVALIDA");
+  }
+
+  const endsAt = new Date(startsAt.getTime() + service.durationMinutes * 60_000);
+  const conflict = await db.booking.findFirst({
+    where: {
+      businessId: business.id,
+      staffMemberId: staffMember.id,
+      status: {
+        notIn: ["CANCELLED", "NO_SHOW"],
+      },
+      startsAt: {
+        lt: endsAt,
+      },
+      endsAt: {
+        gt: startsAt,
+      },
+    },
+  });
+
+  if (conflict) {
+    throw new Error("HORARIO_OCUPADO");
+  }
+
+  const identity = `${business.id}:${input.customerEmail?.toLowerCase() ?? input.customerPhone ?? input.customerName}`;
+  const customer = await db.customer.upsert({
+    where: { id: identity },
+    update: {
+      fullName: input.customerName,
+      email: input.customerEmail,
+      phone: input.customerPhone,
+      lastBookedAt: startsAt,
+    },
+    create: {
+      id: identity,
+      businessId: business.id,
+      fullName: input.customerName,
+      email: input.customerEmail,
+      phone: input.customerPhone,
+      lastBookedAt: startsAt,
+    },
+  });
+
+  const booking = await db.booking.create({
+    data: {
+      businessId: business.id,
+      locationId: location.id,
+      serviceId: service.id,
+      staffMemberId: staffMember.id,
+      customerId: customer.id,
+      status: input.status ?? "CONFIRMED",
+      source: "MANUAL",
+      paymentStatus: "UNPAID",
+      publicToken: crypto.randomUUID(),
+      startsAt,
+      endsAt,
+      priceCents: service.priceCents,
+      customerName: input.customerName,
+      customerEmail: input.customerEmail,
+      customerPhone: input.customerPhone,
+    },
+    include: {
+      service: true,
+      staffMember: true,
+    },
+  });
+
+  if (booking.status === "CONFIRMED") {
+    await sendBookingNotification(booking.id, "BOOKING_CONFIRMED");
+  } else {
+    await sendBookingNotification(booking.id, "BOOKING_CREATED");
+  }
+
+  return booking;
 }
 
 export async function getManagementSnapshot(): Promise<ManagementSnapshot> {

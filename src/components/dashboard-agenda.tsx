@@ -12,6 +12,7 @@ import {
   Phone,
   RefreshCw,
   UserRound,
+  Plus,
 } from "lucide-react";
 import type { BookingAgendaSnapshot } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
@@ -50,6 +51,16 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
   const [error, setError] = useState<string | null>(null);
   const [weekBookings, setWeekBookings] = useState<Record<string, BookingAgendaSnapshot["bookings"]>>({
     [initialSnapshot.date]: initialSnapshot.bookings,
+  });
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualDraft, setManualDraft] = useState({
+    customerName: "",
+    customerEmail: "",
+    customerPhone: "",
+    serviceId: initialSnapshot.services[0]?.id ?? "",
+    staffMemberId: initialSnapshot.staffMembers[0]?.id ?? "",
+    startsAt: `${initialSnapshot.date}T10:00`,
+    status: "CONFIRMED" as "PENDING" | "CONFIRMED",
   });
 
   const selectedDate = parseISO(`${date}T00:00:00`);
@@ -168,6 +179,41 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
     }
   }
 
+  async function createManualBooking() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/dashboard/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...manualDraft,
+          startsAt: new Date(manualDraft.startsAt).toISOString(),
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Nao foi possivel criar a reserva manual.");
+      }
+
+      setShowManualForm(false);
+      setManualDraft((current) => ({
+        ...current,
+        customerName: "",
+        customerEmail: "",
+        customerPhone: "",
+        startsAt: `${date}T10:00`,
+      }));
+      await Promise.all([refreshAgenda(), refreshWeek()]);
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Erro ao criar reserva.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <Card className="mt-6 border-border/70">
       <CardHeader className="gap-4">
@@ -179,11 +225,102 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
               operacao da barbearia.
             </CardDescription>
           </div>
-          <Button variant="outline" onClick={() => void Promise.all([refreshAgenda(), refreshWeek()])} disabled={loading}>
-            {loading ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowManualForm((current) => !current)}>
+              <Plus className="size-4" />
+              Reserva manual
+            </Button>
+            <Button variant="outline" onClick={() => void Promise.all([refreshAgenda(), refreshWeek()])} disabled={loading}>
+              {loading ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+              Atualizar
+            </Button>
+          </div>
         </div>
+
+        {showManualForm ? (
+          <div className="rounded-[1.75rem] border border-primary/20 bg-primary/5 p-4">
+            <div className="mb-4">
+              <p className="font-medium">Nova reserva manual</p>
+              <p className="text-sm text-muted-foreground">
+                Usa este bloco para registar marcacoes por telefone, WhatsApp ou atendimento no local.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <Input
+                value={manualDraft.customerName}
+                onChange={(event) => setManualDraft((current) => ({ ...current, customerName: event.target.value }))}
+                placeholder="Nome do cliente"
+              />
+              <Input
+                type="tel"
+                value={manualDraft.customerPhone}
+                onChange={(event) => setManualDraft((current) => ({ ...current, customerPhone: event.target.value }))}
+                placeholder="Telefone"
+              />
+              <Input
+                type="email"
+                value={manualDraft.customerEmail}
+                onChange={(event) => setManualDraft((current) => ({ ...current, customerEmail: event.target.value }))}
+                placeholder="Email"
+              />
+              <select
+                className="h-8 rounded-lg border border-input bg-background px-3 text-sm outline-none"
+                value={manualDraft.status}
+                onChange={(event) =>
+                  setManualDraft((current) => ({
+                    ...current,
+                    status: event.target.value as "PENDING" | "CONFIRMED",
+                  }))
+                }
+              >
+                <option value="CONFIRMED">Confirmada</option>
+                <option value="PENDING">Pendente</option>
+              </select>
+              <select
+                className="h-8 rounded-lg border border-input bg-background px-3 text-sm outline-none"
+                value={manualDraft.serviceId}
+                onChange={(event) => setManualDraft((current) => ({ ...current, serviceId: event.target.value }))}
+              >
+                {snapshot.services.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="h-8 rounded-lg border border-input bg-background px-3 text-sm outline-none"
+                value={manualDraft.staffMemberId}
+                onChange={(event) => setManualDraft((current) => ({ ...current, staffMemberId: event.target.value }))}
+              >
+                {snapshot.staffMembers.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.fullName}
+                  </option>
+                ))}
+              </select>
+              <Input
+                type="datetime-local"
+                value={manualDraft.startsAt}
+                onChange={(event) => setManualDraft((current) => ({ ...current, startsAt: event.target.value }))}
+                className="md:col-span-2"
+              />
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowManualForm(false)}>
+                Fechar
+              </Button>
+              <Button
+                disabled={!manualDraft.customerName || !manualDraft.serviceId || !manualDraft.staffMemberId || loading}
+                onClick={() => void createManualBooking()}
+              >
+                {loading ? <LoaderCircle className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                Criar reserva
+              </Button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="grid gap-3 md:grid-cols-[220px_1fr]">
           <label className="grid gap-2">
