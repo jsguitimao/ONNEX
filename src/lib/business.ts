@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { addDays, format, set } from "date-fns";
+import { addDays, endOfWeek, format, set, startOfWeek } from "date-fns";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { demoBusiness } from "@/lib/demo-data";
 import { sendBookingNotification, sendRepresentativeBookingNotification } from "@/lib/notifications";
@@ -272,6 +273,40 @@ function buildPublicBookingDetails(booking: {
   };
 }
 
+function mapBookingAgendaItem(booking: {
+  id: string;
+  startsAt: Date;
+  endsAt: Date;
+  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  source: "ONLINE" | "MANUAL" | "IMPORTED";
+  serviceId: string;
+  staffMemberId: string | null;
+  priceCents: number;
+  customerName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  internalNotes: string | null;
+  service: { name: string };
+  staffMember: { fullName: string } | null;
+}): BookingAgendaItem {
+  return {
+    id: booking.id,
+    startsAt: booking.startsAt,
+    endsAt: booking.endsAt,
+    status: booking.status,
+    source: booking.source,
+    serviceId: booking.serviceId,
+    staffMemberId: booking.staffMemberId,
+    priceCents: booking.priceCents,
+    customerName: booking.customerName,
+    customerEmail: booking.customerEmail,
+    customerPhone: booking.customerPhone,
+    internalNotes: booking.internalNotes,
+    serviceName: booking.service.name,
+    staffName: booking.staffMember?.fullName ?? "Sem profissional",
+  };
+}
+
 function slugify(value: string) {
   return value
     .normalize("NFD")
@@ -307,7 +342,7 @@ function getPrimaryEmailAddress(user: Awaited<ReturnType<typeof currentUser>>) {
   );
 }
 
-async function getCurrentBusiness() {
+async function fetchCurrentBusiness() {
   const { userId } = await auth();
 
   if (!userId) {
@@ -474,6 +509,8 @@ async function getCurrentBusiness() {
   });
 }
 
+const getCurrentBusiness = cache(fetchCurrentBusiness);
+
 export type OnboardingDraft = {
   businessName: string;
   slug: string;
@@ -637,6 +674,12 @@ export type BookingAgendaSnapshot = {
   bookings: BookingAgendaItem[];
 };
 
+export type BookingAgendaWeekSnapshot = {
+  weekStart: string;
+  weekEnd: string;
+  bookingsByDate: Record<string, BookingAgendaItem[]>;
+};
+
 export type CustomerSnapshot = {
   customers: Array<{
     id: string;
@@ -652,7 +695,7 @@ export type CustomerSnapshot = {
   }>;
 };
 
-export async function ensureDemoBusiness() {
+async function ensureDemoBusinessInternal() {
   const owner = await db.user.upsert({
     where: { clerkUserId: DEMO_OWNER.clerkUserId },
     update: {},
@@ -770,6 +813,8 @@ export async function ensureDemoBusiness() {
     },
   });
 }
+
+export const ensureDemoBusiness = cache(ensureDemoBusinessInternal);
 
 async function hydrateOperationalData(
   businessId: string,
@@ -968,7 +1013,7 @@ export async function updateBusinessFromOnboarding(input: OnboardingDraft) {
   });
 }
 
-export async function getBusinessBySlug(slug: string) {
+async function fetchBusinessBySlug(slug: string) {
   await ensureDemoBusiness();
 
   const business = await db.business.findUnique({
@@ -998,6 +1043,8 @@ export async function getBusinessBySlug(slug: string) {
 
   return business;
 }
+
+export const getBusinessBySlug = cache(fetchBusinessBySlug);
 
 export async function getPublicBusinessPayload(slug: string): Promise<PublicBusinessPayload | null> {
   const business = await getBusinessBySlug(slug);
@@ -1467,22 +1514,52 @@ export async function getBookingAgenda(input?: { date?: string; staffMemberId?: 
       staffMemberId: block.staffMemberId,
       staffName: block.staffMember?.fullName ?? null,
     })),
-    bookings: bookings.map((booking) => ({
-      id: booking.id,
-      startsAt: booking.startsAt,
-      endsAt: booking.endsAt,
-      status: booking.status,
-      source: booking.source,
-      serviceId: booking.serviceId,
-      staffMemberId: booking.staffMemberId,
-      priceCents: booking.priceCents,
-      customerName: booking.customerName,
-      customerEmail: booking.customerEmail,
-      customerPhone: booking.customerPhone,
-      internalNotes: booking.internalNotes,
-      serviceName: booking.service.name,
-      staffName: booking.staffMember?.fullName ?? "Sem profissional",
-    })),
+    bookings: bookings.map(mapBookingAgendaItem),
+  };
+}
+
+export async function getBookingAgendaWeek(input?: {
+  date?: string;
+  staffMemberId?: string;
+}): Promise<BookingAgendaWeekSnapshot> {
+  const business = await getCurrentBusiness();
+  const requestedDate = input?.date ? new Date(`${input.date}T00:00:00`) : new Date();
+  const safeDate = Number.isNaN(requestedDate.getTime()) ? new Date() : requestedDate;
+  const weekStart = startOfWeek(safeDate, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(safeDate, { weekStartsOn: 1 });
+  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+
+  const bookings = await db.booking.findMany({
+    where: {
+      businessId: business.id,
+      startsAt: {
+        gte: weekStart,
+        lte: weekEnd,
+      },
+      ...(input?.staffMemberId ? { staffMemberId: input.staffMemberId } : {}),
+    },
+    include: {
+      service: true,
+      staffMember: true,
+    },
+    orderBy: { startsAt: "asc" },
+  });
+
+  const grouped = Object.fromEntries(
+    weekDays.map((day) => [format(day, "yyyy-MM-dd"), [] as BookingAgendaItem[]])
+  ) as Record<string, BookingAgendaItem[]>;
+
+  for (const booking of bookings) {
+    const key = format(booking.startsAt, "yyyy-MM-dd");
+    if (grouped[key]) {
+      grouped[key].push(mapBookingAgendaItem(booking));
+    }
+  }
+
+  return {
+    weekStart: format(weekStart, "yyyy-MM-dd"),
+    weekEnd: format(weekEnd, "yyyy-MM-dd"),
+    bookingsByDate: grouped,
   };
 }
 

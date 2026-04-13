@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   getBookingAgenda,
+  getBookingAgendaWeek,
   getCustomersSnapshot,
   getDashboardSnapshot,
   getManagementSnapshot,
@@ -39,10 +40,11 @@ const panels = [
 ];
 
 export default async function DashboardPreviewPage() {
-  const [snapshot, management, agenda, customers] = await Promise.all([
+  const [snapshot, management, agenda, agendaWeek, customers] = await Promise.all([
     getDashboardSnapshot(),
     getManagementSnapshot(),
     getBookingAgenda(),
+    getBookingAgendaWeek(),
     getCustomersSnapshot(),
   ]);
 
@@ -137,7 +139,7 @@ export default async function DashboardPreviewPage() {
         </CardContent>
       </Card>
 
-      <DashboardAgenda initialSnapshot={agenda} />
+      <DashboardAgenda initialSnapshot={agenda} initialWeekSnapshot={agendaWeek} />
 
       <DashboardCustomers initialSnapshot={customers} />
 

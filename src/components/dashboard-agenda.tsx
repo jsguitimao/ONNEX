@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, endOfWeek, format, isSameDay, parseISO, startOfWeek } from "date-fns";
 import {
   CalendarDays,
@@ -17,7 +17,7 @@ import {
   ShieldBan,
   Trash2,
 } from "lucide-react";
-import type { BookingAgendaSnapshot } from "@/lib/business";
+import type { BookingAgendaSnapshot, BookingAgendaWeekSnapshot } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 
 type DashboardAgendaProps = {
   initialSnapshot: BookingAgendaSnapshot;
+  initialWeekSnapshot: BookingAgendaWeekSnapshot;
 };
 
 const statusLabel: Record<string, string> = {
@@ -50,16 +51,16 @@ function toDateTimeLocalValue(date: Date) {
   return local.toISOString().slice(0, 16);
 }
 
-export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
+export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: DashboardAgendaProps) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [date, setDate] = useState(initialSnapshot.date);
   const [staffMemberId, setStaffMemberId] = useState("");
   const [loading, setLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [weekBookings, setWeekBookings] = useState<Record<string, BookingAgendaSnapshot["bookings"]>>({
-    [initialSnapshot.date]: initialSnapshot.bookings,
-  });
+  const [weekBookings, setWeekBookings] = useState<Record<string, BookingAgendaSnapshot["bookings"]>>(
+    initialWeekSnapshot.bookingsByDate
+  );
   const [showManualForm, setShowManualForm] = useState(false);
   const [showBlockForm, setShowBlockForm] = useState(false);
   const [bookingDrafts, setBookingDrafts] = useState<
@@ -92,6 +93,7 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
   });
 
   const selectedDate = parseISO(`${date}T00:00:00`);
+  const didInitialLoad = useRef(false);
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
@@ -162,39 +164,32 @@ export function DashboardAgenda({ initialSnapshot }: DashboardAgendaProps) {
   }
 
   async function refreshWeek(nextDate = date, nextStaffMemberId = staffMemberId) {
-    const anchor = parseISO(`${nextDate}T00:00:00`);
-    const days = Array.from({ length: 7 }, (_, index) =>
-      format(addDays(startOfWeek(anchor, { weekStartsOn: 1 }), index), "yyyy-MM-dd")
-    );
-
     try {
-      const responses = await Promise.all(
-        days.map(async (day) => {
-          const params = new URLSearchParams({ date: day });
-          if (nextStaffMemberId) {
-            params.set("staffMemberId", nextStaffMemberId);
-          }
+      const params = new URLSearchParams({ date: nextDate });
+      if (nextStaffMemberId) {
+        params.set("staffMemberId", nextStaffMemberId);
+      }
 
-          const response = await fetch(`/api/dashboard/bookings?${params.toString()}`, {
-            cache: "no-store",
-          });
-          const payload = (await response.json()) as BookingAgendaSnapshot & { error?: string };
+      const response = await fetch(`/api/dashboard/bookings/week?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const payload = (await response.json()) as BookingAgendaWeekSnapshot & { error?: string };
 
-          if (!response.ok) {
-            throw new Error(payload.error ?? "Nao foi possivel carregar a semana.");
-          }
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Nao foi possivel carregar a semana.");
+      }
 
-          return [day, payload.bookings] as const;
-        })
-      );
-
-      setWeekBookings(Object.fromEntries(responses));
+      setWeekBookings(payload.bookingsByDate);
     } catch (weekError) {
       setError(weekError instanceof Error ? weekError.message : "Erro ao carregar semana.");
     }
   }
 
   useEffect(() => {
+    if (!didInitialLoad.current) {
+      didInitialLoad.current = true;
+      return;
+    }
     void Promise.all([refreshAgenda(date, staffMemberId), refreshWeek(date, staffMemberId)]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, staffMemberId]);
