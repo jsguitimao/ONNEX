@@ -48,7 +48,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
       const data = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Nao foi possivel guardar.");
+        throw new Error(data.error ?? "Não foi possível guardar.");
       }
 
       setStatus("saved");
@@ -72,13 +72,13 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Store className="size-4 text-primary" />
-              Dados do negocio
+              Dados do negócio
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Nome do negocio">
+              <Field label="Nome do negócio">
                 <Input value={form.businessName} onChange={(e) => updateField("businessName", e.target.value)} />
               </Field>
-              <Field label="Slug publico">
+              <Field label="Slug público">
                 <Input value={form.slug} onChange={(e) => updateField("slug", e.target.value.toLowerCase())} />
               </Field>
               <Field label="Cidade">
@@ -94,7 +94,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                 <Input value={form.websiteUrl} onChange={(e) => updateField("websiteUrl", e.target.value)} placeholder="https://..." />
               </Field>
             </div>
-            <Field label="Descricao curta do negocio">
+            <Field label="Descricao curta do negócio">
               <textarea
                 className="min-h-24 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring/50"
                 value={form.description}
@@ -125,7 +125,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Palette className="size-4 text-primary" />
-              Marca e comunicacao
+              Marca e comunicação
             </div>
             <div className="grid gap-4">
               <Field label="Headline">
@@ -184,7 +184,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                 onChange={(checked) => updateField("onlineBooking", checked)}
               />
               <ToggleRow
-                label="Mostrar equipa na pagina publica"
+                label="Mostrar equipa na página pública"
                 checked={form.showTeam}
                 onChange={(checked) => updateField("showTeam", checked)}
               />
@@ -204,7 +204,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <ShieldCheck className="size-4 text-primary" />
-              Regras de marcacao
+              Regras de marcação
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Antecedencia minima (horas)">
@@ -235,7 +235,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                   onChange={(e) => updateField("slotIntervalMinutes", Number(e.target.value))}
                 />
               </Field>
-              <Field label="Cancelamento automatico ate (horas)">
+              <Field label="Cancelamento automático até (horas)">
                 <Input
                   type="number"
                   min={0}
@@ -249,7 +249,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-muted/50 p-4">
             <div className="text-sm text-muted-foreground">
-              Estas alteracoes ja sao persistidas e alimentam imediatamente a pagina publica.
+              Estas alteracoes já são persistidas e alimentam imediatamente a página pública.
             </div>
             <button
               type="button"
@@ -341,13 +341,13 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <div className="rounded-2xl border bg-muted/50 p-4 text-left">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium">
               <ShieldCheck className="size-4 text-primary" />
-              Politicas de marcacao
+              Politicas de marcação
             </div>
             <div className="grid gap-2 text-sm text-muted-foreground">
               <p>Antecedencia minima: {form.bookingLeadTimeHours}h.</p>
-              <p>Janela de reservas: ate {form.bookingWindowDays} dias.</p>
+              <p>Janela de reservas: até {form.bookingWindowDays} dias.</p>
               <p>Intervalo entre horarios: {form.slotIntervalMinutes} min.</p>
-              <p>Cancelamento pelo cliente: ate {form.cancellationWindowHours}h antes.</p>
+              <p>Cancelamento pelo cliente: até {form.cancellationWindowHours}h antes.</p>
             </div>
           </div>
 
@@ -362,7 +362,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               </a>
             ) : (
               <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-700">
-                As reservas online estao desativadas. A pagina publica vai mostrar contacto e branding, mas sem CTA de marcacao.
+                As reservas online estão desativadas. A página pública vai mostrar contacto e branding, mas sem CTA de marcação.
               </div>
             )}
 
@@ -406,7 +406,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
             <div>
               <div className="mb-4 flex items-center gap-2 text-sm font-medium">
                 <UserRound className="size-4" />
-                Equipa visivel na pagina publica
+                Equipa visivel na página pública
               </div>
               <div className="grid gap-3">
                 {demoBusiness.team.map((member) => (
@@ -428,7 +428,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                       className="rounded-full px-3 py-1 text-xs font-semibold"
                       style={{ backgroundColor: `${form.primaryColor}14`, color: form.primaryColor }}
                     >
-                      Disponivel
+                      Disponível
                     </span>
                   </div>
                 ))}
@@ -438,11 +438,11 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
 
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-muted/50 p-4">
             <div>
-              <p className="text-sm font-medium">Rota publica prevista</p>
+              <p className="text-sm font-medium">Rota pública prevista</p>
               <p className="text-sm text-muted-foreground">/{form.slug || "nome-da-barbearia"}</p>
             </div>
             <a href={`/${form.slug || "barbearia-sample"}`} className={cn(buttonVariants({ className: "gap-2" }))}>
-              Ver pagina publica
+              Ver página pública
               <ArrowRight className="size-4" />
             </a>
           </div>

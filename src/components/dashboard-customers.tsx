@@ -83,7 +83,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel guardar o cliente.");
+        throw new Error(payload.error ?? "Não foi possível guardar o cliente.");
       }
 
       await refreshSnapshot();
@@ -102,7 +102,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
           <div>
             <CardTitle className="font-heading text-2xl">Clientes e CRM</CardTitle>
             <CardDescription>
-              Mantem notas internas, opt-in de comunicacao e historico resumido para cada cliente.
+              Mantem notas internas, opt-in de comunicação e histórico resumido para cada cliente.
             </CardDescription>
           </div>
           <Badge variant="secondary">{snapshot.customers.length} clientes</Badge>
@@ -114,7 +114,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
             className="pl-9"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Pesquisar por nome, email, telefone ou ultimo servico"
+            placeholder="Pesquisar por nome, email, telefone ou último serviço"
           />
         </div>
       </CardHeader>
@@ -133,7 +133,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
 
         {filteredCustomers.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border/80 bg-muted/20 px-5 py-8 text-center text-sm text-muted-foreground">
-            Ainda nao ha clientes para este filtro. Assim que novas reservas forem criadas, o CRM
+            Ainda não ha clientes para este filtro. Assim que novas reservas forem criadas, o CRM
             vai sendo alimentado automaticamente.
           </div>
         ) : (
@@ -174,10 +174,10 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
                       placeholder="Nome do cliente"
                     />
                     <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-                      Ultima reserva:{" "}
+                      Última reserva:{" "}
                       {customer.lastBookedAt
                         ? new Date(customer.lastBookedAt).toLocaleDateString("pt-PT")
-                        : "sem historico"}
+                        : "sem histórico"}
                     </div>
                   </div>
 

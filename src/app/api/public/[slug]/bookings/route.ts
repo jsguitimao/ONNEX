@@ -50,10 +50,10 @@ export async function POST(req: Request, { params }: RouteProps) {
       message === "HORARIO_OCUPADO"
         ? { status: 409, error: "Este horario acabou de ficar indisponivel." }
         : message === "ONLINE_BOOKING_DISABLED"
-          ? { status: 403, error: "As reservas online estao desativadas para esta pagina." }
+          ? { status: 403, error: "As reservas online estão desativadas para esta página." }
           : message === "DATA_INVALIDA"
             ? { status: 400, error: "Escolhe um horario dentro da antecedencia e janela permitidas." }
-            : { status: 400, error: "Nao foi possivel criar a reserva." };
+            : { status: 400, error: "Não foi possível criar a reserva." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }

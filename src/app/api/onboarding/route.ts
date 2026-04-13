@@ -59,7 +59,7 @@ export async function PUT(req: Request) {
     }
 
     if (error instanceof Error && error.message === "SLUG_ALREADY_TAKEN") {
-      return NextResponse.json({ error: "Este slug publico ja esta em uso." }, { status: 409 });
+      return NextResponse.json({ error: "Este slug público já esta em uso." }, { status: 409 });
     }
 
     console.error("PUT onboarding error:", error);

@@ -1,4 +1,4 @@
-import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { Show, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -17,15 +17,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const pillars = [
   {
-    title: "Pagina publica da barbearia",
+    title: "Página pública da barbearia",
     description:
-      "Cada barbearia ganha um endereco publico para receber marcacoes sem depender de mensagens ou chamadas.",
+      "Cada barbearia ganha um endereço público para receber marcações sem depender de mensagens ou chamadas.",
     icon: Store,
   },
   {
-    title: "Agenda e operacao",
+    title: "Agenda e operação",
     description:
-      "Gestao de servicos, equipa, disponibilidade, clientes e marcacoes numa experiencia unica e preparada para crescer.",
+      "Gestão de serviços, equipa, disponibilidade, clientes e marcações numa experiência unica e preparada para crescer.",
     icon: LayoutDashboard,
   },
   {
@@ -37,11 +37,11 @@ const pillars = [
 ];
 
 const roadmap = [
-  "Auth com Clerk e onboarding do negocio",
-  "Dashboard com agenda, servicos, equipa e clientes",
-  "Perfil publico por slug, tipo /nomedabarbearia",
-  "Fluxo de marcacao com disponibilidade real",
-  "Base de notificacoes e gestao da reserva",
+  "Auth com Clerk e onboarding do negócio",
+  "Dashboard com agenda, serviços, equipa e clientes",
+  "Perfil público por slug, tipo /nomedabarbearia",
+  "Fluxo de marcação com disponibilidade real",
+  "Base de notificações e gestão da reserva",
   "Deploy continuo desde o primeiro ciclo",
 ];
 
@@ -64,15 +64,13 @@ export default function HomePage() {
 
           <div className="flex items-center gap-3">
             <Show when="signed-out">
-              <SignInButton mode="modal">
-                <button className={buttonVariants({ variant: "ghost" })}>Entrar</button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button className={buttonVariants({ className: "gap-2" })}>
-                  Criar conta
-                  <ArrowRight className="size-4" />
-                </button>
-              </SignUpButton>
+              <Link href="/sign-in" className={buttonVariants({ variant: "ghost" })}>
+                Entrar
+              </Link>
+              <Link href="/sign-up" className={buttonVariants({ className: "gap-2" })}>
+                Criar conta
+                <ArrowRight className="size-4" />
+              </Link>
             </Show>
             <Show when="signed-in">
               <Link href="/dashboard" className={buttonVariants({ variant: "ghost" })}>
@@ -86,25 +84,23 @@ export default function HomePage() {
         <div className="grid flex-1 items-center gap-16 py-20 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="max-w-3xl">
             <Badge variant="secondary" className="mb-6 rounded-full px-4 py-1.5">
-              Marca nova, arquitetura limpa e foco total na operacao da barbearia
+              Marca nova, arquitetura limpa e foco total na operação da barbearia
             </Badge>
             <h1 className="font-heading text-5xl font-semibold tracking-tight sm:text-6xl">
-              BUKBARBEARIA.COM: agendamento, operacao e crescimento para a tua barbearia.
+              BUKBARBEARIA.COM: agendamento, operação e crescimento para a tua barbearia.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Estamos a construir uma plataforma focada em barbearias, com pagina publica por slug,
-              dashboard privado, CRM, agenda operacional, confirmacoes e lembretes, sem acumular
+              Estamos a construir uma plataforma focada em barbearias, com página pública por slug,
+              dashboard privado, CRM, agenda operacional, confirmações e lembretes, sem acumular
               atalhos ruins logo no arranque.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-3">
               <Show when="signed-out">
-                <SignUpButton mode="modal">
-                  <button className={buttonVariants({ size: "lg", className: "gap-2" })}>
-                    Comecar agora
-                    <ArrowRight className="size-4" />
-                  </button>
-                </SignUpButton>
+                <Link href="/sign-up" className={buttonVariants({ size: "lg", className: "gap-2" })}>
+                  Começar agora
+                  <ArrowRight className="size-4" />
+                </Link>
               </Show>
               <Show when="signed-in">
                 <Link href="/onboarding" className={buttonVariants({ size: "lg", className: "gap-2" })}>
@@ -139,7 +135,7 @@ export default function HomePage() {
                 Base do produto
               </Badge>
               <CardTitle className="font-heading text-2xl">
-                O que ja estamos a construir com consistencia
+                O que já estamos a construir com consistencia
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

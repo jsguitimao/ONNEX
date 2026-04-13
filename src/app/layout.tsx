@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s | BUKBARBEARIA.COM",
   },
   description:
-    "Plataforma de agendamentos para barbearias com pagina publica, agenda operacional, equipa, CRM e lembretes.",
+    "Plataforma de agendamentos para barbearias com página pública, agenda operacional, equipa, CRM e lembretes.",
   metadataBase: new URL("https://bukbarbearia.com"),
 };
 

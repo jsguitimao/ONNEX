@@ -67,7 +67,7 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
         html: `
           <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
             <h1 style="font-size:24px;margin-bottom:12px;">Recebemos a tua reserva</h1>
-            <p>Ola ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi registada com sucesso.</p>
+            <p>Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi registada com sucesso.</p>
             <p><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
             <p>Se precisares, podes acompanhar, confirmar ou cancelar no link abaixo.</p>
             <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Gerir reserva</a></p>
@@ -80,7 +80,7 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
         html: `
           <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
             <h1 style="font-size:24px;margin-bottom:12px;">Reserva confirmada</h1>
-            <p>Ola ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> esta confirmada.</p>
+            <p>Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> esta confirmada.</p>
             <p><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
             <p>Guarda este link para consultar os detalhes sempre que precisares.</p>
             <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Ver reserva</a></p>
@@ -93,8 +93,8 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
         html: `
           <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
             <h1 style="font-size:24px;margin-bottom:12px;">Reserva cancelada</h1>
-            <p>Ola ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi cancelada.</p>
-            <p>Se quiseres marcar novamente, a pagina publica continua disponivel.</p>
+            <p>Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi cancelada.</p>
+            <p>Se quiseres marcar novamente, a página pública continua disponível.</p>
             <p><a href="${publicPageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Marcar novo horario</a></p>
           </div>
         `,
@@ -105,8 +105,8 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
         html: `
           <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
             <h1 style="font-size:24px;margin-bottom:12px;">Cancelamento de reserva</h1>
-            <p>Ola ${representativeName}, a reserva abaixo foi cancelada pelo cliente ou pelo painel.</p>
-            <p><strong>Cliente:</strong> ${booking.customerName}<br /><strong>Servico:</strong> ${booking.service.name}<br /><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
+            <p>Olá ${representativeName}, a reserva abaixo foi cancelada pelo cliente ou pelo painel.</p>
+            <p><strong>Cliente:</strong> ${booking.customerName}<br /><strong>Serviço:</strong> ${booking.service.name}<br /><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
             <p>Podes reabrir a agenda ou acompanhar a reserva no link abaixo.</p>
             <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Ver reserva</a></p>
           </div>
@@ -118,7 +118,7 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
         html: `
           <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
             <h1 style="font-size:24px;margin-bottom:12px;">Reserva remarcada</h1>
-            <p>Ola ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi atualizada.</p>
+            <p>Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi atualizada.</p>
             <p><strong>Novo horario:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
             <p>Podes rever os detalhes sempre que precisares.</p>
             <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Ver reserva</a></p>
@@ -131,7 +131,7 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
         html: `
           <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
             <h1 style="font-size:24px;margin-bottom:12px;">O teu horario esta quase a chegar</h1>
-            <p>Ola ${booking.customerName}, faltam cerca de 30 minutos para a tua reserva de <strong>${booking.service.name}</strong>.</p>
+            <p>Olá ${booking.customerName}, faltam cerca de 30 minutos para a tua reserva de <strong>${booking.service.name}</strong>.</p>
             <p><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
             <p>Se precisares de rever os detalhes, usa este link:</p>
             <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Gerir reserva</a></p>

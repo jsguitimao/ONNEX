@@ -50,11 +50,11 @@ export async function POST(req: Request) {
     const message = error instanceof Error ? error.message : "ERRO";
     const mapped =
       message === "HORARIO_OCUPADO"
-        ? { status: 409, error: "Ja existe uma reserva neste horario para este profissional." }
+        ? { status: 409, error: "Já existe uma reserva neste horario para este profissional." }
         : message === "DADOS_INVALIDOS"
-          ? { status: 400, error: "Servico ou profissional invalido." }
+          ? { status: 400, error: "Serviço ou profissional invalido." }
           : message === "PROFISSIONAL_INCOMPATIVEL"
-            ? { status: 400, error: "Este profissional nao executa o servico escolhido." }
+            ? { status: 400, error: "Este profissional não executa o serviço escolhido." }
             : { status: 500, error: "Erro ao criar reserva manual." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });

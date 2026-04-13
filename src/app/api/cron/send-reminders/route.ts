@@ -14,7 +14,7 @@ function isAuthorized(req: Request) {
 
 export async function POST(req: Request) {
   if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 
   try {

@@ -30,11 +30,11 @@ export const demoBusiness: DemoBusiness = {
   name: "BUKBARBEARIA.COM Studio",
   slug: "barbearia-sample",
   city: "Porto",
-  headline: "Marcacoes simples para uma barbearia moderna.",
+  headline: "Marcações simples para uma barbearia moderna.",
   subheadline:
-    "Pagina publica personalizada, equipa visivel e experiencia pensada para converter visitas em reservas.",
+    "Página pública personalizada, equipa visivel e experiência pensada para converter visitas em reservas.",
   welcomeMessage:
-    "Escolha o servico, selecione o profissional e reserve em poucos cliques.",
+    "Escolha o serviço, selecione o profissional e reserve em poucos cliques.",
   primaryColor: "#1570ef",
   accentColor: "#0f9f7a",
   services: [

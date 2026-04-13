@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: RouteProps) {
   const slots = await getPublicBookingRescheduleSlots(token, result.data.date);
 
   if (!slots) {
-    return NextResponse.json({ error: "Reserva nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Reserva não encontrada." }, { status: 404 });
   }
 
   return NextResponse.json({ slots });

@@ -209,7 +209,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel guardar as alteracoes.");
+        throw new Error(payload.error ?? "Não foi possível guardar as alteracoes.");
       }
 
       await refreshSnapshot();
@@ -229,14 +229,14 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
       <Card className="border-primary/15 bg-gradient-to-br from-background via-background to-primary/5">
         <CardHeader className="gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="font-heading text-2xl">Mesa de operacao</CardTitle>
+            <CardTitle className="font-heading text-2xl">Mesa de operação</CardTitle>
             <CardDescription>
-              Servicos, equipa e disponibilidade ja editaveis. E aqui que o produto comeca a
+              Serviços, equipa e disponibilidade já editaveis. E aqui que o produto comeca a
               deixar de parecer demo.
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{snapshot.services.length} servicos</Badge>
+            <Badge variant="secondary">{snapshot.services.length} serviços</Badge>
             <Badge variant="secondary">{snapshot.staffMembers.length} profissionais</Badge>
             <Badge variant="secondary">/{snapshot.slug}</Badge>
           </div>
@@ -260,9 +260,9 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="border-border/70">
           <CardHeader>
-            <CardTitle className="font-heading text-xl">Servicos</CardTitle>
+            <CardTitle className="font-heading text-xl">Serviços</CardTitle>
             <CardDescription>
-              Mantem a oferta atualizada e controla o que aparece na pagina publica.
+              Mantem a oferta atualizada e controla o que aparece na página pública.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -295,7 +295,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                           [service.id]: { ...draft, name: event.target.value },
                         }))
                       }
-                      placeholder="Nome do servico"
+                      placeholder="Nome do serviço"
                     />
                     <textarea
                       className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -306,7 +306,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                           [service.id]: { ...draft, description: event.target.value },
                         }))
                       }
-                      placeholder="Descricao curta para a pagina publica"
+                      placeholder="Descricao curta para a página pública"
                     />
                     <div className="grid gap-3 md:grid-cols-2">
                       <Input
@@ -348,7 +348,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                           }))
                         }
                       />
-                      Mostrar este servico na pagina publica
+                      Mostrar este serviço na página pública
                     </label>
                     <div className="flex justify-end">
                       <Button
@@ -360,11 +360,11 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                             durationMinutes: Number(draft.durationMinutes),
                             priceCents: parseEurosToCents(draft.priceEuros),
                             isActive: draft.isActive,
-                          }, "Servico atualizado.")
+                          }, "Serviço atualizado.")
                         }
                       >
                         {loading ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
-                        Guardar servico
+                        Guardar serviço
                       </Button>
                     </div>
                   </div>
@@ -375,7 +375,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
             <div className="rounded-3xl border border-dashed border-primary/30 bg-primary/5 p-4">
               <div className="mb-4 flex items-center gap-2">
                 <Plus className="size-4 text-primary" />
-                <p className="font-medium">Novo servico</p>
+                <p className="font-medium">Novo serviço</p>
               </div>
               <div className="grid gap-3">
                 <Input
@@ -389,7 +389,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                   onChange={(event) =>
                     setNewService((current) => ({ ...current, description: event.target.value }))
                   }
-                  placeholder="Descricao do servico"
+                  placeholder="Descricao do serviço"
                 />
                 <div className="grid gap-3 md:grid-cols-2">
                   <Input
@@ -423,12 +423,12 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                         description: newService.description || undefined,
                         durationMinutes: Number(newService.durationMinutes),
                         priceCents: parseEurosToCents(newService.priceEuros),
-                      }, "Servico criado.");
+                      }, "Serviço criado.");
                       setNewService(makeServiceDraft());
                     }}
                   >
                     {loading ? <LoaderCircle className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                    Criar servico
+                    Criar serviço
                   </Button>
                 </div>
               </div>
@@ -440,7 +440,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
           <CardHeader>
             <CardTitle className="font-heading text-xl">Equipa e agenda base</CardTitle>
             <CardDescription>
-              Define quem executa cada servico e em que janelas semanais pode receber reservas.
+              Define quem executa cada serviço e em que janelas semanais pode receber reservas.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -460,7 +460,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                       <div>
                         <p className="font-medium">{member.fullName}</p>
                         <p className="text-sm text-muted-foreground">
-                          {member.roleTitle ?? "Profissional"} · {member.serviceIds.length} servicos
+                          {member.roleTitle ?? "Profissional"} · {member.serviceIds.length} serviços
                         </p>
                       </div>
                     </div>
@@ -503,7 +503,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                     />
 
                     <div className="grid gap-2">
-                      <p className="text-sm font-medium">Servicos que este profissional executa</p>
+                      <p className="text-sm font-medium">Serviços que este profissional executa</p>
                       <div className="grid gap-2">
                         {snapshot.services.map((service) => (
                           <label
@@ -560,7 +560,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                           }))
                         }
                       />
-                      Profissional disponivel para novas reservas
+                      Profissional disponível para novas reservas
                     </label>
 
                     <div className="flex justify-end">
@@ -611,7 +611,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                 />
 
                 <div className="grid gap-2">
-                  <p className="text-sm font-medium">Servicos atendidos</p>
+                  <p className="text-sm font-medium">Serviços atendidos</p>
                   <div className="grid gap-2">
                     {snapshot.services.map((service) => (
                       <label

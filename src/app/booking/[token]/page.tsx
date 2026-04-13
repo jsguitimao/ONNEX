@@ -23,7 +23,7 @@ export default async function BookingManagePage({ params }: RouteProps) {
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
       <Link href={`/${booking.businessSlug}`} className={buttonVariants({ variant: "ghost", className: "mb-6 w-fit gap-2" })}>
         <ArrowLeft className="size-4" />
-        Voltar para a pagina publica
+        Voltar para a página pública
       </Link>
 
       <BookingManageCard initialBooking={booking} />

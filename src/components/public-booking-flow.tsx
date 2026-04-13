@@ -84,7 +84,7 @@ export function PublicBookingFlow({ business }: Props) {
         const data = (await response.json()) as { slots?: BookingSlot[]; error?: string };
 
         if (!response.ok) {
-          throw new Error(data.error ?? "Nao foi possivel carregar horarios.");
+          throw new Error(data.error ?? "Não foi possível carregar horarios.");
         }
 
         setSlots(data.slots ?? []);
@@ -129,7 +129,7 @@ export function PublicBookingFlow({ business }: Props) {
       };
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Nao foi possivel concluir a reserva.");
+        throw new Error(data.error ?? "Não foi possível concluir a reserva.");
       }
 
       setMessage(`Reserva criada para ${data.serviceName} em ${new Date(data.startsAt ?? "").toLocaleString("pt-PT")}.`);
@@ -151,8 +151,8 @@ export function PublicBookingFlow({ business }: Props) {
     <section id="booking" className="rounded-[2rem] border bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">Reserva rapida</p>
-          <h2 className="font-heading text-2xl font-semibold">Marca ja o teu horario</h2>
+          <p className="text-sm text-muted-foreground">Reserva rápida</p>
+          <h2 className="font-heading text-2xl font-semibold">Marca já o teu horario</h2>
         </div>
         <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">Ao vivo</span>
       </div>
@@ -161,10 +161,10 @@ export function PublicBookingFlow({ business }: Props) {
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-0.5 size-4 text-primary" />
           <div className="grid gap-1">
-            <p className="font-medium text-foreground">Politica de marcacao</p>
+            <p className="font-medium text-foreground">Politica de marcação</p>
             <p>Antecedencia minima: {business.bookingLeadTimeHours}h.</p>
-            <p>Janela de reservas: ate {business.bookingWindowDays} dias.</p>
-            <p>Cancelamento automatico pelo cliente: ate {business.cancellationWindowHours}h antes.</p>
+            <p>Janela de reservas: até {business.bookingWindowDays} dias.</p>
+            <p>Cancelamento automático pelo cliente: até {business.cancellationWindowHours}h antes.</p>
           </div>
         </div>
       </div>
@@ -224,7 +224,7 @@ export function PublicBookingFlow({ business }: Props) {
             ))
           ) : (
             <p className="text-sm text-muted-foreground">
-              Ainda nao ha profissionais configurados para este servico.
+              Ainda não ha profissionais configurados para este serviço.
             </p>
           )}
         </div>
@@ -277,8 +277,8 @@ export function PublicBookingFlow({ business }: Props) {
           ) : (
             <p className="text-sm text-muted-foreground">
               {date
-                ? "Nao ha horarios disponiveis para os filtros escolhidos."
-                : "Escolhe data, servico e profissional para ver horarios."}
+                ? "Não ha horarios disponiveis para os filtros escolhidos."
+                : "Escolhe data, serviço e profissional para ver horarios."}
             </p>
           )}
         </div>
@@ -319,7 +319,7 @@ export function PublicBookingFlow({ business }: Props) {
             submitting && "opacity-80"
           )}
         >
-          {submitting ? "A criar reserva..." : "Confirmar marcacao"}
+          {submitting ? "A criar reserva..." : "Confirmar marcação"}
           {submitting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
         </button>
 

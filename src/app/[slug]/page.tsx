@@ -49,7 +49,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
               )}
             </div>
             <Badge className="mt-5 border-white/20 bg-white/12 text-white hover:bg-white/12">
-              Pagina publica
+              Página pública
             </Badge>
             <h1 className="mt-4 font-heading text-4xl font-semibold tracking-tight">{business.name}</h1>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-white/82">{business.bookingPage?.headline}</p>
@@ -129,7 +129,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         <section className="rounded-[2rem] border bg-card p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <Sparkles className="size-4 text-primary" />
-            <h2 className="font-heading text-lg font-semibold">Sobre a experiencia</h2>
+            <h2 className="font-heading text-lg font-semibold">Sobre a experiência</h2>
           </div>
           <p className="text-sm leading-7 text-muted-foreground">{business.description || business.bookingPage?.subheadline}</p>
           <div className="mt-4 rounded-2xl bg-muted/60 p-4 text-sm leading-7 text-foreground">
@@ -146,7 +146,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
             <p>Antecedencia minima para marcar: {publicBusiness.bookingLeadTimeHours}h.</p>
             <p>Janela maxima para novas reservas: {publicBusiness.bookingWindowDays} dias.</p>
             <p>Novos horarios gerados a cada {publicBusiness.slotIntervalMinutes} minutos.</p>
-            <p>Cancelamento automatico permitido ate {publicBusiness.cancellationWindowHours}h antes.</p>
+            <p>Cancelamento automático permitido até {publicBusiness.cancellationWindowHours}h antes.</p>
           </div>
         </section>
 
@@ -177,7 +177,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                       </div>
                     </div>
                     <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">
-                      Disponivel
+                      Disponível
                     </span>
                   </div>
                 </div>
@@ -187,13 +187,13 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         ) : null}
 
         <section className="rounded-[2rem] border bg-card p-5 text-center shadow-sm">
-          <p className="text-sm text-muted-foreground">Informacao util</p>
+          <p className="text-sm text-muted-foreground">Informação útil</p>
           <h2 className="mt-2 font-heading text-2xl font-semibold">
-            Uma pagina publica mais fiel ao negocio
+            Uma página pública mais fiel ao negócio
           </h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Esta pagina agora respeita branding, descricao, visibilidade da equipa, links externos e
-            regras reais de marcacao.
+            Esta página agora respeita branding, descricao, visibilidade da equipa, links externos e
+            regras reais de marcação.
           </p>
           {business.contactEmail ? (
             <p className="mt-3 text-sm text-muted-foreground">

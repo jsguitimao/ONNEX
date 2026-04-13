@@ -151,7 +151,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
       const payload = (await response.json()) as BookingAgendaSnapshot & { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel carregar a agenda.");
+        throw new Error(payload.error ?? "Não foi possível carregar a agenda.");
       }
 
       setSnapshot(payload);
@@ -176,7 +176,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
       const payload = (await response.json()) as BookingAgendaWeekSnapshot & { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel carregar a semana.");
+        throw new Error(payload.error ?? "Não foi possível carregar a semana.");
       }
 
       setWeekBookings(payload.bookingsByDate);
@@ -207,7 +207,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel atualizar o estado.");
+        throw new Error(payload.error ?? "Não foi possível atualizar o estado.");
       }
 
       await Promise.all([refreshAgenda(), refreshWeek()]);
@@ -238,7 +238,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel atualizar a reserva.");
+        throw new Error(payload.error ?? "Não foi possível atualizar a reserva.");
       }
 
       await Promise.all([refreshAgenda(), refreshWeek()]);
@@ -265,7 +265,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel criar a reserva manual.");
+        throw new Error(payload.error ?? "Não foi possível criar a reserva manual.");
       }
 
       setShowManualForm(false);
@@ -302,7 +302,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel criar o bloqueio.");
+        throw new Error(payload.error ?? "Não foi possível criar o bloqueio.");
       }
 
       setShowBlockForm(false);
@@ -331,7 +331,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel remover o bloqueio.");
+        throw new Error(payload.error ?? "Não foi possível remover o bloqueio.");
       }
 
       await Promise.all([refreshAgenda(), refreshWeek()]);
@@ -350,7 +350,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             <CardTitle className="font-heading text-2xl">Agenda operacional</CardTitle>
             <CardDescription>
               Vista diaria e semanal para confirmar presencas, concluir atendimentos e equilibrar a
-              operacao da barbearia.
+              operação da barbearia.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -374,7 +374,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             <div className="mb-4">
               <p className="font-medium">Nova reserva manual</p>
               <p className="text-sm text-muted-foreground">
-                Usa este bloco para registar marcacoes por telefone, WhatsApp ou atendimento no local.
+                Usa este bloco para registar marcações por telefone, WhatsApp ou atendimento no local.
               </p>
             </div>
 
@@ -569,7 +569,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
                 variant="outline"
                 onClick={() => setDate(format(addDays(weekStart, 7), "yyyy-MM-dd"))}
               >
-                Proxima semana
+                Próxima semana
                 <ChevronRight className="size-4" />
               </Button>
             </div>
@@ -688,7 +688,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
         <div className="grid gap-3">
           {snapshot.bookings.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-border/80 bg-muted/20 px-5 py-8 text-center text-sm text-muted-foreground">
-              Nao ha reservas para este filtro. Assim que entrarem marcacoes publicas, elas vao
+              Não ha reservas para este filtro. Assim que entrarem marcações publicas, elas vao
               aparecer aqui com acoes rapidas.
             </div>
           ) : (

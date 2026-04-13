@@ -36,7 +36,7 @@ export async function PATCH(req: Request, { params }: RouteProps) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "ERRO";
     const status = message === "CUSTOMER_NOT_FOUND" ? 404 : 500;
-    const mapped = status === 404 ? "Cliente nao encontrado." : "Erro ao atualizar cliente.";
+    const mapped = status === 404 ? "Cliente não encontrado." : "Erro ao atualizar cliente.";
     return NextResponse.json({ error: mapped }, { status });
   }
 }

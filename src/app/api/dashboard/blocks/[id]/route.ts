@@ -14,7 +14,7 @@ export async function DELETE(_: Request, { params }: RouteProps) {
     const message = error instanceof Error ? error.message : "ERRO";
     const mapped =
       message === "BLOQUEIO_NAO_ENCONTRADO"
-        ? { status: 404, error: "Bloqueio nao encontrado." }
+        ? { status: 404, error: "Bloqueio não encontrado." }
         : { status: 500, error: "Erro ao remover bloqueio." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });

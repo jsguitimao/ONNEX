@@ -72,7 +72,7 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
         const payload = (await response.json()) as { slots?: BookingSlot[]; error?: string };
 
         if (!response.ok) {
-          throw new Error(payload.error ?? "Nao foi possivel carregar horarios.");
+          throw new Error(payload.error ?? "Não foi possível carregar horarios.");
         }
 
         setSlots(payload.slots ?? []);
@@ -103,7 +103,7 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
       const payload = (await response.json()) as PublicBookingDetails & { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel atualizar a reserva.");
+        throw new Error(payload.error ?? "Não foi possível atualizar a reserva.");
       }
 
       setBooking(payload);
@@ -129,7 +129,7 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
       const payload = (await response.json()) as PublicBookingDetails & { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel remarcar a reserva.");
+        throw new Error(payload.error ?? "Não foi possível remarcar a reserva.");
       }
 
       setBooking(payload);
@@ -146,7 +146,7 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
     <div className="rounded-[2rem] border bg-card p-6 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">Gestao da tua reserva</p>
+          <p className="text-sm text-muted-foreground">Gestão da tua reserva</p>
           <h1 className="font-heading text-3xl font-semibold">{booking.businessName}</h1>
         </div>
         <span className="rounded-full border bg-muted px-3 py-1 text-sm font-medium">
@@ -156,12 +156,12 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
 
       <div className="grid gap-3 rounded-[1.5rem] border bg-background p-4 text-sm">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">Servico</span>
+          <span className="text-muted-foreground">Serviço</span>
           <span className="font-medium">{booking.serviceName}</span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground">Profissional</span>
-          <span className="font-medium">{booking.staffName ?? "Sem preferencia"}</span>
+          <span className="font-medium">{booking.staffName ?? "Sem preferência"}</span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground">Quando</span>
@@ -181,8 +181,8 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
           <ShieldAlert className="mt-0.5 size-4 text-primary" />
           <div className="grid gap-1">
             <p className="font-medium text-foreground">Politica desta reserva</p>
-            <p>Confirmacao disponivel enquanto a reserva estiver pendente.</p>
-            <p>Cancelamento e remarcacao disponiveis ate {booking.cancellationWindowHours}h antes do horario.</p>
+            <p>Confirmação disponível enquanto a reserva estiver pendente.</p>
+            <p>Cancelamento e remarcacao disponiveis até {booking.cancellationWindowHours}h antes do horario.</p>
             <p>Prazo atual para gerir a reserva: {cancellationDeadlineLabel}.</p>
           </div>
         </div>
@@ -193,7 +193,7 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
           <div className="mb-3">
             <p className="font-medium">Remarcar horario</p>
             <p className="text-sm text-muted-foreground">
-              Mantem o mesmo servico e profissional, escolhendo apenas um novo slot disponivel.
+              Mantem o mesmo serviço e profissional, escolhendo apenas um novo slot disponível.
             </p>
           </div>
 
@@ -237,7 +237,7 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Nao ha horarios disponiveis para esta data.
+                Não ha horarios disponiveis para esta data.
               </p>
             )}
           </div>
@@ -269,7 +269,7 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
 
       {!booking.canCancel && ["PENDING", "CONFIRMED"].includes(booking.status) ? (
         <p className="mt-4 text-sm text-muted-foreground">
-          O prazo automatico para gerir esta reserva ja expirou. Para ajuda, entra em contacto direto com a barbearia.
+          O prazo automático para gerir esta reserva já expirou. Para ajuda, entra em contacto direto com a barbearia.
         </p>
       ) : null}
 

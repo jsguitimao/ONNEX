@@ -20,21 +20,21 @@ export const dynamic = "force-dynamic";
 
 const panels = [
   {
-    title: "Agenda com visao diaria e lista de marcacoes",
+    title: "Agenda com visão diaria e lista de marcações",
     description:
       "O painel agora cobre agenda, filtros, mudanca de estado, reservas manuais e bloqueios de horario.",
     icon: LayoutDashboard,
   },
   {
-    title: "Gestao de servicos, equipa e disponibilidade",
+    title: "Gestão de serviços, equipa e disponibilidade",
     description:
-      "A base ja suporta servicos por negocio, profissionais, localizacoes e disponibilidade semanal reutilizavel na pagina publica.",
+      "A base já suporta serviços por negócio, profissionais, localizações e disponibilidade semanal reutilizavel na página pública.",
     icon: Users,
   },
   {
-    title: "Clientes, notas e historico de marcacoes",
+    title: "Clientes, notas e histórico de marcações",
     description:
-      "A camada de CRM consolida historico, preferencias, observacoes internas e recorrencia por cliente.",
+      "A camada de CRM consolida histórico, preferencias, observacoes internas e recorrencia por cliente.",
     icon: CalendarRange,
   },
 ];
@@ -49,9 +49,9 @@ export default async function DashboardPreviewPage() {
   ]);
 
   const stats = [
-    { label: "Servicos ativos", value: snapshot.servicesCount.toString(), icon: Sparkles },
+    { label: "Serviços ativos", value: snapshot.servicesCount.toString(), icon: Sparkles },
     { label: "Profissionais", value: snapshot.staffCount.toString(), icon: Users },
-    { label: "Receita de referencia", value: formatEuro(snapshot.monthlyRevenueCents), icon: Euro },
+    { label: "Receita de referência", value: formatEuro(snapshot.monthlyRevenueCents), icon: Euro },
   ];
 
   return (
@@ -63,11 +63,11 @@ export default async function DashboardPreviewPage() {
           </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight">{snapshot.businessName}</h1>
           <p className="mt-3 text-muted-foreground">
-            Esta area ja esta desenhada para o fluxo autenticado do negocio. Agora tambem
-            permite gerir servicos, equipa, disponibilidade e regras principais da agenda.
+            Esta area já esta desenhada para o fluxo autenticado do negócio. Agora também
+            permite gerir serviços, equipa, disponibilidade e regras principais da agenda.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Cidade principal: {snapshot.city} - Pagina publica: /{snapshot.slug}
+            Cidade principal: {snapshot.city} - Página pública: /{snapshot.slug}
           </p>
         </div>
 

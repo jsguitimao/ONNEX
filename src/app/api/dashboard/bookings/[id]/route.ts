@@ -32,18 +32,18 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     const message = error instanceof Error ? error.message : "ERRO";
     const mapped =
       message === "BOOKING_NOT_FOUND"
-        ? { status: 404, error: "Reserva nao encontrada." }
+        ? { status: 404, error: "Reserva não encontrada." }
         : message === "HORARIO_OCUPADO"
-          ? { status: 409, error: "Ja existe uma reserva neste horario para este profissional." }
+          ? { status: 409, error: "Já existe uma reserva neste horario para este profissional." }
           : message === "HORARIO_BLOQUEADO"
             ? { status: 409, error: "Este horario esta bloqueado na agenda." }
             : message === "DATA_INVALIDA"
               ? { status: 400, error: "Escolhe uma nova data valida." }
               : message === "BOOKING_RESCHEDULE_NOT_ALLOWED"
-                ? { status: 400, error: "Esta reserva nao pode ser remarcada no painel." }
+                ? { status: 400, error: "Esta reserva não pode ser remarcada no painel." }
                 : message === "PROFISSIONAL_INCOMPATIVEL"
-                  ? { status: 400, error: "O profissional atual nao executa este servico." }
-                  : { status: 500, error: "Nao foi possivel atualizar a reserva." };
+                  ? { status: 400, error: "O profissional atual não executa este serviço." }
+                  : { status: 500, error: "Não foi possível atualizar a reserva." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }
