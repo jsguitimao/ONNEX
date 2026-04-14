@@ -314,6 +314,38 @@ const tests: TestCase[] = [
       assert.equal(parsed.websiteUrl, "https://bukbarbearia.com");
     },
   },
+  {
+    name: "onboarding schema accepts empty phone and description for progressive setup",
+    run: () => {
+      const parsed = onboardingSchema.parse({
+        businessName: "Buk Barbearia",
+        slug: "buk-barbearia",
+        city: "Lisboa",
+        phone: "   ",
+        contactEmail: "",
+        websiteUrl: "",
+        description: "   ",
+        headline: "Reserva online simples",
+        subheadline: "Agenda o teu horário em menos de um minuto, sem chamadas nem esperas.",
+        welcomeMessage: "Escolhe o serviço, o profissional e confirma a marcação.",
+        primaryColor: "#111827",
+        accentColor: "#C084FC",
+        logoUrl: "",
+        coverImageUrl: "",
+        onlineBooking: true,
+        showTeam: true,
+        showPrices: true,
+        showDurations: true,
+        bookingLeadTimeHours: 0,
+        bookingWindowDays: 30,
+        slotIntervalMinutes: 15,
+        cancellationWindowHours: 4,
+      });
+
+      assert.equal(parsed.phone, "");
+      assert.equal(parsed.description, "");
+    },
+  },
 ];
 
 async function main() {

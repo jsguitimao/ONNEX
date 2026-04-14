@@ -64,30 +64,38 @@ function normalizeHexColorInput(value: unknown) {
 
 const optionalEmailSchema = z.preprocess(
   normalizeOptionalEmailInput,
-  z.string().email("Use um email válido.").or(z.literal("")),
+  z.string().email("Use um email valido.").or(z.literal("")),
+);
+
+const optionalPhoneSchema = z.preprocess(
+  normalizeOptionalString,
+  z
+    .string()
+    .max(30)
+    .refine((value) => value === "" || value.length >= 6, "Use um telefone valido."),
 );
 
 const optionalUrlSchema = z.preprocess(
   normalizeOptionalUrlInput,
-  z.string().url("Use um URL válido, por exemplo https://site.com.").or(z.literal("")),
+  z.string().url("Use um URL valido, por exemplo https://site.com.").or(z.literal("")),
 );
 
 const hexColorSchema = z.preprocess(
   normalizeHexColorInput,
-  z.string().regex(/^#([0-9A-F]{6})$/, "Use uma cor hexadecimal válida, como #111827."),
+  z.string().regex(/^#([0-9A-F]{6})$/, "Use uma cor hexadecimal valida, como #111827."),
 );
 
 export const onboardingSchema = z.object({
   businessName: z.preprocess(normalizeString, z.string().min(2).max(100)),
   slug: z.preprocess(
     normalizeSlugInput,
-    z.string().min(3).max(60).regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífen no slug."),
+    z.string().min(3).max(60).regex(/^[a-z0-9-]+$/, "Use apenas letras minusculas, numeros e hifen no slug."),
   ),
   city: z.preprocess(normalizeString, z.string().min(2).max(80)),
-  phone: z.preprocess(normalizeString, z.string().min(6).max(30)),
+  phone: optionalPhoneSchema,
   contactEmail: optionalEmailSchema,
   websiteUrl: optionalUrlSchema,
-  description: z.preprocess(normalizeString, z.string().min(10).max(500)),
+  description: z.preprocess(normalizeOptionalString, z.string().max(500)),
   headline: z.preprocess(normalizeString, z.string().min(10).max(140)),
   subheadline: z.preprocess(normalizeString, z.string().min(20).max(300)),
   welcomeMessage: z.preprocess(normalizeString, z.string().min(10).max(240)),
@@ -111,10 +119,10 @@ export function normalizeOnboardingDraft(input: OnboardingDraft): OnboardingDraf
     businessName: ensureString(normalizeString(input.businessName)),
     slug: ensureString(normalizeSlugInput(input.slug)),
     city: ensureString(normalizeString(input.city)),
-    phone: ensureString(normalizeString(input.phone)),
+    phone: ensureString(normalizeOptionalString(input.phone)),
     contactEmail: ensureString(normalizeOptionalEmailInput(input.contactEmail)),
     websiteUrl: ensureString(normalizeOptionalUrlInput(input.websiteUrl)),
-    description: ensureString(normalizeString(input.description)),
+    description: ensureString(normalizeOptionalString(input.description)),
     headline: ensureString(normalizeString(input.headline)),
     subheadline: ensureString(normalizeString(input.subheadline)),
     welcomeMessage: ensureString(normalizeString(input.welcomeMessage)),

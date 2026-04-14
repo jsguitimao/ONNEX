@@ -54,8 +54,8 @@ export async function updateBusinessFromOnboarding(input: OnboardingDraft) {
     data: {
       name: input.businessName,
       slug: input.slug,
-      description: input.description,
-      contactPhone: input.phone,
+      description: input.description || null,
+      contactPhone: input.phone || null,
       contactEmail: input.contactEmail || null,
       websiteUrl: input.websiteUrl || null,
       primaryColor: input.primaryColor,
