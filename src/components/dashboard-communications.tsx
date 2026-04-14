@@ -66,6 +66,26 @@ const statusVariants: Record<
   SKIPPED: "outline",
 };
 
+const runStatusLabels: Record<
+  NonNullable<CommunicationSnapshot["reminderEngine"]["latestRun"]>["status"],
+  string
+> = {
+  SUCCESS: "Saudavel",
+  FAILED: "Falhou",
+  UNAUTHORIZED: "Nao autorizado",
+  MISCONFIGURED: "Por configurar",
+};
+
+const runStatusVariants: Record<
+  NonNullable<CommunicationSnapshot["reminderEngine"]["latestRun"]>["status"],
+  "secondary" | "destructive" | "outline"
+> = {
+  SUCCESS: "secondary",
+  FAILED: "destructive",
+  UNAUTHORIZED: "destructive",
+  MISCONFIGURED: "outline",
+};
+
 function ChannelState({
   label,
   configured,
@@ -252,6 +272,92 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
             configured={initialSnapshot.channels.cronSecretConfigured}
             icon={ShieldCheck}
           />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-3xl border border-border/70 bg-background/80 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <ShieldCheck className="size-4 text-primary" />
+              <p className="font-medium">Saude do agendador</p>
+            </div>
+
+            {initialSnapshot.reminderEngine.latestRun ? (
+              <div className="grid gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={runStatusVariants[initialSnapshot.reminderEngine.latestRun.status]}>
+                    {runStatusLabels[initialSnapshot.reminderEngine.latestRun.status]}
+                  </Badge>
+                  <Badge variant="outline">{initialSnapshot.reminderEngine.latestRun.source}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Ultima execucao:{" "}
+                  {new Date(initialSnapshot.reminderEngine.latestRun.createdAt).toLocaleString("pt-PT", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Analisadas {initialSnapshot.reminderEngine.latestRun.scanned} reservas, com{" "}
+                  {initialSnapshot.reminderEngine.latestRun.sent} envios,{" "}
+                  {initialSnapshot.reminderEngine.latestRun.skipped} ignorados e{" "}
+                  {initialSnapshot.reminderEngine.latestRun.failed} falhas.
+                </p>
+                {initialSnapshot.reminderEngine.latestRun.errorMessage ? (
+                  <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {initialSnapshot.reminderEngine.latestRun.errorMessage}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+                Ainda nao ha execucoes registadas do motor de lembretes.
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-3xl border border-border/70 bg-background/80 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <RefreshCw className="size-4 text-primary" />
+              <p className="font-medium">Ultimas execucoes do motor</p>
+            </div>
+
+            {initialSnapshot.reminderEngine.runs.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+                Ainda nao ha historico do agendador.
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {initialSnapshot.reminderEngine.runs.map((run) => (
+                  <div
+                    key={run.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-muted/20 p-3"
+                  >
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={runStatusVariants[run.status]}>{runStatusLabels[run.status]}</Badge>
+                        <Badge variant="outline">{run.source}</Badge>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {new Date(run.createdAt).toLocaleString("pt-PT", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+
+                    <div className="text-sm text-muted-foreground md:text-right">
+                      <p>{run.scanned} analisadas</p>
+                      <p>{run.sent} enviadas · {run.failed} falhas</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="rounded-3xl border border-border/70 bg-muted/20 p-4">

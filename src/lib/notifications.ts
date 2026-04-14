@@ -13,6 +13,8 @@ type NotificationKind =
   | "BOOKING_REMINDER";
 
 type NotificationChannel = "EMAIL" | "SMS";
+type ReminderRunSource = "CRON" | "DASHBOARD";
+type ReminderRunStatus = "SUCCESS" | "FAILED" | "UNAUTHORIZED" | "MISCONFIGURED";
 
 type DeliveryStatus = "sent" | "skipped" | "failed" | "duplicate";
 
@@ -794,6 +796,36 @@ export async function retryNotificationDelivery(input: {
   }
 
   return await sendSmsForKind(booking, input.kind, booking.customerPhone);
+}
+
+export async function logReminderRunExecution(input: {
+  source: ReminderRunSource;
+  status: ReminderRunStatus;
+  authorizationSource?: string | null;
+  userAgent?: string | null;
+  reminderStartMinutes?: number;
+  reminderEndMinutes?: number;
+  scanned?: number;
+  sent?: number;
+  skipped?: number;
+  failed?: number;
+  errorMessage?: string | null;
+}) {
+  return db.reminderRunLog.create({
+    data: {
+      source: input.source,
+      status: input.status,
+      authorizationSource: input.authorizationSource || null,
+      userAgent: input.userAgent || null,
+      reminderStartMinutes: input.reminderStartMinutes ?? 25,
+      reminderEndMinutes: input.reminderEndMinutes ?? 35,
+      scanned: input.scanned ?? 0,
+      sent: input.sent ?? 0,
+      skipped: input.skipped ?? 0,
+      failed: input.failed ?? 0,
+      errorMessage: input.errorMessage || null,
+    },
+  });
 }
 
 export async function sendUpcomingBookingReminders(input?: {

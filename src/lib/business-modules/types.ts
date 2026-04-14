@@ -194,6 +194,30 @@ export type CommunicationSnapshot = {
     smsConfigured: boolean;
     cronSecretConfigured: boolean;
   };
+  reminderEngine: {
+    latestRun: {
+      id: string;
+      source: "CRON" | "DASHBOARD";
+      status: "SUCCESS" | "FAILED" | "UNAUTHORIZED" | "MISCONFIGURED";
+      createdAt: Date;
+      scanned: number;
+      sent: number;
+      skipped: number;
+      failed: number;
+      errorMessage: string | null;
+    } | null;
+    runs: Array<{
+      id: string;
+      source: "CRON" | "DASHBOARD";
+      status: "SUCCESS" | "FAILED" | "UNAUTHORIZED" | "MISCONFIGURED";
+      createdAt: Date;
+      scanned: number;
+      sent: number;
+      skipped: number;
+      failed: number;
+      errorMessage: string | null;
+    }>;
+  };
   totals: {
     sentLast24h: number;
     failedLast24h: number;

@@ -273,6 +273,25 @@ model NotificationLog {
   @@index([bookingId, kind, channel])
 }
 
+model ReminderRunLog {
+  id                   String            @id @default(cuid())
+  source               ReminderRunSource
+  status               ReminderRunStatus
+  authorizationSource  String?
+  userAgent            String?
+  reminderStartMinutes Int               @default(25)
+  reminderEndMinutes   Int               @default(35)
+  scanned              Int               @default(0)
+  sent                 Int               @default(0)
+  skipped              Int               @default(0)
+  failed               Int               @default(0)
+  errorMessage         String?
+  createdAt            DateTime          @default(now())
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
 model Subscription {
   id                   String             @id @default(cuid())
   businessId           String             @unique
@@ -311,6 +330,18 @@ enum NotificationStatus {
   SENT
   FAILED
   SKIPPED
+}
+
+enum ReminderRunSource {
+  CRON
+  DASHBOARD
+}
+
+enum ReminderRunStatus {
+  SUCCESS
+  FAILED
+  UNAUTHORIZED
+  MISCONFIGURED
 }
 
 enum BusinessStatus {

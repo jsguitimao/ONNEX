@@ -130,7 +130,7 @@ export async function getCommunicationSnapshot(): Promise<CommunicationSnapshot>
   const business = await getCurrentBusiness();
   const since = new Date(Date.now() - 24 * 60 * 60_000);
 
-  const [sentLast24h, failedLast24h, skippedLast24h, notifications] = await Promise.all([
+  const [sentLast24h, failedLast24h, skippedLast24h, notifications, reminderRuns] = await Promise.all([
     db.notificationLog.count({
       where: {
         businessId: business.id,
@@ -166,6 +166,10 @@ export async function getCommunicationSnapshot(): Promise<CommunicationSnapshot>
         },
       },
     }),
+    db.reminderRunLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
   ]);
 
   return {
@@ -182,6 +186,32 @@ export async function getCommunicationSnapshot(): Promise<CommunicationSnapshot>
       sentLast24h,
       failedLast24h,
       skippedLast24h,
+    },
+    reminderEngine: {
+      latestRun: reminderRuns[0]
+        ? {
+            id: reminderRuns[0].id,
+            source: reminderRuns[0].source,
+            status: reminderRuns[0].status,
+            createdAt: reminderRuns[0].createdAt,
+            scanned: reminderRuns[0].scanned,
+            sent: reminderRuns[0].sent,
+            skipped: reminderRuns[0].skipped,
+            failed: reminderRuns[0].failed,
+            errorMessage: reminderRuns[0].errorMessage,
+          }
+        : null,
+      runs: reminderRuns.map((run) => ({
+        id: run.id,
+        source: run.source,
+        status: run.status,
+        createdAt: run.createdAt,
+        scanned: run.scanned,
+        sent: run.sent,
+        skipped: run.skipped,
+        failed: run.failed,
+        errorMessage: run.errorMessage,
+      })),
     },
     notifications: notifications.map((notification) => ({
       id: notification.id,
