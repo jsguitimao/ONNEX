@@ -1,36 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getBusinessForOnboarding, updateBusinessFromOnboarding } from "@/lib/business";
+import { onboardingSchema } from "@/lib/onboarding-input";
 import { readJsonBody } from "@/lib/request-body";
-
-const onboardingSchema = z.object({
-  businessName: z.string().min(2).max(100),
-  slug: z
-    .string()
-    .min(3)
-    .max(60)
-    .regex(/^[a-z0-9-]+$/, "Use apenas letras minusculas, numeros e hifen no slug."),
-  city: z.string().min(2).max(80),
-  phone: z.string().min(6).max(30),
-  contactEmail: z.string().email().or(z.literal("")),
-  websiteUrl: z.string().url().or(z.literal("")),
-  description: z.string().min(10).max(500),
-  headline: z.string().min(10).max(140),
-  subheadline: z.string().min(20).max(300),
-  welcomeMessage: z.string().min(10).max(240),
-  primaryColor: z.string().regex(/^#([0-9a-fA-F]{6})$/),
-  accentColor: z.string().regex(/^#([0-9a-fA-F]{6})$/),
-  logoUrl: z.string().url().or(z.literal("")),
-  coverImageUrl: z.string().url().or(z.literal("")),
-  onlineBooking: z.boolean(),
-  showTeam: z.boolean(),
-  showPrices: z.boolean(),
-  showDurations: z.boolean(),
-  bookingLeadTimeHours: z.coerce.number().int().min(0).max(168),
-  bookingWindowDays: z.coerce.number().int().min(1).max(365),
-  slotIntervalMinutes: z.coerce.number().int().min(5).max(120),
-  cancellationWindowHours: z.coerce.number().int().min(0).max(168),
-});
 
 export async function GET() {
   try {

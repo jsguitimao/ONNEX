@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { OnboardingDraft } from "@/lib/business";
 import { demoBusiness, formatEuro } from "@/lib/demo-data";
+import { normalizeOnboardingDraft } from "@/lib/onboarding-input";
 import { cn } from "@/lib/utils";
 
 export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft }) {
@@ -37,12 +38,13 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
   const handleSave = async () => {
     setStatus("saving");
     setMessage("");
+    const payload = normalizeOnboardingDraft(form);
 
     try {
       const response = await fetch("/api/onboarding", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const data = (await response.json()) as { error?: string };
@@ -51,6 +53,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
         throw new Error(data.error ?? "Não foi possível guardar.");
       }
 
+      setForm(payload);
       setStatus("saved");
       setMessage("Configuração guardada com sucesso.");
     } catch (error) {

@@ -12,6 +12,7 @@ import {
   getClientIp,
   resetRateLimitStoreForTests,
 } from "../src/lib/rate-limit.ts";
+import { normalizeOnboardingDraft, onboardingSchema } from "../src/lib/onboarding-input.ts";
 import { validatePublicMutationOrigin } from "../src/lib/request-origin.ts";
 
 type TestCase = {
@@ -243,6 +244,74 @@ const tests: TestCase[] = [
       assert.equal(expiresAt.toISOString(), "2026-05-16T12:30:00.000Z");
       assert.equal(isPublicBookingTokenExpired({ endsAt, updatedAt }, new Date("2026-05-16T12:29:59.000Z")), false);
       assert.equal(isPublicBookingTokenExpired({ endsAt, updatedAt }, new Date("2026-05-16T12:30:01.000Z")), true);
+    },
+  },
+  {
+    name: "onboarding normalization accepts trimmed emails and bare URLs",
+    run: () => {
+      const normalized = normalizeOnboardingDraft({
+        businessName: "  Buk Barbearia  ",
+        slug: "  Minha_Barbearia  ",
+        city: " Lisboa ",
+        phone: " 912345678 ",
+        contactEmail: "  DONO@EXAMPLE.COM ",
+        websiteUrl: "bukbarbearia.com",
+        description: "  Barbearia premium no centro de Lisboa.  ",
+        headline: "  Reserva online em segundos  ",
+        subheadline: "  Marca corte, barba e atendimento premium sem telefonemas.  ",
+        welcomeMessage: "  Bem-vindo. Escolhe o serviço e o teu barbeiro favorito.  ",
+        primaryColor: "#111827",
+        accentColor: "#c084fc",
+        logoUrl: "cdn.example.com/logo.png",
+        coverImageUrl: "images.example.com/capa.jpg",
+        onlineBooking: true,
+        showTeam: true,
+        showPrices: true,
+        showDurations: true,
+        bookingLeadTimeHours: 2,
+        bookingWindowDays: 30,
+        slotIntervalMinutes: 15,
+        cancellationWindowHours: 4,
+      });
+
+      assert.equal(normalized.slug, "minha-barbearia");
+      assert.equal(normalized.contactEmail, "dono@example.com");
+      assert.equal(normalized.websiteUrl, "https://bukbarbearia.com");
+      assert.equal(normalized.logoUrl, "https://cdn.example.com/logo.png");
+      assert.equal(normalized.accentColor, "#C084FC");
+    },
+  },
+  {
+    name: "onboarding schema parses normalized optional URLs successfully",
+    run: () => {
+      const parsed = onboardingSchema.parse({
+        businessName: "Buk Barbearia",
+        slug: "Meu_Slug",
+        city: "Lisboa",
+        phone: "912345678",
+        contactEmail: " contacto@example.com ",
+        websiteUrl: "bukbarbearia.com",
+        description: "Barbearia com cortes, barba e experiência premium.",
+        headline: "Reserva online simples",
+        subheadline: "Agenda o teu horário em menos de um minuto, sem chamadas nem esperas.",
+        welcomeMessage: "Escolhe o serviço, o profissional e confirma a marcação.",
+        primaryColor: "#111827",
+        accentColor: "#C084FC",
+        logoUrl: "",
+        coverImageUrl: "",
+        onlineBooking: true,
+        showTeam: true,
+        showPrices: true,
+        showDurations: true,
+        bookingLeadTimeHours: 0,
+        bookingWindowDays: 30,
+        slotIntervalMinutes: 15,
+        cancellationWindowHours: 4,
+      });
+
+      assert.equal(parsed.slug, "meu-slug");
+      assert.equal(parsed.contactEmail, "contacto@example.com");
+      assert.equal(parsed.websiteUrl, "https://bukbarbearia.com");
     },
   },
 ];
