@@ -746,6 +746,56 @@ export async function sendRepresentativeBookingNotification(
   return summarizeDeliveries(deliveries);
 }
 
+export async function retryNotificationDelivery(input: {
+  bookingId: string;
+  channel: NotificationChannel;
+  kind: NotificationKind;
+}) {
+  const booking = await loadBookingNotificationPayload(input.bookingId);
+
+  if (!booking) {
+    return { status: "missing" as const };
+  }
+
+  if (input.kind === "BOOKING_CANCELLED_INTERNAL") {
+    if (input.channel === "EMAIL") {
+      const recipient = getRepresentativeEmailRecipient(booking);
+
+      if (!recipient) {
+        await createSkippedNotification(booking, "EMAIL", input.kind, "REPRESENTATIVE_EMAIL_MISSING");
+        return { status: "skipped" as const, channel: "EMAIL" as const };
+      }
+
+      return await sendEmailForKind(booking, input.kind, recipient);
+    }
+
+    const recipient = getRepresentativeSmsRecipient(booking);
+
+    if (!recipient) {
+      await createSkippedNotification(booking, "SMS", input.kind, "REPRESENTATIVE_PHONE_MISSING");
+      return { status: "skipped" as const, channel: "SMS" as const };
+    }
+
+    return await sendSmsForKind(booking, input.kind, recipient);
+  }
+
+  if (input.channel === "EMAIL") {
+    if (!booking.customerEmail) {
+      await createSkippedNotification(booking, "EMAIL", input.kind, "CUSTOMER_EMAIL_MISSING");
+      return { status: "skipped" as const, channel: "EMAIL" as const };
+    }
+
+    return await sendEmailForKind(booking, input.kind, booking.customerEmail);
+  }
+
+  if (!booking.customerPhone) {
+    await createSkippedNotification(booking, "SMS", input.kind, "CUSTOMER_PHONE_MISSING");
+    return { status: "skipped" as const, channel: "SMS" as const };
+  }
+
+  return await sendSmsForKind(booking, input.kind, booking.customerPhone);
+}
+
 export async function sendUpcomingBookingReminders(input?: {
   reminderStartMinutes?: number;
   reminderEndMinutes?: number;

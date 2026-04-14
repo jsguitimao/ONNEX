@@ -2,7 +2,11 @@ import { addDays, endOfWeek, format, set, startOfWeek } from "date-fns";
 import { getCronSecret, getEmailFrom } from "@/lib/app-config";
 import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
 import { db } from "@/lib/db";
-import { sendBookingNotification, sendRepresentativeBookingNotification } from "@/lib/notifications";
+import {
+  retryNotificationDelivery,
+  sendBookingNotification,
+  sendRepresentativeBookingNotification,
+} from "@/lib/notifications";
 import { getCurrentBusiness } from "./core";
 import { upsertBookingCustomer } from "./customers";
 import type {
@@ -644,4 +648,31 @@ export async function updateDashboardBooking(
   }
 
   return updated;
+}
+
+export async function retryCommunicationNotification(id: string) {
+  const business = await getCurrentBusiness();
+  const notification = await db.notificationLog.findFirst({
+    where: {
+      id,
+      businessId: business.id,
+    },
+    select: {
+      id: true,
+      bookingId: true,
+      channel: true,
+      kind: true,
+      status: true,
+    },
+  });
+
+  if (!notification) {
+    throw new Error("NOTIFICATION_NOT_FOUND");
+  }
+
+  return retryNotificationDelivery({
+    bookingId: notification.bookingId,
+    channel: notification.channel,
+    kind: notification.kind,
+  });
 }

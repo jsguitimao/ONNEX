@@ -33,6 +33,7 @@ export {
   getBookingAgendaView,
   getBookingAgendaWeek,
   getDashboardSnapshot,
+  retryCommunicationNotification,
   updateBookingStatus,
   updateDashboardBooking,
 } from "@/lib/business-modules/dashboard";

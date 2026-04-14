@@ -9,6 +9,7 @@ import {
   Mail,
   MessageSquareWarning,
   RefreshCw,
+  RotateCcw,
   ShieldCheck,
   Siren,
   Smartphone,
@@ -27,6 +28,13 @@ type ReminderRunResult = {
   sent: number;
   skipped: number;
   failed: number;
+};
+
+type RetryResult = {
+  status?: "sent" | "failed" | "skipped" | "duplicate" | "missing";
+  channel?: "EMAIL" | "SMS";
+  reason?: string;
+  error?: string;
 };
 
 const kindLabels: Record<CommunicationSnapshot["notifications"][number]["kind"], string> = {
@@ -86,11 +94,38 @@ function buildReminderSummary(result: ReminderRunResult) {
   return `Varredura concluida: ${result.scanned} reservas analisadas, ${result.sent} envios, ${result.skipped} ignorados e ${result.failed} falhas.`;
 }
 
+function buildRetrySummary(result: RetryResult) {
+  if (result.status === "sent") {
+    return "Entrega repetida com sucesso.";
+  }
+
+  if (result.status === "duplicate") {
+    return "Esta comunicacao ja tinha um envio confirmado para o mesmo destinatario.";
+  }
+
+  if (result.status === "skipped") {
+    return "A repeticao foi ignorada porque ainda faltam dados ou configuracao do canal.";
+  }
+
+  if (result.status === "failed") {
+    return result.reason ?? "A entrega voltou a falhar.";
+  }
+
+  return result.error ?? "Nao foi possivel repetir a entrega.";
+}
+
 export function DashboardCommunications({ initialSnapshot }: DashboardCommunicationsProps) {
   const router = useRouter();
   const [isRefreshing, startRefreshing] = useTransition();
+  const [retryingId, setRetryingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  async function refreshDashboard() {
+    startRefreshing(() => {
+      router.refresh();
+    });
+  }
 
   async function runReminderSweep() {
     setFeedback(null);
@@ -115,11 +150,39 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
         })
       );
 
-      startRefreshing(() => {
-        router.refresh();
-      });
+      await refreshDashboard();
     } catch (runError) {
       setError(runError instanceof Error ? runError.message : "Erro inesperado ao executar lembretes.");
+    }
+  }
+
+  async function retryNotification(notificationId: string) {
+    setRetryingId(notificationId);
+    setFeedback(null);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/dashboard/communications/logs/${notificationId}/retry`, {
+        method: "POST",
+      });
+      const payload = (await response.json()) as RetryResult;
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Nao foi possivel repetir a entrega.");
+      }
+
+      const summary = buildRetrySummary(payload);
+      if (payload.status === "failed") {
+        setError(summary);
+      } else {
+        setFeedback(summary);
+      }
+
+      await refreshDashboard();
+    } catch (retryError) {
+      setError(retryError instanceof Error ? retryError.message : "Erro inesperado ao repetir entrega.");
+    } finally {
+      setRetryingId(null);
     }
   }
 
@@ -182,64 +245,82 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
             </div>
           ) : (
             <div className="grid gap-3">
-              {initialSnapshot.notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className="grid gap-3 rounded-2xl border border-border/70 bg-background/80 p-4 md:grid-cols-[1.2fr_0.8fr]"
-                >
-                  <div className="grid gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={statusVariants[notification.status]}>{statusLabels[notification.status]}</Badge>
-                      <Badge variant="outline">{kindLabels[notification.kind]}</Badge>
-                      <Badge variant="outline">{notification.channel}</Badge>
+              {initialSnapshot.notifications.map((notification) => {
+                const canRetry = notification.status !== "SENT";
+
+                return (
+                  <div
+                    key={notification.id}
+                    className="grid gap-3 rounded-2xl border border-border/70 bg-background/80 p-4 md:grid-cols-[1.2fr_0.8fr]"
+                  >
+                    <div className="grid gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={statusVariants[notification.status]}>{statusLabels[notification.status]}</Badge>
+                        <Badge variant="outline">{kindLabels[notification.kind]}</Badge>
+                        <Badge variant="outline">{notification.channel}</Badge>
+                      </div>
+                      <div>
+                        <p className="font-medium">{notification.booking.customerName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {notification.booking.serviceName} ·{" "}
+                          {new Date(notification.booking.startsAt).toLocaleDateString("pt-PT")} ·{" "}
+                          {new Date(notification.booking.startsAt).toLocaleTimeString("pt-PT", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Destinatario: {notification.recipientMasked}</p>
+                      {notification.errorMessage ? (
+                        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                          <span className="inline-flex items-center gap-2">
+                            <MessageSquareWarning className="size-4" />
+                            {notification.errorMessage}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
-                    <div>
-                      <p className="font-medium">{notification.booking.customerName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {notification.booking.serviceName} ·{" "}
-                        {new Date(notification.booking.startsAt).toLocaleDateString("pt-PT")} ·{" "}
-                        {new Date(notification.booking.startsAt).toLocaleTimeString("pt-PT", {
+
+                    <div className="flex flex-col items-start gap-2 text-sm text-muted-foreground md:items-end md:text-right">
+                      <span className="inline-flex items-center gap-2">
+                        <Siren className="size-4" />
+                        Criado em{" "}
+                        {new Date(notification.createdAt).toLocaleString("pt-PT", {
+                          day: "2-digit",
+                          month: "2-digit",
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
-                      </p>
+                      </span>
+                      <span className="inline-flex items-center gap-2">
+                        <CheckCircle2 className="size-4" />
+                        {notification.sentAt
+                          ? `Enviado em ${new Date(notification.sentAt).toLocaleString("pt-PT", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}`
+                          : "Ainda sem confirmacao de envio"}
+                      </span>
+                      {canRetry ? (
+                        <Button
+                          variant="outline"
+                          disabled={retryingId === notification.id || isRefreshing}
+                          onClick={() => void retryNotification(notification.id)}
+                        >
+                          {retryingId === notification.id ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                          ) : (
+                            <RotateCcw className="size-4" />
+                          )}
+                          Repetir entrega
+                        </Button>
+                      ) : null}
                     </div>
-                    <p className="text-sm text-muted-foreground">Destinatario: {notification.recipientMasked}</p>
-                    {notification.errorMessage ? (
-                      <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                        <span className="inline-flex items-center gap-2">
-                          <MessageSquareWarning className="size-4" />
-                          {notification.errorMessage}
-                        </span>
-                      </div>
-                    ) : null}
                   </div>
-
-                  <div className="flex flex-col items-start gap-2 text-sm text-muted-foreground md:items-end md:text-right">
-                    <span className="inline-flex items-center gap-2">
-                      <Siren className="size-4" />
-                      Criado em{" "}
-                      {new Date(notification.createdAt).toLocaleString("pt-PT", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    <span className="inline-flex items-center gap-2">
-                      <CheckCircle2 className="size-4" />
-                      {notification.sentAt
-                        ? `Enviado em ${new Date(notification.sentAt).toLocaleString("pt-PT", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}`
-                        : "Ainda sem confirmacao de envio"}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
