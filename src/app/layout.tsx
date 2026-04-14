@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
+import { getAppUrl } from "@/lib/app-config";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   },
   description:
     "Plataforma de agendamentos para barbearias com página pública, agenda operacional, equipa, CRM e lembretes.",
-  metadataBase: new URL("https://bukbarbearia.com"),
+  metadataBase: new URL(getAppUrl()),
 };
 
 export default function RootLayout({

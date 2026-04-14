@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { LoaderCircle, Mail, MessageSquareText, Phone, Save, Search, UserRound } from "lucide-react";
@@ -102,7 +102,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
           <div>
             <CardTitle className="font-heading text-2xl">Clientes e CRM</CardTitle>
             <CardDescription>
-              Mantem notas internas, opt-in de comunicação e histórico resumido para cada cliente.
+              MantÃ©m notas internas, opt-in de comunicaÃ§Ã£o e histÃ³rico resumido para cada cliente.
             </CardDescription>
           </div>
           <Badge variant="secondary">{snapshot.customers.length} clientes</Badge>
@@ -114,7 +114,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
             className="pl-9"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Pesquisar por nome, email, telefone ou último serviço"
+            placeholder="Pesquisar por nome, email, telefone ou Ãºltimo serviço"
           />
         </div>
       </CardHeader>
@@ -133,7 +133,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
 
         {filteredCustomers.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border/80 bg-muted/20 px-5 py-8 text-center text-sm text-muted-foreground">
-            Ainda não ha clientes para este filtro. Assim que novas reservas forem criadas, o CRM
+            Ainda não há clientes para este filtro. Assim que novas reservas forem criadas, o CRM
             vai sendo alimentado automaticamente.
           </div>
         ) : (
@@ -270,3 +270,5 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
     </Card>
   );
 }
+
+

@@ -84,13 +84,13 @@ export function PublicBookingFlow({ business }: Props) {
         const data = (await response.json()) as { slots?: BookingSlot[]; error?: string };
 
         if (!response.ok) {
-          throw new Error(data.error ?? "Não foi possível carregar horarios.");
+          throw new Error(data.error ?? "Não foi possível carregar horários.");
         }
 
         setSlots(data.slots ?? []);
       } catch (fetchError) {
         if ((fetchError as Error).name !== "AbortError") {
-          setError(fetchError instanceof Error ? fetchError.message : "Erro ao carregar horarios.");
+          setError(fetchError instanceof Error ? fetchError.message : "Erro ao carregar horários.");
         }
       } finally {
         setLoadingSlots(false);
@@ -152,7 +152,7 @@ export function PublicBookingFlow({ business }: Props) {
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-sm text-muted-foreground">Reserva rápida</p>
-          <h2 className="font-heading text-2xl font-semibold">Marca já o teu horario</h2>
+          <h2 className="font-heading text-2xl font-semibold">Marca já o teu horário</h2>
         </div>
         <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">Ao vivo</span>
       </div>
@@ -161,8 +161,8 @@ export function PublicBookingFlow({ business }: Props) {
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-0.5 size-4 text-primary" />
           <div className="grid gap-1">
-            <p className="font-medium text-foreground">Politica de marcação</p>
-            <p>Antecedencia minima: {business.bookingLeadTimeHours}h.</p>
+            <p className="font-medium text-foreground">Política de marcação</p>
+            <p>Antecedência mínima: {business.bookingLeadTimeHours}h.</p>
             <p>Janela de reservas: até {business.bookingWindowDays} dias.</p>
             <p>Cancelamento automático pelo cliente: até {business.cancellationWindowHours}h antes.</p>
           </div>
@@ -224,7 +224,7 @@ export function PublicBookingFlow({ business }: Props) {
             ))
           ) : (
             <p className="text-sm text-muted-foreground">
-              Ainda não ha profissionais configurados para este serviço.
+              Ainda não há profissionais configurados para este serviço.
             </p>
           )}
         </div>
@@ -252,11 +252,11 @@ export function PublicBookingFlow({ business }: Props) {
         </div>
 
         <div className="rounded-[1.5rem] border bg-background p-4">
-          <p className="mb-3 text-sm font-medium">Horarios disponiveis</p>
+          <p className="mb-3 text-sm font-medium">Horários disponíveis</p>
           {loadingSlots ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
-              A carregar horarios...
+              A carregar horários...
             </div>
           ) : slots.length > 0 ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -277,8 +277,8 @@ export function PublicBookingFlow({ business }: Props) {
           ) : (
             <p className="text-sm text-muted-foreground">
               {date
-                ? "Não ha horarios disponiveis para os filtros escolhidos."
-                : "Escolhe data, serviço e profissional para ver horarios."}
+                ? "Não há horários disponíveis para os filtros escolhidos."
+                : "Escolhe data, serviço e profissional para ver horários."}
             </p>
           )}
         </div>

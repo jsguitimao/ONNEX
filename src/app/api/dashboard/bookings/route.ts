@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createManualBooking, getBookingAgenda } from "@/lib/business";
+import { createManualBooking, getBookingAgenda, getBookingAgendaView } from "@/lib/business";
+import { readJsonBody } from "@/lib/request-body";
 
 const bookingSchema = z.object({
   serviceId: z.string().min(1),
@@ -17,8 +18,11 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const date = searchParams.get("date") ?? undefined;
     const staffMemberId = searchParams.get("staffMemberId") ?? undefined;
+    const includeWeek = searchParams.get("includeWeek") === "1";
 
-    const snapshot = await getBookingAgenda({ date, staffMemberId });
+    const snapshot = includeWeek
+      ? await getBookingAgendaView({ date, staffMemberId })
+      : await getBookingAgenda({ date, staffMemberId });
     return NextResponse.json(snapshot);
   } catch (error) {
     console.error("GET bookings agenda error:", error);
@@ -28,7 +32,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await readJsonBody(req);
     const result = bookingSchema.safeParse(body);
 
     if (!result.success) {
@@ -49,12 +53,18 @@ export async function POST(req: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "ERRO";
     const mapped =
-      message === "HORARIO_OCUPADO"
-        ? { status: 409, error: "Já existe uma reserva neste horario para este profissional." }
+      message === "INVALID_JSON_BODY"
+        ? { status: 400, error: "Corpo JSON invalido." }
+        : message === "HORARIO_OCUPADO"
+        ? { status: 409, error: "Ja existe uma reserva neste horario para este profissional." }
         : message === "DADOS_INVALIDOS"
-          ? { status: 400, error: "Serviço ou profissional invalido." }
+          ? { status: 400, error: "Servico ou profissional invalido." }
           : message === "PROFISSIONAL_INCOMPATIVEL"
-            ? { status: 400, error: "Este profissional não executa o serviço escolhido." }
+            ? { status: 400, error: "Este profissional nao executa o servico escolhido." }
+            : message === "HORARIO_BLOQUEADO"
+              ? { status: 409, error: "Este horario esta bloqueado na agenda." }
+              : message === "DATA_INVALIDA"
+                ? { status: 400, error: "Escolhe uma data valida para a reserva." }
             : { status: 500, error: "Erro ao criar reserva manual." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });

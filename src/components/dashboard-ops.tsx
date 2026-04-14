@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { startTransition, useState } from "react";
 import { Check, LoaderCircle, Plus, Save, UserRound } from "lucide-react";
@@ -209,7 +209,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Não foi possível guardar as alteracoes.");
+      throw new Error(payload.error ?? "Não foi possível guardar as alterações.");
       }
 
       await refreshSnapshot();
@@ -229,9 +229,9 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
       <Card className="border-primary/15 bg-gradient-to-br from-background via-background to-primary/5">
         <CardHeader className="gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="font-heading text-2xl">Mesa de operação</CardTitle>
+            <CardTitle className="font-heading text-2xl">Mesa de operaÃ§Ã£o</CardTitle>
             <CardDescription>
-              Serviços, equipa e disponibilidade já editaveis. E aqui que o produto comeca a
+              Serviços, equipa e disponibilidade jÃ¡ editÃ¡veis. Ã‰ aqui que o produto comeÃ§a a
               deixar de parecer demo.
             </CardDescription>
           </div>
@@ -262,7 +262,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
           <CardHeader>
             <CardTitle className="font-heading text-xl">Serviços</CardTitle>
             <CardDescription>
-              Mantem a oferta atualizada e controla o que aparece na página pública.
+              MantÃ©m a oferta atualizada e controla o que aparece na página pública.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -278,7 +278,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                     <div>
                       <p className="font-medium">{service.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {service.durationMinutes} min · {formatEuroFromCents(service.priceCents)} €
+                        {service.durationMinutes} min · {formatEuroFromCents(service.priceCents)} â‚¬
                       </p>
                     </div>
                     <Badge variant={service.isActive ? "secondary" : "outline"}>
@@ -306,7 +306,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                           [service.id]: { ...draft, description: event.target.value },
                         }))
                       }
-                      placeholder="Descricao curta para a página pública"
+                      placeholder="Descrição curta para a página pública"
                     />
                     <div className="grid gap-3 md:grid-cols-2">
                       <Input
@@ -321,7 +321,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                             [service.id]: { ...draft, durationMinutes: event.target.value },
                           }))
                         }
-                        placeholder="Duracao em minutos"
+                      placeholder="Duração em minutos"
                       />
                       <Input
                         type="number"
@@ -334,7 +334,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                             [service.id]: { ...draft, priceEuros: event.target.value },
                           }))
                         }
-                        placeholder="Preco em euros"
+                      placeholder="Preço em euros"
                       />
                     </div>
                     <label className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -389,7 +389,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                   onChange={(event) =>
                     setNewService((current) => ({ ...current, description: event.target.value }))
                   }
-                  placeholder="Descricao do serviço"
+                  placeholder="Descrição do serviço"
                 />
                 <div className="grid gap-3 md:grid-cols-2">
                   <Input
@@ -401,7 +401,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                     onChange={(event) =>
                       setNewService((current) => ({ ...current, durationMinutes: event.target.value }))
                     }
-                    placeholder="Duracao"
+                    placeholder="Duração"
                   />
                   <Input
                     type="number"
@@ -411,7 +411,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                     onChange={(event) =>
                       setNewService((current) => ({ ...current, priceEuros: event.target.value }))
                     }
-                    placeholder="Preco"
+                    placeholder="Preço"
                   />
                 </div>
                 <div className="flex justify-end">
@@ -488,7 +488,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                           [member.id]: { ...draft, roleTitle: event.target.value },
                         }))
                       }
-                      placeholder="Funcao"
+                      placeholder="Função"
                     />
                     <textarea
                       className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -601,7 +601,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                 <Input
                   value={newStaff.roleTitle}
                   onChange={(event) => setNewStaff((current) => ({ ...current, roleTitle: event.target.value }))}
-                  placeholder="Funcao"
+                  placeholder="Função"
                 />
                 <textarea
                   className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -675,3 +675,5 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
     </div>
   );
 }
+
+

@@ -1,6 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import { addMinutes, format } from "date-fns";
-import { db } from "@/lib/db";
+import { getAppUrl, getEmailFrom } from "./app-config";
+import { db } from "./db";
+import { captureException } from "./observability";
 
 type NotificationKind =
   | "BOOKING_CREATED"
@@ -9,6 +11,16 @@ type NotificationKind =
   | "BOOKING_CANCELLED_INTERNAL"
   | "BOOKING_RESCHEDULED"
   | "BOOKING_REMINDER";
+
+type NotificationChannel = "EMAIL" | "SMS";
+
+type DeliveryStatus = "sent" | "skipped" | "failed" | "duplicate";
+
+type DeliveryResult = {
+  channel: NotificationChannel;
+  status: DeliveryStatus;
+  reason?: string;
+};
 
 type BookingNotificationPayload = {
   id: string;
@@ -24,6 +36,7 @@ type BookingNotificationPayload = {
     name: string;
     slug: string;
     contactEmail: string | null;
+    contactPhone: string | null;
     owner: {
       email: string;
       firstName: string | null;
@@ -37,10 +50,6 @@ type BookingNotificationPayload = {
   } | null;
 };
 
-function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || "https://bukbarbearia.com";
-}
-
 function buildManageUrl(booking: BookingNotificationPayload) {
   return booking.publicToken ? `${getAppUrl()}/booking/${booking.publicToken}` : `${getAppUrl()}/${booking.business.slug}`;
 }
@@ -49,8 +58,12 @@ function buildPublicPageUrl(booking: BookingNotificationPayload) {
   return `${getAppUrl()}/${booking.business.slug}`;
 }
 
-function getRepresentativeRecipient(booking: BookingNotificationPayload) {
+function getRepresentativeEmailRecipient(booking: BookingNotificationPayload) {
   return booking.business.contactEmail || booking.business.owner.email;
+}
+
+function getRepresentativeSmsRecipient(booking: BookingNotificationPayload) {
+  return booking.business.contactPhone;
 }
 
 function buildTemplate(kind: NotificationKind, booking: BookingNotificationPayload) {
@@ -141,9 +154,31 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
   }
 }
 
+function buildSmsMessage(kind: NotificationKind, booking: BookingNotificationPayload) {
+  const when = `${format(booking.startsAt, "dd/MM HH:mm")}`;
+  const professional = booking.staffMember?.fullName ?? "equipa";
+  const manageUrl = buildManageUrl(booking);
+
+  switch (kind) {
+    case "BOOKING_CREATED":
+      return `Reserva recebida em ${booking.business.name}: ${booking.service.name} a ${when} com ${professional}. Gerir: ${manageUrl}`;
+    case "BOOKING_CONFIRMED":
+      return `Reserva confirmada em ${booking.business.name}: ${booking.service.name} a ${when} com ${professional}. ${manageUrl}`;
+    case "BOOKING_CANCELLED":
+      return `A tua reserva em ${booking.business.name} foi cancelada. Se quiseres marcar novamente: ${buildPublicPageUrl(booking)}`;
+    case "BOOKING_CANCELLED_INTERNAL":
+      return `Cancelamento recebido: ${booking.customerName} cancelou ${booking.service.name} a ${when}. Ver: ${manageUrl}`;
+    case "BOOKING_RESCHEDULED":
+      return `Reserva remarcada em ${booking.business.name}: novo horario ${when} com ${professional}. ${manageUrl}`;
+    case "BOOKING_REMINDER":
+      return `Lembrete: faltam cerca de 30 minutos para ${booking.service.name} em ${booking.business.name}. ${manageUrl}`;
+  }
+}
+
 async function createNotificationLog(input: {
   bookingId: string;
   businessId: string;
+  channel: NotificationChannel;
   kind: NotificationKind;
   recipient: string;
   status: "PENDING" | "SENT" | "FAILED" | "SKIPPED";
@@ -156,7 +191,7 @@ async function createNotificationLog(input: {
     data: {
       bookingId: input.bookingId,
       businessId: input.businessId,
-      channel: "EMAIL",
+      channel: input.channel,
       kind: input.kind,
       recipient: input.recipient,
       status: input.status,
@@ -183,102 +218,280 @@ async function loadBookingNotificationPayload(bookingId: string) {
   });
 }
 
-async function sendEmailForKind(booking: BookingNotificationPayload, kind: NotificationKind, recipient: string) {
-  const existing = await db.notificationLog.findFirst({
+async function findExistingSentNotification(input: {
+  bookingId: string;
+  channel: NotificationChannel;
+  kind: NotificationKind;
+  recipient: string;
+}) {
+  return db.notificationLog.findFirst({
     where: {
+      bookingId: input.bookingId,
+      channel: input.channel,
+      kind: input.kind,
+      recipient: input.recipient,
+      status: "SENT",
+    },
+  });
+}
+
+async function createSkippedNotification(
+  booking: BookingNotificationPayload,
+  channel: NotificationChannel,
+  kind: NotificationKind,
+  reason: string,
+  recipient = ""
+) {
+  await createNotificationLog({
+    bookingId: booking.id,
+    businessId: booking.business.id,
+    channel,
+    kind,
+    recipient,
+    status: "SKIPPED",
+    errorMessage: reason,
+  });
+}
+
+async function safeReadJson(response: Response) {
+  try {
+    return (await response.json()) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+async function sendEmailForKind(booking: BookingNotificationPayload, kind: NotificationKind, recipient: string) {
+  const existing = await findExistingSentNotification({
+    bookingId: booking.id,
+    channel: "EMAIL",
+    kind,
+    recipient,
+  });
+
+  if (existing) {
+    return { channel: "EMAIL", status: "duplicate" } satisfies DeliveryResult;
+  }
+
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = getEmailFrom();
+  const template = buildTemplate(kind, booking);
+
+  if (!apiKey || !from) {
+    await createSkippedNotification(booking, "EMAIL", kind, "EMAIL_PROVIDER_NOT_CONFIGURED", recipient);
+    return { channel: "EMAIL", status: "skipped", reason: "EMAIL_PROVIDER_NOT_CONFIGURED" } satisfies DeliveryResult;
+  }
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: recipient,
+        subject: template.subject,
+        html: template.html,
+      }),
+    });
+
+    const payload = await safeReadJson(response);
+
+    if (!response.ok) {
+      await createNotificationLog({
+        bookingId: booking.id,
+        businessId: booking.business.id,
+        channel: "EMAIL",
+        kind,
+        recipient,
+        status: "FAILED",
+        errorMessage: String(payload.message ?? payload.name ?? "EMAIL_SEND_FAILED"),
+        payload: payload as Prisma.InputJsonValue,
+      });
+
+      return { channel: "EMAIL", status: "failed", reason: String(payload.message ?? "EMAIL_SEND_FAILED") } satisfies DeliveryResult;
+    }
+
+    await createNotificationLog({
       bookingId: booking.id,
+      businessId: booking.business.id,
       channel: "EMAIL",
       kind,
       recipient,
       status: "SENT",
-    },
-  });
+      providerMessageId: typeof payload.id === "string" ? payload.id : undefined,
+      payload: payload as Prisma.InputJsonValue,
+      sentAt: new Date(),
+    });
 
-  if (existing) {
-    return { status: "duplicate" as const };
-  }
-
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM;
-  const template = buildTemplate(kind, booking);
-
-  if (!apiKey || !from) {
-    await createNotificationLog({
+    return { channel: "EMAIL", status: "sent" } satisfies DeliveryResult;
+  } catch (error) {
+    captureException("notification.email_failed", error, {
       bookingId: booking.id,
-      businessId: booking.business.id,
       kind,
       recipient,
-      status: "SKIPPED",
-      errorMessage: "EMAIL_PROVIDER_NOT_CONFIGURED",
-      payload: { subject: template.subject },
     });
-    return { status: "skipped" as const, reason: "EMAIL_PROVIDER_NOT_CONFIGURED" };
-  }
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: recipient,
-      subject: template.subject,
-      html: template.html,
-    }),
-  });
-
-  const payload = (await response.json()) as { id?: string; message?: string; name?: string };
-
-  if (!response.ok) {
     await createNotificationLog({
       bookingId: booking.id,
       businessId: booking.business.id,
+      channel: "EMAIL",
       kind,
       recipient,
       status: "FAILED",
-      errorMessage: payload.message ?? payload.name ?? "EMAIL_SEND_FAILED",
-      payload,
+      errorMessage: error instanceof Error ? error.message : "EMAIL_SEND_FAILED",
     });
-    return { status: "failed" as const, reason: payload.message ?? "EMAIL_SEND_FAILED" };
-  }
 
-  await createNotificationLog({
+    return {
+      channel: "EMAIL",
+      status: "failed",
+      reason: error instanceof Error ? error.message : "EMAIL_SEND_FAILED",
+    } satisfies DeliveryResult;
+  }
+}
+
+async function sendSmsForKind(booking: BookingNotificationPayload, kind: NotificationKind, recipient: string) {
+  const existing = await findExistingSentNotification({
     bookingId: booking.id,
-    businessId: booking.business.id,
+    channel: "SMS",
     kind,
     recipient,
-    status: "SENT",
-    providerMessageId: payload.id,
-    payload,
-    sentAt: new Date(),
   });
 
-  return { status: "sent" as const };
+  if (existing) {
+    return { channel: "SMS", status: "duplicate" } satisfies DeliveryResult;
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
+  const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER?.trim();
+
+  if (!accountSid || !authToken || !fromNumber) {
+    await createSkippedNotification(booking, "SMS", kind, "SMS_PROVIDER_NOT_CONFIGURED", recipient);
+    return { channel: "SMS", status: "skipped", reason: "SMS_PROVIDER_NOT_CONFIGURED" } satisfies DeliveryResult;
+  }
+
+  try {
+    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        To: recipient,
+        From: fromNumber,
+        Body: buildSmsMessage(kind, booking),
+      }).toString(),
+    });
+
+    const payload = await safeReadJson(response);
+
+    if (!response.ok) {
+      await createNotificationLog({
+        bookingId: booking.id,
+        businessId: booking.business.id,
+        channel: "SMS",
+        kind,
+        recipient,
+        status: "FAILED",
+        errorMessage: String(payload.message ?? payload.code ?? "SMS_SEND_FAILED"),
+        payload: payload as Prisma.InputJsonValue,
+      });
+
+      return { channel: "SMS", status: "failed", reason: String(payload.message ?? "SMS_SEND_FAILED") } satisfies DeliveryResult;
+    }
+
+    await createNotificationLog({
+      bookingId: booking.id,
+      businessId: booking.business.id,
+      channel: "SMS",
+      kind,
+      recipient,
+      status: "SENT",
+      providerMessageId: typeof payload.sid === "string" ? payload.sid : undefined,
+      payload: payload as Prisma.InputJsonValue,
+      sentAt: new Date(),
+    });
+
+    return { channel: "SMS", status: "sent" } satisfies DeliveryResult;
+  } catch (error) {
+    captureException("notification.sms_failed", error, {
+      bookingId: booking.id,
+      kind,
+      recipient,
+    });
+
+    await createNotificationLog({
+      bookingId: booking.id,
+      businessId: booking.business.id,
+      channel: "SMS",
+      kind,
+      recipient,
+      status: "FAILED",
+      errorMessage: error instanceof Error ? error.message : "SMS_SEND_FAILED",
+    });
+
+    return {
+      channel: "SMS",
+      status: "failed",
+      reason: error instanceof Error ? error.message : "SMS_SEND_FAILED",
+    } satisfies DeliveryResult;
+  }
+}
+
+function summarizeDeliveries(results: DeliveryResult[]) {
+  if (results.some((result) => result.status === "sent")) {
+    return {
+      status: "sent" as const,
+      channels: results,
+    };
+  }
+
+  if (results.some((result) => result.status === "failed")) {
+    return {
+      status: "failed" as const,
+      channels: results,
+    };
+  }
+
+  if (results.some((result) => result.status === "duplicate")) {
+    return {
+      status: "duplicate" as const,
+      channels: results,
+    };
+  }
+
+  return {
+    status: "skipped" as const,
+    channels: results,
+  };
 }
 
 export async function sendBookingNotification(bookingId: string, kind: Exclude<NotificationKind, "BOOKING_CANCELLED_INTERNAL">) {
   const booking = await loadBookingNotificationPayload(bookingId);
 
   if (!booking) {
-    return { status: "missing" as const };
+    return { status: "missing" as const, channels: [] as DeliveryResult[] };
   }
 
-  const recipient = booking.customerEmail;
-  if (!recipient) {
-    await createNotificationLog({
-      bookingId: booking.id,
-      businessId: booking.businessId,
-      kind,
-      recipient: "",
-      status: "SKIPPED",
-      errorMessage: "CUSTOMER_EMAIL_MISSING",
-    });
-    return { status: "skipped" as const, reason: "CUSTOMER_EMAIL_MISSING" };
+  const deliveries: DeliveryResult[] = [];
+
+  if (booking.customerEmail) {
+    deliveries.push(await sendEmailForKind(booking, kind, booking.customerEmail));
+  } else {
+    await createSkippedNotification(booking, "EMAIL", kind, "CUSTOMER_EMAIL_MISSING");
   }
 
-  return sendEmailForKind(booking, kind, recipient);
+  if (booking.customerPhone) {
+    deliveries.push(await sendSmsForKind(booking, kind, booking.customerPhone));
+  } else {
+    await createSkippedNotification(booking, "SMS", kind, "CUSTOMER_PHONE_MISSING");
+  }
+
+  return summarizeDeliveries(deliveries);
 }
 
 export async function sendRepresentativeBookingNotification(
@@ -288,23 +501,26 @@ export async function sendRepresentativeBookingNotification(
   const booking = await loadBookingNotificationPayload(bookingId);
 
   if (!booking) {
-    return { status: "missing" as const };
+    return { status: "missing" as const, channels: [] as DeliveryResult[] };
   }
 
-  const recipient = getRepresentativeRecipient(booking);
-  if (!recipient) {
-    await createNotificationLog({
-      bookingId: booking.id,
-      businessId: booking.businessId,
-      kind,
-      recipient: "",
-      status: "SKIPPED",
-      errorMessage: "REPRESENTATIVE_EMAIL_MISSING",
-    });
-    return { status: "skipped" as const, reason: "REPRESENTATIVE_EMAIL_MISSING" };
+  const deliveries: DeliveryResult[] = [];
+  const emailRecipient = getRepresentativeEmailRecipient(booking);
+  const smsRecipient = getRepresentativeSmsRecipient(booking);
+
+  if (emailRecipient) {
+    deliveries.push(await sendEmailForKind(booking, kind, emailRecipient));
+  } else {
+    await createSkippedNotification(booking, "EMAIL", kind, "REPRESENTATIVE_EMAIL_MISSING");
   }
 
-  return sendEmailForKind(booking, kind, recipient);
+  if (smsRecipient) {
+    deliveries.push(await sendSmsForKind(booking, kind, smsRecipient));
+  } else {
+    await createSkippedNotification(booking, "SMS", kind, "REPRESENTATIVE_PHONE_MISSING");
+  }
+
+  return summarizeDeliveries(deliveries);
 }
 
 export async function sendUpcomingBookingReminders(input?: {
@@ -325,9 +541,7 @@ export async function sendUpcomingBookingReminders(input?: {
       status: {
         in: ["PENDING", "CONFIRMED"],
       },
-      customerEmail: {
-        not: null,
-      },
+      OR: [{ customerEmail: { not: null } }, { customerPhone: { not: null } }],
     },
     select: {
       id: true,

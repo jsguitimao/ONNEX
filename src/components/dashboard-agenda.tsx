@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, endOfWeek, format, isSameDay, parseISO, startOfWeek } from "date-fns";
@@ -17,7 +17,7 @@ import {
   ShieldBan,
   Trash2,
 } from "lucide-react";
-import type { BookingAgendaSnapshot, BookingAgendaWeekSnapshot } from "@/lib/business";
+import type { BookingAgendaSnapshot, BookingAgendaViewSnapshot, BookingAgendaWeekSnapshot } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +33,7 @@ type DashboardAgendaProps = {
 const statusLabel: Record<string, string> = {
   PENDING: "Pendente",
   CONFIRMED: "Confirmada",
-  COMPLETED: "Concluida",
+  COMPLETED: "ConcluÃ­da",
   CANCELLED: "Cancelada",
   NO_SHOW: "No-show",
 };
@@ -135,7 +135,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
     };
   }, [weekBookings]);
 
-  async function refreshAgenda(nextDate = date, nextStaffMemberId = staffMemberId) {
+  async function refreshAgendaView(nextDate = date, nextStaffMemberId = staffMemberId) {
     setLoading(true);
     setError(null);
 
@@ -144,44 +144,24 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
       if (nextStaffMemberId) {
         params.set("staffMemberId", nextStaffMemberId);
       }
+      params.set("includeWeek", "1");
 
       const response = await fetch(`/api/dashboard/bookings?${params.toString()}`, {
         cache: "no-store",
       });
-      const payload = (await response.json()) as BookingAgendaSnapshot & { error?: string };
+      const payload = (await response.json()) as BookingAgendaViewSnapshot & { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Não foi possível carregar a agenda.");
+        throw new Error(payload.error ?? "NÃ£o foi possÃ­vel carregar a agenda.");
       }
 
-      setSnapshot(payload);
-      syncBookingDrafts(payload.bookings);
+      setSnapshot(payload.agenda);
+      setWeekBookings(payload.week.bookingsByDate);
+      syncBookingDrafts(payload.agenda.bookings);
     } catch (agendaError) {
       setError(agendaError instanceof Error ? agendaError.message : "Erro ao carregar agenda.");
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function refreshWeek(nextDate = date, nextStaffMemberId = staffMemberId) {
-    try {
-      const params = new URLSearchParams({ date: nextDate });
-      if (nextStaffMemberId) {
-        params.set("staffMemberId", nextStaffMemberId);
-      }
-
-      const response = await fetch(`/api/dashboard/bookings/week?${params.toString()}`, {
-        cache: "no-store",
-      });
-      const payload = (await response.json()) as BookingAgendaWeekSnapshot & { error?: string };
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Não foi possível carregar a semana.");
-      }
-
-      setWeekBookings(payload.bookingsByDate);
-    } catch (weekError) {
-      setError(weekError instanceof Error ? weekError.message : "Erro ao carregar semana.");
     }
   }
 
@@ -190,7 +170,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
       didInitialLoad.current = true;
       return;
     }
-    void Promise.all([refreshAgenda(date, staffMemberId), refreshWeek(date, staffMemberId)]);
+    void refreshAgendaView(date, staffMemberId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, staffMemberId]);
 
@@ -210,7 +190,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
         throw new Error(payload.error ?? "Não foi possível atualizar o estado.");
       }
 
-      await Promise.all([refreshAgenda(), refreshWeek()]);
+      await refreshAgendaView();
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "Erro ao atualizar reserva.");
     } finally {
@@ -241,7 +221,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
         throw new Error(payload.error ?? "Não foi possível atualizar a reserva.");
       }
 
-      await Promise.all([refreshAgenda(), refreshWeek()]);
+      await refreshAgendaView();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Erro ao guardar reserva.");
     } finally {
@@ -276,7 +256,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
         customerPhone: "",
         startsAt: `${date}T10:00`,
       }));
-      await Promise.all([refreshAgenda(), refreshWeek()]);
+      await refreshAgendaView();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Erro ao criar reserva.");
     } finally {
@@ -312,7 +292,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
         reason: "",
         staffMemberId: "",
       });
-      await Promise.all([refreshAgenda(), refreshWeek()]);
+      await refreshAgendaView();
     } catch (blockError) {
       setError(blockError instanceof Error ? blockError.message : "Erro ao criar bloqueio.");
     } finally {
@@ -334,7 +314,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
         throw new Error(payload.error ?? "Não foi possível remover o bloqueio.");
       }
 
-      await Promise.all([refreshAgenda(), refreshWeek()]);
+      await refreshAgendaView();
     } catch (removeError) {
       setError(removeError instanceof Error ? removeError.message : "Erro ao remover bloqueio.");
     } finally {
@@ -349,8 +329,8 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
           <div>
             <CardTitle className="font-heading text-2xl">Agenda operacional</CardTitle>
             <CardDescription>
-              Vista diaria e semanal para confirmar presencas, concluir atendimentos e equilibrar a
-              operação da barbearia.
+              Vista diÃ¡ria e semanal para confirmar presenÃ§as, concluir atendimentos e equilibrar a
+              operaÃ§Ã£o da barbearia.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -362,7 +342,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
               <ShieldBan className="size-4" />
               Bloqueio
             </Button>
-            <Button variant="outline" onClick={() => void Promise.all([refreshAgenda(), refreshWeek()])} disabled={loading}>
+            <Button variant="outline" onClick={() => void refreshAgendaView()} disabled={loading}>
               {loading ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
               Atualizar
             </Button>
@@ -374,7 +354,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             <div className="mb-4">
               <p className="font-medium">Nova reserva manual</p>
               <p className="text-sm text-muted-foreground">
-                Usa este bloco para registar marcações por telefone, WhatsApp ou atendimento no local.
+                Usa este bloco para registar marcaÃ§Ãµes por telefone, WhatsApp ou atendimento no local.
               </p>
             </div>
 
@@ -569,7 +549,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
                 variant="outline"
                 onClick={() => setDate(format(addDays(weekStart, 7), "yyyy-MM-dd"))}
               >
-                Próxima semana
+                Proxima semana
                 <ChevronRight className="size-4" />
               </Button>
             </div>
@@ -620,7 +600,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             <p className="mt-2 font-heading text-3xl font-semibold text-amber-700">{summary.pending}</p>
           </div>
           <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-            <p className="text-sm text-emerald-700">Concluidas</p>
+            <p className="text-sm text-emerald-700">ConcluÃ­das</p>
             <p className="mt-2 font-heading text-3xl font-semibold text-emerald-700">{summary.completed}</p>
           </div>
           <div className="rounded-3xl border border-primary/20 bg-primary/5 p-4 md:col-span-4">
@@ -656,7 +636,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             <div className="mb-4">
               <p className="font-medium">Bloqueios do dia</p>
               <p className="text-sm text-muted-foreground">
-                Indisponibilidades aplicadas neste dia para equipa inteira ou profissionais especificos.
+                Indisponibilidades aplicadas neste dia para a equipa inteira ou para profissionais especÃ­ficos.
               </p>
             </div>
 
@@ -688,8 +668,8 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
         <div className="grid gap-3">
           {snapshot.bookings.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-border/80 bg-muted/20 px-5 py-8 text-center text-sm text-muted-foreground">
-              Não ha reservas para este filtro. Assim que entrarem marcações publicas, elas vao
-              aparecer aqui com acoes rapidas.
+              NÃ£o hÃ¡ reservas para este filtro. Assim que entrarem marcaÃ§Ãµes pÃºblicas, elas vÃ£o
+              aparecer aqui com aÃ§Ãµes rÃ¡pidas.
             </div>
           ) : (
             snapshot.bookings.map((booking) => (
@@ -841,3 +821,4 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
     </Card>
   );
 }
+

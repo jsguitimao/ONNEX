@@ -20,8 +20,8 @@ export default async function OnboardingPreviewPage() {
           </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight">Primeiro contacto com o produto</h1>
           <p className="mt-3 max-w-3xl text-muted-foreground">
-            O objetivo desta etapa e chegar rápido a uma página pública credivel, com identidade,
-            serviços e estrutura suficiente para comecar a receber marcações.
+            O objetivo desta etapa é chegar rápido a uma página pública credível, com identidade,
+            serviços e estrutura suficiente para começar a receber marcações.
           </p>
         </div>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createScheduleBlock } from "@/lib/business";
+import { readJsonBody } from "@/lib/request-body";
 
 const blockSchema = z.object({
   startsAt: z.string().datetime(),
@@ -11,7 +12,7 @@ const blockSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await readJsonBody(req);
     const result = blockSchema.safeParse(body);
 
     if (!result.success) {
@@ -29,7 +30,9 @@ export async function POST(req: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "ERRO";
     const mapped =
-      message === "BLOQUEIO_INVALIDO"
+      message === "INVALID_JSON_BODY"
+        ? { status: 400, error: "Corpo JSON invalido." }
+        : message === "BLOQUEIO_INVALIDO"
         ? { status: 400, error: "Define um intervalo de bloqueio valido." }
         : message === "STAFF_NOT_FOUND"
           ? { status: 404, error: "Profissional não encontrado." }

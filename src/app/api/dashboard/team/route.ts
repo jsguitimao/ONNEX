@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createStaffMember } from "@/lib/business";
+import { readJsonBody } from "@/lib/request-body";
 
 const availabilitySchema = z.object({
   dayOfWeek: z.number().int().min(0).max(6),
@@ -17,13 +18,20 @@ const teamSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const result = teamSchema.safeParse(body);
+  try {
+    const body = await readJsonBody(req);
+    const result = teamSchema.safeParse(body);
 
-  if (!result.success) {
-    return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
+    }
+
+    const staffMember = await createStaffMember(result.data);
+    return NextResponse.json(staffMember);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "ERRO";
+    const status = message === "INVALID_JSON_BODY" ? 400 : 500;
+    const mapped = status === 400 ? "Corpo JSON invalido." : "Nao foi possivel criar o profissional.";
+    return NextResponse.json({ error: mapped }, { status });
   }
-
-  const staffMember = await createStaffMember(result.data);
-  return NextResponse.json(staffMember);
 }

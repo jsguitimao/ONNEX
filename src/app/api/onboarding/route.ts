@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getBusinessForOnboarding, updateBusinessFromOnboarding } from "@/lib/business";
+import { readJsonBody } from "@/lib/request-body";
 
 const onboardingSchema = z.object({
   businessName: z.string().min(2).max(100),
@@ -43,7 +44,7 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
-    const body = await req.json();
+    const body = await readJsonBody(req);
     const payload = onboardingSchema.parse(body);
     const business = await updateBusinessFromOnboarding(payload);
 
@@ -54,6 +55,10 @@ export async function PUT(req: Request) {
       accentColor: business.accentColor,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_JSON_BODY") {
+      return NextResponse.json({ error: "Corpo JSON invalido." }, { status: 400 });
+    }
+
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
     }

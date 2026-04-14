@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { updateService } from "@/lib/business";
+import { readJsonBody } from "@/lib/request-body";
 
 const serviceSchema = z.object({
   name: z.string().min(2).max(80),
@@ -16,13 +17,21 @@ type RouteProps = {
 
 export async function PATCH(req: Request, { params }: RouteProps) {
   const { id } = await params;
-  const body = await req.json();
-  const result = serviceSchema.safeParse(body);
 
-  if (!result.success) {
-    return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
+  try {
+    const body = await readJsonBody(req);
+    const result = serviceSchema.safeParse(body);
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
+    }
+
+    const service = await updateService(id, result.data);
+    return NextResponse.json(service);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "ERRO";
+    const status = message === "INVALID_JSON_BODY" ? 400 : 500;
+    const mapped = status === 400 ? "Corpo JSON invalido." : "Nao foi possivel atualizar o servico.";
+    return NextResponse.json({ error: mapped }, { status });
   }
-
-  const service = await updateService(id, result.data);
-  return NextResponse.json(service);
 }

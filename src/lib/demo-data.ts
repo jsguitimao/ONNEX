@@ -32,7 +32,7 @@ export const demoBusiness: DemoBusiness = {
   city: "Porto",
   headline: "Marcações simples para uma barbearia moderna.",
   subheadline:
-    "Página pública personalizada, equipa visivel e experiência pensada para converter visitas em reservas.",
+    "Página pública personalizada, equipa visível e experiência pensada para converter visitas em reservas.",
   welcomeMessage:
     "Escolha o serviço, selecione o profissional e reserve em poucos cliques.",
   primaryColor: "#1570ef",
@@ -43,14 +43,14 @@ export const demoBusiness: DemoBusiness = {
       name: "Corte Tradicional",
       durationMinutes: 30,
       priceCents: 1600,
-      description: "Corte classico com acabamento limpo para rotina semanal.",
+      description: "Corte clássico com acabamento limpo para a rotina semanal.",
     },
     {
       id: "svc-2",
       name: "Barba + Toalha Quente",
       durationMinutes: 25,
       priceCents: 1200,
-      description: "Alinhamento de barba com ritual de conforto e finalizacao.",
+      description: "Alinhamento de barba com ritual de conforto e finalização.",
     },
     {
       id: "svc-3",
@@ -65,7 +65,7 @@ export const demoBusiness: DemoBusiness = {
       id: "staff-1",
       name: "Guilherme Silva",
       role: "Master Barber",
-      specialties: ["Fade", "Barba classica", "Consultoria de estilo"],
+      specialties: ["Fade", "Barba clássica", "Consultoria de estilo"],
     },
     {
       id: "staff-2",

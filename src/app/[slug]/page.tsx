@@ -140,12 +140,12 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         <section className="rounded-[2rem] border bg-card p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <ShieldCheck className="size-4 text-primary" />
-            <h2 className="font-heading text-lg font-semibold">Politicas desta agenda</h2>
+            <h2 className="font-heading text-lg font-semibold">Políticas desta agenda</h2>
           </div>
           <div className="grid gap-2 text-sm text-muted-foreground">
-            <p>Antecedencia minima para marcar: {publicBusiness.bookingLeadTimeHours}h.</p>
-            <p>Janela maxima para novas reservas: {publicBusiness.bookingWindowDays} dias.</p>
-            <p>Novos horarios gerados a cada {publicBusiness.slotIntervalMinutes} minutos.</p>
+            <p>Antecedência mínima para marcar: {publicBusiness.bookingLeadTimeHours}h.</p>
+            <p>Janela máxima para novas reservas: {publicBusiness.bookingWindowDays} dias.</p>
+            <p>Novos horários gerados a cada {publicBusiness.slotIntervalMinutes} minutos.</p>
             <p>Cancelamento automático permitido até {publicBusiness.cancellationWindowHours}h antes.</p>
           </div>
         </section>
@@ -187,12 +187,12 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         ) : null}
 
         <section className="rounded-[2rem] border bg-card p-5 text-center shadow-sm">
-          <p className="text-sm text-muted-foreground">Informação útil</p>
+          <p className="text-sm text-muted-foreground">Informacao util</p>
           <h2 className="mt-2 font-heading text-2xl font-semibold">
             Uma página pública mais fiel ao negócio
           </h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Esta página agora respeita branding, descricao, visibilidade da equipa, links externos e
+            Esta página agora respeita branding, descrição, visibilidade da equipa, links externos e
             regras reais de marcação.
           </p>
           {business.contactEmail ? (

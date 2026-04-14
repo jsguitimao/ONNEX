@@ -1,107 +1,194 @@
-# Bukly — plataforma de agendamentos para barbearias
+# BUKBARBEARIA.COM
 
-Software de agendamento online para barbearias portuguesas. Cada negócio tem
-página pública por slug (`/nome-da-barbearia`), dashboard privado, gestão de
-equipa e serviços, e confirmações automáticas por email.
+BUKBARBEARIA.COM e uma plataforma de agendamentos para barbearias, com area privada para operacao e pagina publica estilo link-in-bio para converter visitas em reservas.
+
+## O que ja existe
+
+- autenticacao com Clerk para dashboard e onboarding
+- persistencia com Prisma + PostgreSQL/Neon
+- pagina publica por slug em `/{slug}`
+- fluxo de reserva publica ponta a ponta
+- gestao publica por token com confirmacao, cancelamento e remarcacao
+- agenda operacional com reservas manuais, bloqueios e mudanca de estado
+- CRM basico de clientes
+- notificacoes por email e SMS
+- sitemap e robots para SEO tecnico
+- rate limiting basico nas rotas publicas
 
 ## Stack
 
-- **Next.js 16** (App Router, Turbopack) · React 19 · TypeScript
-- **Tailwind CSS 4** · `@base-ui/react` · `lucide-react`
-- **Prisma 6** + PostgreSQL (recomendado: [Neon](https://neon.tech))
-- **Clerk** para autenticação
-- **Resend** para email transacional
-- **Vercel Cron** para lembretes automáticos
-- **Zod** para validação
+- Next.js 16 com App Router
+- TypeScript
+- Tailwind CSS + shadcn/ui
+- Clerk
+- Prisma
+- PostgreSQL / Neon
+- deploy inicial na Vercel
 
-## Setup local
+## Como correr localmente
+
+1. Instala as dependencias:
 
 ```bash
-# 1. Instalar dependências
 npm install
+```
 
-# 2. Copiar e preencher variáveis de ambiente
-cp .env.example .env
-# edita .env com DATABASE_URL, chaves Clerk, Resend, etc.
+2. Copia o ficheiro de exemplo:
 
-# 3. Criar schema na base de dados
-npx prisma db push
+```bash
+cp .env.example .env.local
+```
 
-# 4. Correr em dev
+3. Preenche pelo menos:
+
+- `DATABASE_URL`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `NEXT_PUBLIC_APP_URL`
+
+4. Gera o cliente Prisma e aplica o schema:
+
+```bash
+npm run db:generate
+npm run db:push
+```
+
+5. Arranca o projeto:
+
+```bash
 npm run dev
 ```
 
-Aplicação disponível em [http://localhost:3000](http://localhost:3000).
-
 ## Scripts
 
-| Comando | O que faz |
-|---------|-----------|
-| `npm run dev` | Servidor de desenvolvimento (Turbopack) |
-| `npm run build` | Build de produção |
-| `npm start` | Correr build de produção |
-| `npm run lint` | Linter (ESLint) |
-| `npm run db:generate` | Gerar Prisma Client |
-| `npm run db:push` | Sincronizar schema com a BD |
+- `npm run dev` inicia o ambiente local
+- `npm run build` gera o build de producao
+- `npm run lint` executa o ESLint
+- `npm run test` executa a suite base com `node:test`
+- `npm run db:generate` gera o cliente Prisma
+- `npm run db:push` sincroniza o schema com a base de dados
 
-## Arquitetura
+## Variaveis de ambiente
 
+O ficheiro [.env.example](./.env.example) contem todos os valores esperados pelo projeto.
+
+### Obrigatorias
+
+- `DATABASE_URL`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `NEXT_PUBLIC_APP_URL`
+
+### Email
+
+- `RESEND_API_KEY`
+- `EMAIL_FROM`
+
+### SMS
+
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_AUTH_TOKEN`
+- `TWILIO_PHONE_NUMBER`
+
+### Cron
+
+- `CRON_SECRET`
+
+### Billing
+
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+
+### Observabilidade opcional
+
+- `SENTRY_DSN`
+- `NEXT_PUBLIC_SENTRY_DSN`
+- `SENTRY_AUTH_TOKEN`
+- `SENTRY_ORG`
+- `SENTRY_PROJECT`
+- `SENTRY_ENVIRONMENT`
+- `SENTRY_TRACES_SAMPLE_RATE`
+- `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE`
+- `NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE`
+- `NEXT_PUBLIC_SENTRY_REPLAY_ERROR_SAMPLE_RATE`
+
+## Notificacoes
+
+As notificacoes sao disparadas a partir de `src/lib/notifications.ts`.
+
+- email usa Resend
+- SMS usa Twilio
+- lembretes sao enviados pelo endpoint `POST /api/cron/send-reminders`
+- o cron exige `CRON_SECRET` por header, bearer token ou query string
+
+Sem credenciais de email ou SMS, o sistema nao quebra. Em vez disso, regista `SKIPPED` em `NotificationLog`.
+
+## Seguranca publica
+
+As rotas publicas mais sensiveis tem rate limiting basico em memoria:
+
+- `GET /api/public/[slug]`
+- `GET /api/public/[slug]/availability`
+- `POST /api/public/[slug]/bookings`
+- `GET/PATCH /api/public/booking/[token]`
+- `GET /api/public/booking/[token]/availability`
+
+Este limite ajuda ja hoje, mas nao substitui uma camada distribuida. Para producao com mais carga, o proximo passo natural e mover isto para Redis/Upstash.
+
+## SEO tecnico
+
+- `src/app/robots.ts`
+- `src/app/sitemap.ts`
+
+O sitemap lista a landing e as paginas publicas ativas por slug.
+
+## Observabilidade
+
+O projeto agora suporta Sentry de forma real:
+
+- inicializacao de servidor em `src/sentry.server.config.ts`
+- inicializacao edge em `src/sentry.edge.config.ts`
+- inicializacao cliente em `src/instrumentation-client.ts`
+- hook de request errors em `src/instrumentation.ts`
+- captura de erros globais em `src/app/global-error.tsx`
+- wrapper de logs aplicacionais em `src/lib/observability.ts`
+
+Sem DSN configurado, a app continua funcional e mantem apenas logs locais.
+
+## Deploy
+
+O projeto esta preparado para Vercel, mas o diretorio `.vercel/` continua ignorado de proposito. Isso e normal: a ligacao local a um projeto Vercel nao deve ser versionada.
+
+Se precisares ligar o repositorio local a outro projeto Vercel, usa:
+
+```bash
+vercel link
 ```
-src/
-  app/
-    page.tsx                      Landing pública
-    sign-in/, sign-up/            Páginas Clerk
-    onboarding/                   Setup inicial do negócio
-    dashboard/                    Painel operacional (protegido)
-    [slug]/                       Página pública do negócio
-    booking/[token]/              Gestão de reserva pelo cliente
-    api/
-      dashboard/                  CRUD protegido (services, team, bookings, …)
-      public/                     Slots + criação de reserva (público)
-      onboarding/                 Setup do negócio
-      cron/send-reminders/        Lembretes 30min antes
-  components/                     Componentes UI + fluxos
-  lib/
-    db.ts                         Prisma client singleton
-    business.ts                   Lógica de domínio (slots, bookings, dashboard)
-    notifications.ts              Envio de emails via Resend
-    demo-data.ts                  Fallback sem BD configurada
-  proxy.ts                        Middleware Clerk
-prisma/
-  schema.prisma                   Modelo de dados
-```
 
-## Fluxos principais
+## Testes
 
-1. **Onboarding** — utilizador autentica-se → `/onboarding` cria Business, Location, Services, StaffMembers e WeeklyAvailability.
-2. **Página pública** — `/{slug}` mostra serviços e equipa; cliente escolhe serviço, profissional e horário.
-3. **Gestão da reserva** — link com token (`/booking/{token}`) para confirmar, cancelar ou reagendar.
-4. **Dashboard** — agenda semanal, bookings, clientes, serviços, equipa, bloqueios.
-5. **Lembretes** — Vercel Cron chama `/api/cron/send-reminders` a cada 10min.
+Esta base ja inclui testes unitarios simples com o runner nativo do Node. O objetivo desta primeira camada e validar regras puras sem adicionar friccao de tooling.
 
-## Deploy (Vercel)
+Proximos passos recomendados para testes:
 
-1. Criar projeto Vercel ligado ao repo.
-2. Definir variáveis de ambiente (ver `.env.example`).
-3. Adicionar cron em `vercel.json`:
+- expandir unit tests para politicas de booking
+- adicionar smoke tests para APIs publicas
+- introduzir e2e reais para onboarding, reserva e dashboard
 
-```json
-{
-  "crons": [
-    { "path": "/api/cron/send-reminders", "schedule": "*/10 * * * *" }
-  ]
-}
-```
+## Estrutura principal
 
-4. Em Clerk (produção), autorizar o domínio Vercel.
-5. Em Resend, verificar o domínio usado em `EMAIL_FROM`.
+- `src/app` rotas App Router
+- `src/components` interface do produto
+- `src/lib/business.ts` dominio principal
+- `src/lib/notifications.ts` entregas email/SMS
+- `src/lib/rate-limit.ts` protecao basica das rotas publicas
+- `src/lib/cron-auth.ts` validacao do cron
+- `prisma/schema.prisma` modelo de dados
 
-## Segurança
+## Proximas melhorias de arquitetura
 
-- Rotas protegidas via `src/proxy.ts` (Clerk).
-- `/api/cron/*` exige header `Authorization: Bearer $CRON_SECRET`.
-- Multi-tenant: todas as queries filtram por `businessId` do owner autenticado.
-
-## Licença
-
-Privado.
+- partir `business.ts` em modulos menores
+- instrumentar spans de dominio e queries mais criticas
+- implementar pagamentos e planos
+- mover rate limiting para armazenamento distribuido

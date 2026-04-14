@@ -13,7 +13,7 @@ type BookingManageCardProps = {
 const statusLabel: Record<PublicBookingDetails["status"], string> = {
   PENDING: "Pendente",
   CONFIRMED: "Confirmada",
-  COMPLETED: "Concluida",
+  COMPLETED: "Concluída",
   CANCELLED: "Cancelada",
   NO_SHOW: "No-show",
 };
@@ -72,13 +72,13 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
         const payload = (await response.json()) as { slots?: BookingSlot[]; error?: string };
 
         if (!response.ok) {
-          throw new Error(payload.error ?? "Não foi possível carregar horarios.");
+          throw new Error(payload.error ?? "Não foi possível carregar horários.");
         }
 
         setSlots(payload.slots ?? []);
       } catch (slotError) {
         if ((slotError as Error).name !== "AbortError") {
-          setError(slotError instanceof Error ? slotError.message : "Erro ao carregar horarios.");
+          setError(slotError instanceof Error ? slotError.message : "Erro ao carregar horários.");
         }
       } finally {
         setLoadingSlots(false);
@@ -180,9 +180,9 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
         <div className="flex items-start gap-3">
           <ShieldAlert className="mt-0.5 size-4 text-primary" />
           <div className="grid gap-1">
-            <p className="font-medium text-foreground">Politica desta reserva</p>
+            <p className="font-medium text-foreground">Política desta reserva</p>
             <p>Confirmação disponível enquanto a reserva estiver pendente.</p>
-            <p>Cancelamento e remarcacao disponiveis até {booking.cancellationWindowHours}h antes do horario.</p>
+            <p>Cancelamento e remarcação disponíveis até {booking.cancellationWindowHours}h antes do horário.</p>
             <p>Prazo atual para gerir a reserva: {cancellationDeadlineLabel}.</p>
           </div>
         </div>
@@ -191,9 +191,9 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
       {booking.canReschedule ? (
         <div className="mt-5 rounded-[1.5rem] border bg-background p-4">
           <div className="mb-3">
-            <p className="font-medium">Remarcar horario</p>
+            <p className="font-medium">Remarcar horário</p>
             <p className="text-sm text-muted-foreground">
-              Mantem o mesmo serviço e profissional, escolhendo apenas um novo slot disponível.
+              Mantém o mesmo serviço e profissional, escolhendo apenas um novo slot disponível.
             </p>
           </div>
 
@@ -213,11 +213,11 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
           </label>
 
           <div className="mt-4">
-            <p className="mb-3 text-sm font-medium">Novos horarios disponiveis</p>
+            <p className="mb-3 text-sm font-medium">Novos horários disponíveis</p>
             {loadingSlots ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
-                A carregar horarios...
+                A carregar horários...
               </div>
             ) : slots.length > 0 ? (
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -237,7 +237,7 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Não ha horarios disponiveis para esta data.
+                Não há horários disponíveis para esta data.
               </p>
             )}
           </div>

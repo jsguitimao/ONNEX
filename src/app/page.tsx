@@ -1,4 +1,4 @@
-import { Show, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -25,7 +25,7 @@ const pillars = [
   {
     title: "Agenda e operação",
     description:
-      "Gestão de serviços, equipa, disponibilidade, clientes e marcações numa experiência unica e preparada para crescer.",
+      "Gestão de serviços, equipa, disponibilidade, clientes e marcações numa experiência única e preparada para crescer.",
     icon: LayoutDashboard,
   },
   {
@@ -42,7 +42,7 @@ const roadmap = [
   "Perfil público por slug, tipo /nomedabarbearia",
   "Fluxo de marcação com disponibilidade real",
   "Base de notificações e gestão da reserva",
-  "Deploy continuo desde o primeiro ciclo",
+  "Deploy contínuo desde o primeiro ciclo",
 ];
 
 export default function HomePage() {
@@ -64,13 +64,15 @@ export default function HomePage() {
 
           <div className="flex items-center gap-3">
             <Show when="signed-out">
-              <Link href="/sign-in" className={buttonVariants({ variant: "ghost" })}>
-                Entrar
-              </Link>
-              <Link href="/sign-up" className={buttonVariants({ className: "gap-2" })}>
-                Criar conta
-                <ArrowRight className="size-4" />
-              </Link>
+              <SignInButton mode="modal">
+                <button className={buttonVariants({ variant: "ghost" })}>Entrar</button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className={buttonVariants({ className: "gap-2" })}>
+                  Criar conta
+                  <ArrowRight className="size-4" />
+                </button>
+              </SignUpButton>
             </Show>
             <Show when="signed-in">
               <Link href="/dashboard" className={buttonVariants({ variant: "ghost" })}>
@@ -97,10 +99,12 @@ export default function HomePage() {
 
             <div className="mt-10 flex flex-wrap gap-3">
               <Show when="signed-out">
-                <Link href="/sign-up" className={buttonVariants({ size: "lg", className: "gap-2" })}>
-                  Começar agora
-                  <ArrowRight className="size-4" />
-                </Link>
+                <SignUpButton mode="modal">
+                  <button className={buttonVariants({ size: "lg", className: "gap-2" })}>
+                    Começar agora
+                    <ArrowRight className="size-4" />
+                  </button>
+                </SignUpButton>
               </Show>
               <Show when="signed-in">
                 <Link href="/onboarding" className={buttonVariants({ size: "lg", className: "gap-2" })}>
@@ -135,7 +139,7 @@ export default function HomePage() {
                 Base do produto
               </Badge>
               <CardTitle className="font-heading text-2xl">
-                O que já estamos a construir com consistencia
+                O que já estamos a construir com consistência
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

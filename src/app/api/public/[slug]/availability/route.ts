@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAvailableSlots } from "@/lib/business";
+import { captureException } from "@/lib/observability";
+import { buildRateLimitHeaders, checkRequestRateLimit } from "@/lib/rate-limit";
 
 const schema = z.object({
   serviceId: z.string().min(1),
@@ -14,6 +16,19 @@ type RouteProps = {
 
 export async function GET(req: Request, { params }: RouteProps) {
   const { slug } = await params;
+  const rateLimit = checkRequestRateLimit(req, {
+    namespace: "public-availability",
+    limit: 45,
+    windowMs: 60_000,
+  });
+
+  if (!rateLimit.ok) {
+    return NextResponse.json(
+      { error: "Demasiados pedidos. Aguarda um pouco antes de procurar mais horarios." },
+      { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+    );
+  }
+
   const url = new URL(req.url);
   const result = schema.safeParse({
     serviceId: url.searchParams.get("serviceId"),
@@ -22,13 +37,34 @@ export async function GET(req: Request, { params }: RouteProps) {
   });
 
   if (!result.success) {
-    return NextResponse.json({ error: "Parametros invalidos." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Parametros invalidos." },
+      { status: 400, headers: buildRateLimitHeaders(rateLimit) }
+    );
   }
 
-  const slots = await getAvailableSlots({
-    slug,
-    ...result.data,
-  });
+  try {
+    const slots = await getAvailableSlots({
+      slug,
+      ...result.data,
+    });
 
-  return NextResponse.json({ slots });
+    return NextResponse.json(
+      { slots },
+      {
+        headers: buildRateLimitHeaders(rateLimit),
+      }
+    );
+  } catch (error) {
+    captureException("public_availability.fetch_failed", error, {
+      slug,
+      serviceId: result.data.serviceId,
+      staffMemberId: result.data.staffMemberId,
+    });
+
+    return NextResponse.json(
+      { error: "Nao foi possivel carregar os horarios disponiveis." },
+      { status: 500, headers: buildRateLimitHeaders(rateLimit) }
+    );
+  }
 }

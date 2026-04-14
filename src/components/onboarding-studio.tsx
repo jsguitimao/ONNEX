@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -48,7 +48,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
       const data = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Não foi possível guardar.");
+      throw new Error(data.error ?? "Não foi possível guardar.");
       }
 
       setStatus("saved");
@@ -72,13 +72,13 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Store className="size-4 text-primary" />
-              Dados do negócio
+              Dados do negÃ³cio
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Nome do negócio">
+              <Field label="Nome do negÃ³cio">
                 <Input value={form.businessName} onChange={(e) => updateField("businessName", e.target.value)} />
               </Field>
-              <Field label="Slug público">
+              <Field label="Slug pÃºblico">
                 <Input value={form.slug} onChange={(e) => updateField("slug", e.target.value.toLowerCase())} />
               </Field>
               <Field label="Cidade">
@@ -94,7 +94,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                 <Input value={form.websiteUrl} onChange={(e) => updateField("websiteUrl", e.target.value)} placeholder="https://..." />
               </Field>
             </div>
-            <Field label="Descricao curta do negócio">
+            <Field label="DescriÃ§Ã£o curta do negÃ³cio">
               <textarea
                 className="min-h-24 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring/50"
                 value={form.description}
@@ -175,7 +175,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Settings2 className="size-4 text-primary" />
-              Preferencias operacionais
+              PreferÃªncias operacionais
             </div>
             <div className="grid gap-3">
               <ToggleRow
@@ -189,12 +189,12 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                 onChange={(checked) => updateField("showTeam", checked)}
               />
               <ToggleRow
-                label="Mostrar precos"
+                label="Mostrar preÃ§os"
                 checked={form.showPrices}
                 onChange={(checked) => updateField("showPrices", checked)}
               />
               <ToggleRow
-                label="Mostrar duracoes"
+                label="Mostrar duraÃ§Ãµes"
                 checked={form.showDurations}
                 onChange={(checked) => updateField("showDurations", checked)}
               />
@@ -204,10 +204,10 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <ShieldCheck className="size-4 text-primary" />
-              Regras de marcação
+              Regras de marcaÃ§Ã£o
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Antecedencia minima (horas)">
+              <Field label="AntecedÃªncia mÃ­nima (horas)">
                 <Input
                   type="number"
                   min={0}
@@ -235,7 +235,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                   onChange={(e) => updateField("slotIntervalMinutes", Number(e.target.value))}
                 />
               </Field>
-              <Field label="Cancelamento automático até (horas)">
+              <Field label="Cancelamento automÃ¡tico atÃ© (horas)">
                 <Input
                   type="number"
                   min={0}
@@ -249,7 +249,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-muted/50 p-4">
             <div className="text-sm text-muted-foreground">
-              Estas alteracoes já são persistidas e alimentam imediatamente a página pública.
+              Estas alteraÃ§Ãµes jÃ¡ sÃ£o persistidas e alimentam imediatamente a página pública.
             </div>
             <button
               type="button"
@@ -258,7 +258,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               disabled={status === "saving"}
             >
               {status === "saving" ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-              Guardar configuracoes
+              Guardar configuraÃ§Ãµes
             </button>
           </div>
 
@@ -341,13 +341,13 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <div className="rounded-2xl border bg-muted/50 p-4 text-left">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium">
               <ShieldCheck className="size-4 text-primary" />
-              Politicas de marcação
+              PolÃ­ticas de marcaÃ§Ã£o
             </div>
             <div className="grid gap-2 text-sm text-muted-foreground">
-              <p>Antecedencia minima: {form.bookingLeadTimeHours}h.</p>
-              <p>Janela de reservas: até {form.bookingWindowDays} dias.</p>
-              <p>Intervalo entre horarios: {form.slotIntervalMinutes} min.</p>
-              <p>Cancelamento pelo cliente: até {form.cancellationWindowHours}h antes.</p>
+              <p>AntecedÃªncia mÃ­nima: {form.bookingLeadTimeHours}h.</p>
+              <p>Janela de reservas: atÃ© {form.bookingWindowDays} dias.</p>
+              <p>Intervalo entre horÃ¡rios: {form.slotIntervalMinutes} min.</p>
+              <p>Cancelamento pelo cliente: atÃ© {form.cancellationWindowHours}h antes.</p>
             </div>
           </div>
 
@@ -362,7 +362,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               </a>
             ) : (
               <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-700">
-                As reservas online estão desativadas. A página pública vai mostrar contacto e branding, mas sem CTA de marcação.
+                As reservas online estÃ£o desativadas. A página pública vai mostrar contacto e branding, mas sem CTA de marcaÃ§Ã£o.
               </div>
             )}
 
@@ -406,7 +406,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
             <div>
               <div className="mb-4 flex items-center gap-2 text-sm font-medium">
                 <UserRound className="size-4" />
-                Equipa visivel na página pública
+                Equipa visÃ­vel na página pública
               </div>
               <div className="grid gap-3">
                 {demoBusiness.team.map((member) => (
@@ -428,7 +428,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                       className="rounded-full px-3 py-1 text-xs font-semibold"
                       style={{ backgroundColor: `${form.primaryColor}14`, color: form.primaryColor }}
                     >
-                      Disponível
+                      DisponÃ­vel
                     </span>
                   </div>
                 ))}
@@ -477,3 +477,4 @@ function ToggleRow({
     </label>
   );
 }
+

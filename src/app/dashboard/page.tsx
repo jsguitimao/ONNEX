@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  getBookingAgenda,
-  getBookingAgendaWeek,
+  getBookingAgendaView,
   getCustomersSnapshot,
   getDashboardSnapshot,
   getManagementSnapshot,
@@ -20,31 +19,30 @@ export const dynamic = "force-dynamic";
 
 const panels = [
   {
-    title: "Agenda com visão diaria e lista de marcações",
+    title: "Agenda com visão diária e lista de marcações",
     description:
-      "O painel agora cobre agenda, filtros, mudanca de estado, reservas manuais e bloqueios de horario.",
+      "O painel agora cobre agenda, filtros, mudança de estado, reservas manuais e bloqueios de horário.",
     icon: LayoutDashboard,
   },
   {
     title: "Gestão de serviços, equipa e disponibilidade",
     description:
-      "A base já suporta serviços por negócio, profissionais, localizações e disponibilidade semanal reutilizavel na página pública.",
+      "A base já suporta serviços por negócio, profissionais, localizações e disponibilidade semanal reutilizável na página pública.",
     icon: Users,
   },
   {
     title: "Clientes, notas e histórico de marcações",
     description:
-      "A camada de CRM consolida histórico, preferencias, observacoes internas e recorrencia por cliente.",
+      "A camada de CRM consolida histórico, preferências, observações internas e recorrência por cliente.",
     icon: CalendarRange,
   },
 ];
 
 export default async function DashboardPreviewPage() {
-  const [snapshot, management, agenda, agendaWeek, customers] = await Promise.all([
+  const [snapshot, management, agendaView, customers] = await Promise.all([
     getDashboardSnapshot(),
     getManagementSnapshot(),
-    getBookingAgenda(),
-    getBookingAgendaWeek(),
+    getBookingAgendaView(),
     getCustomersSnapshot(),
   ]);
 
@@ -63,7 +61,7 @@ export default async function DashboardPreviewPage() {
           </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight">{snapshot.businessName}</h1>
           <p className="mt-3 text-muted-foreground">
-            Esta area já esta desenhada para o fluxo autenticado do negócio. Agora também
+            Esta área já está desenhada para o fluxo autenticado do negócio. Agora também
             permite gerir serviços, equipa, disponibilidade e regras principais da agenda.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -139,7 +137,7 @@ export default async function DashboardPreviewPage() {
         </CardContent>
       </Card>
 
-      <DashboardAgenda initialSnapshot={agenda} initialWeekSnapshot={agendaWeek} />
+      <DashboardAgenda initialSnapshot={agendaView.agenda} initialWeekSnapshot={agendaView.week} />
 
       <DashboardCustomers initialSnapshot={customers} />
 

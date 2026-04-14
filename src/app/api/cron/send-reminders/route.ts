@@ -1,20 +1,25 @@
 import { NextResponse } from "next/server";
+import { authorizeCronRequest } from "@/lib/cron-auth";
 import { sendUpcomingBookingReminders } from "@/lib/notifications";
-
-function isAuthorized(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-
-  const headerToken = req.headers.get("x-cron-secret");
-  const bearerToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  const urlToken = new URL(req.url).searchParams.get("secret");
-
-  return [headerToken, bearerToken, urlToken].some((value) => value === secret);
-}
+import { captureException, logWarning } from "@/lib/observability";
 
 export async function POST(req: Request) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  const authorization = authorizeCronRequest(req);
+
+  if (!authorization.configured) {
+    logWarning("cron_send_reminders.secret_missing", {
+      route: "/api/cron/send-reminders",
+      isVercelCronUserAgent: authorization.isVercelCronUserAgent,
+    });
+    return NextResponse.json({ error: "CRON_SECRET nao configurado." }, { status: 503 });
+  }
+
+  if (!authorization.ok) {
+    logWarning("cron_send_reminders.unauthorized", {
+      route: "/api/cron/send-reminders",
+      isVercelCronUserAgent: authorization.isVercelCronUserAgent,
+    });
+    return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
   }
 
   try {
@@ -29,7 +34,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("POST send reminders error:", error);
+    captureException("cron_send_reminders.failed", error, {
+      route: "/api/cron/send-reminders",
+      authorizationSource: authorization.source,
+      isVercelCronUserAgent: authorization.isVercelCronUserAgent,
+    });
     return NextResponse.json({ error: "Erro ao enviar lembretes." }, { status: 500 });
   }
 }

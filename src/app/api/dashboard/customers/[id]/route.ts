@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { updateCustomer } from "@/lib/business";
+import { readJsonBody } from "@/lib/request-body";
 
 const customerSchema = z.object({
   fullName: z.string().min(2).max(80),
@@ -16,14 +17,14 @@ type RouteProps = {
 
 export async function PATCH(req: Request, { params }: RouteProps) {
   const { id } = await params;
-  const body = await req.json();
-  const result = customerSchema.safeParse(body);
-
-  if (!result.success) {
-    return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
-  }
-
   try {
+    const body = await readJsonBody(req);
+    const result = customerSchema.safeParse(body);
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
+    }
+
     const customer = await updateCustomer(id, {
       fullName: result.data.fullName,
       email: result.data.email || undefined,
@@ -35,8 +36,13 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     return NextResponse.json(customer);
   } catch (error) {
     const message = error instanceof Error ? error.message : "ERRO";
-    const status = message === "CUSTOMER_NOT_FOUND" ? 404 : 500;
-    const mapped = status === 404 ? "Cliente não encontrado." : "Erro ao atualizar cliente.";
+    const status = message === "INVALID_JSON_BODY" ? 400 : message === "CUSTOMER_NOT_FOUND" ? 404 : 500;
+    const mapped =
+      status === 400
+        ? "Corpo JSON invalido."
+        : status === 404
+          ? "Cliente nao encontrado."
+          : "Erro ao atualizar cliente.";
     return NextResponse.json({ error: mapped }, { status });
   }
 }
