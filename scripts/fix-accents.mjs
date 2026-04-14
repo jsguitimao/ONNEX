@@ -121,13 +121,13 @@ for (const file of files) {
   for (const [wrong, right] of Object.entries(map)) {
     // lowercase
     const reLower = new RegExp(`\\b${wrong}\\b`, "g");
-    content = content.replace(reLower, (m) => {
+    content = content.replace(reLower, () => {
       fileCount++;
       return right;
     });
     // Capitalized
     const reCap = new RegExp(`\\b${cap(wrong)}\\b`, "g");
-    content = content.replace(reCap, (m) => {
+    content = content.replace(reCap, () => {
       fileCount++;
       return cap(right);
     });
