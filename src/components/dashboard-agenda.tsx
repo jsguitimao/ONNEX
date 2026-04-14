@@ -33,7 +33,7 @@ type DashboardAgendaProps = {
 const statusLabel: Record<string, string> = {
   PENDING: "Pendente",
   CONFIRMED: "Confirmada",
-  COMPLETED: "ConcluÃ­da",
+  COMPLETED: "Concluída",
   CANCELLED: "Cancelada",
   NO_SHOW: "No-show",
 };
@@ -152,7 +152,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
       const payload = (await response.json()) as BookingAgendaViewSnapshot & { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "NÃ£o foi possÃ­vel carregar a agenda.");
+        throw new Error(payload.error ?? "Não foi possível carregar a agenda.");
       }
 
       setSnapshot(payload.agenda);
@@ -329,8 +329,8 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
           <div>
             <CardTitle className="font-heading text-2xl">Agenda operacional</CardTitle>
             <CardDescription>
-              Vista diÃ¡ria e semanal para confirmar presenÃ§as, concluir atendimentos e equilibrar a
-              operaÃ§Ã£o da barbearia.
+              Vista diária e semanal para confirmar presenças, concluir atendimentos e equilibrar a
+              operação da barbearia.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -354,7 +354,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             <div className="mb-4">
               <p className="font-medium">Nova reserva manual</p>
               <p className="text-sm text-muted-foreground">
-                Usa este bloco para registar marcaÃ§Ãµes por telefone, WhatsApp ou atendimento no local.
+                Usa este bloco para registar marcações por telefone, WhatsApp ou atendimento no local.
               </p>
             </div>
 
@@ -439,7 +439,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             <div className="mb-4">
               <p className="font-medium">Novo bloqueio de agenda</p>
               <p className="text-sm text-muted-foreground">
-                Usa para pausas, almoco, saida antecipada ou indisponibilidade de um profissional.
+                Usa para pausas, almoço, saída antecipada ou indisponibilidade de um profissional.
               </p>
             </div>
 
@@ -549,7 +549,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
                 variant="outline"
                 onClick={() => setDate(format(addDays(weekStart, 7), "yyyy-MM-dd"))}
               >
-                Proxima semana
+                Próxima semana
                 <ChevronRight className="size-4" />
               </Button>
             </div>
@@ -600,7 +600,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             <p className="mt-2 font-heading text-3xl font-semibold text-amber-700">{summary.pending}</p>
           </div>
           <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-            <p className="text-sm text-emerald-700">ConcluÃ­das</p>
+            <p className="text-sm text-emerald-700">Concluídas</p>
             <p className="mt-2 font-heading text-3xl font-semibold text-emerald-700">{summary.completed}</p>
           </div>
           <div className="rounded-3xl border border-primary/20 bg-primary/5 p-4 md:col-span-4">
@@ -636,7 +636,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             <div className="mb-4">
               <p className="font-medium">Bloqueios do dia</p>
               <p className="text-sm text-muted-foreground">
-                Indisponibilidades aplicadas neste dia para a equipa inteira ou para profissionais especÃ­ficos.
+                Indisponibilidades aplicadas neste dia para a equipa inteira ou para profissionais específicos.
               </p>
             </div>
 
@@ -668,8 +668,8 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
         <div className="grid gap-3">
           {snapshot.bookings.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-border/80 bg-muted/20 px-5 py-8 text-center text-sm text-muted-foreground">
-              NÃ£o hÃ¡ reservas para este filtro. Assim que entrarem marcaÃ§Ãµes pÃºblicas, elas vÃ£o
-              aparecer aqui com aÃ§Ãµes rÃ¡pidas.
+              Não há reservas para este filtro. Assim que entrarem marcações públicas, elas vão
+              aparecer aqui com ações rápidas.
             </div>
           ) : (
             snapshot.bookings.map((booking) => (

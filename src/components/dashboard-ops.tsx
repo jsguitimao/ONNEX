@@ -229,9 +229,9 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
       <Card className="border-primary/15 bg-gradient-to-br from-background via-background to-primary/5">
         <CardHeader className="gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="font-heading text-2xl">Mesa de operaÃ§Ã£o</CardTitle>
+            <CardTitle className="font-heading text-2xl">Mesa de operação</CardTitle>
             <CardDescription>
-              Serviços, equipa e disponibilidade jÃ¡ editÃ¡veis. Ã‰ aqui que o produto comeÃ§a a
+              Serviços, equipa e disponibilidade já editáveis. É aqui que o produto começa a
               deixar de parecer demo.
             </CardDescription>
           </div>
@@ -262,7 +262,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
           <CardHeader>
             <CardTitle className="font-heading text-xl">Serviços</CardTitle>
             <CardDescription>
-              MantÃ©m a oferta atualizada e controla o que aparece na página pública.
+              Mantém a oferta atualizada e controla o que aparece na página pública.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -278,7 +278,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                     <div>
                       <p className="font-medium">{service.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {service.durationMinutes} min · {formatEuroFromCents(service.priceCents)} â‚¬
+                        {service.durationMinutes} min · {formatEuroFromCents(service.priceCents)} €
                       </p>
                     </div>
                     <Badge variant={service.isActive ? "secondary" : "outline"}>

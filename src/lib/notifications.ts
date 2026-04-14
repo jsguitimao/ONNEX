@@ -108,7 +108,7 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
             <h1 style="font-size:24px;margin-bottom:12px;">Reserva cancelada</h1>
             <p>Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi cancelada.</p>
             <p>Se quiseres marcar novamente, a página pública continua disponível.</p>
-            <p><a href="${publicPageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Marcar novo horario</a></p>
+            <p><a href="${publicPageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Marcar novo horário</a></p>
           </div>
         `,
       };
@@ -132,7 +132,7 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
           <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
             <h1 style="font-size:24px;margin-bottom:12px;">Reserva remarcada</h1>
             <p>Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi atualizada.</p>
-            <p><strong>Novo horario:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
+            <p><strong>Novo horário:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
             <p>Podes rever os detalhes sempre que precisares.</p>
             <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Ver reserva</a></p>
           </div>
@@ -143,7 +143,7 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
         subject: `Lembrete: faltam 30 minutos para a tua reserva`,
         html: `
           <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
-            <h1 style="font-size:24px;margin-bottom:12px;">O teu horario esta quase a chegar</h1>
+            <h1 style="font-size:24px;margin-bottom:12px;">O teu horário está quase a chegar</h1>
             <p>Olá ${booking.customerName}, faltam cerca de 30 minutos para a tua reserva de <strong>${booking.service.name}</strong>.</p>
             <p><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
             <p>Se precisares de rever os detalhes, usa este link:</p>
@@ -169,7 +169,7 @@ function buildSmsMessage(kind: NotificationKind, booking: BookingNotificationPay
     case "BOOKING_CANCELLED_INTERNAL":
       return `Cancelamento recebido: ${booking.customerName} cancelou ${booking.service.name} a ${when}. Ver: ${manageUrl}`;
     case "BOOKING_RESCHEDULED":
-      return `Reserva remarcada em ${booking.business.name}: novo horario ${when} com ${professional}. ${manageUrl}`;
+      return `Reserva remarcada em ${booking.business.name}: novo horário ${when} com ${professional}. ${manageUrl}`;
     case "BOOKING_REMINDER":
       return `Lembrete: faltam cerca de 30 minutos para ${booking.service.name} em ${booking.business.name}. ${manageUrl}`;
   }
@@ -261,6 +261,44 @@ async function safeReadJson(response: Response) {
   }
 }
 
+function shouldRetryProviderResponse(status: number) {
+  return status === 429 || status >= 500;
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithProviderRetry(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  options: {
+    attempts?: number;
+    baseDelayMs?: number;
+  } = {}
+) {
+  const attempts = options.attempts ?? 3;
+  const baseDelayMs = options.baseDelayMs ?? 600;
+  let lastResponse: Response | null = null;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const response = await fetch(input, init);
+    lastResponse = response;
+
+    if (!shouldRetryProviderResponse(response.status) || attempt === attempts - 1) {
+      return response;
+    }
+
+    await wait(baseDelayMs * (attempt + 1));
+  }
+
+  if (lastResponse) {
+    return lastResponse;
+  }
+
+  throw new Error("PROVIDER_REQUEST_FAILED");
+}
+
 async function sendEmailForKind(booking: BookingNotificationPayload, kind: NotificationKind, recipient: string) {
   const existing = await findExistingSentNotification({
     bookingId: booking.id,
@@ -283,7 +321,7 @@ async function sendEmailForKind(booking: BookingNotificationPayload, kind: Notif
   }
 
   try {
-    const response = await fetch("https://api.resend.com/emails", {
+    const response = await fetchWithProviderRetry("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -374,7 +412,7 @@ async function sendSmsForKind(booking: BookingNotificationPayload, kind: Notific
   }
 
   try {
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+    const response = await fetchWithProviderRetry(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
       method: "POST",
       headers: {
         Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,

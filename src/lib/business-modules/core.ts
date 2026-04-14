@@ -217,7 +217,7 @@ async function fetchCurrentBusiness() {
           fullName: ownerName,
           slug: slugify(ownerName),
           roleTitle: "Founder",
-          bio: "ResponsÃ¡vel pelo atendimento e pela experiÃªncia do negÃ³cio.",
+          bio: "Responsável pelo atendimento e pela experiência do negócio.",
           displayOrder: 0,
         },
       },

@@ -1,13 +1,13 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { LoaderCircle, Mail, MessageSquareText, Phone, Save, Search, UserRound } from "lucide-react";
-import type { CustomerSnapshot } from "@/lib/business";
-import { formatEuro } from "@/lib/demo-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import type { CustomerSnapshot } from "@/lib/business";
+import { formatEuro } from "@/lib/demo-data";
 
 type DashboardCustomersProps = {
   initialSnapshot: CustomerSnapshot;
@@ -102,7 +102,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
           <div>
             <CardTitle className="font-heading text-2xl">Clientes e CRM</CardTitle>
             <CardDescription>
-              MantÃ©m notas internas, opt-in de comunicaÃ§Ã£o e histÃ³rico resumido para cada cliente.
+              Mantém notas internas, opt-in de comunicação e histórico resumido para cada cliente.
             </CardDescription>
           </div>
           <Badge variant="secondary">{snapshot.customers.length} clientes</Badge>
@@ -114,7 +114,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
             className="pl-9"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Pesquisar por nome, email, telefone ou Ãºltimo serviço"
+            placeholder="Pesquisar por nome, email, telefone ou último serviço"
           />
         </div>
       </CardHeader>
@@ -233,7 +233,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
                           [customer.id]: { ...draft, notes: event.target.value },
                         }))
                       }
-                      placeholder="Preferencias, observacoes de atendimento, recorrencia..."
+                      placeholder="Preferências, observações de atendimento, recorrência..."
                     />
                   </label>
 
@@ -249,7 +249,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
                           }))
                         }
                       />
-                      Cliente aceitou comunicacoes futuras
+                      Cliente aceitou comunicações futuras
                     </label>
 
                     <Button disabled={savingId === customer.id} onClick={() => void saveCustomer(customer.id)}>
@@ -270,5 +270,3 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
     </Card>
   );
 }
-
-
