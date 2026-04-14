@@ -187,3 +187,38 @@ export type CustomerSnapshot = {
     lastServiceName: string | null;
   }>;
 };
+
+export type CommunicationSnapshot = {
+  channels: {
+    emailConfigured: boolean;
+    smsConfigured: boolean;
+    cronSecretConfigured: boolean;
+  };
+  totals: {
+    sentLast24h: number;
+    failedLast24h: number;
+    skippedLast24h: number;
+  };
+  notifications: Array<{
+    id: string;
+    createdAt: Date;
+    sentAt: Date | null;
+    status: "PENDING" | "SENT" | "FAILED" | "SKIPPED";
+    channel: "EMAIL" | "SMS";
+    kind:
+      | "BOOKING_CREATED"
+      | "BOOKING_CONFIRMED"
+      | "BOOKING_CANCELLED"
+      | "BOOKING_CANCELLED_INTERNAL"
+      | "BOOKING_RESCHEDULED"
+      | "BOOKING_REMINDER";
+    recipientMasked: string;
+    errorMessage: string | null;
+    booking: {
+      id: string;
+      customerName: string;
+      serviceName: string;
+      startsAt: Date;
+    };
+  }>;
+};

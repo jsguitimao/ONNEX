@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarRange, Euro, LayoutDashboard, Sparkles, Users } from "lucide-react";
 import { AuthUserButton } from "@/components/auth-user-button";
 import { DashboardAgenda } from "@/components/dashboard-agenda";
+import { DashboardCommunications } from "@/components/dashboard-communications";
 import { DashboardCustomers } from "@/components/dashboard-customers";
 import { DashboardOps } from "@/components/dashboard-ops";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   getBookingAgendaView,
+  getCommunicationSnapshot,
   getCustomersSnapshot,
   getDashboardSnapshot,
   getManagementSnapshot,
@@ -39,11 +41,12 @@ const panels = [
 ];
 
 export default async function DashboardPreviewPage() {
-  const [snapshot, management, agendaView, customers] = await Promise.all([
+  const [snapshot, management, agendaView, customers, communications] = await Promise.all([
     getDashboardSnapshot(),
     getManagementSnapshot(),
     getBookingAgendaView(),
     getCustomersSnapshot(),
+    getCommunicationSnapshot(),
   ]);
 
   const stats = [
@@ -61,11 +64,11 @@ export default async function DashboardPreviewPage() {
           </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight">{snapshot.businessName}</h1>
           <p className="mt-3 text-muted-foreground">
-            Esta área já está desenhada para o fluxo autenticado do negócio. Agora também permite
-            gerir serviços, equipa, disponibilidade e regras principais da agenda.
+            Esta área já está desenhada para o fluxo autenticado do negócio. Agora também permite gerir
+            serviços, equipa, disponibilidade, comunicação e regras principais da agenda.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Cidade principal: {snapshot.city} - Página pública: /{snapshot.slug}
+            Cidade principal: {snapshot.city} · Página pública: /{snapshot.slug}
           </p>
         </div>
 
@@ -119,12 +122,12 @@ export default async function DashboardPreviewPage() {
               <div>
                 <p className="font-medium">{booking.customerName}</p>
                 <p className="text-sm text-muted-foreground">
-                  {booking.serviceName} - {booking.staffName}
+                  {booking.serviceName} · {booking.staffName}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">
-                  {new Date(booking.startsAt).toLocaleDateString("pt-PT")} -{" "}
+                  {new Date(booking.startsAt).toLocaleDateString("pt-PT")} ·{" "}
                   {new Date(booking.startsAt).toLocaleTimeString("pt-PT", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -138,6 +141,8 @@ export default async function DashboardPreviewPage() {
       </Card>
 
       <DashboardAgenda initialSnapshot={agendaView.agenda} initialWeekSnapshot={agendaView.week} />
+
+      <DashboardCommunications initialSnapshot={communications} />
 
       <DashboardCustomers initialSnapshot={customers} />
 

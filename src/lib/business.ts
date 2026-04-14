@@ -5,6 +5,7 @@ export type {
   BookingAgendaViewSnapshot,
   BookingAgendaWeekSnapshot,
   BookingSlot,
+  CommunicationSnapshot,
   CustomerSnapshot,
   ManagementSnapshot,
   OnboardingDraft,
@@ -26,6 +27,7 @@ export {
 export {
   createManualBooking,
   createScheduleBlock,
+  getCommunicationSnapshot,
   deleteScheduleBlock,
   getBookingAgenda,
   getBookingAgendaView,

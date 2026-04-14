@@ -1,10 +1,40 @@
 import { addDays, endOfWeek, format, set, startOfWeek } from "date-fns";
+import { getCronSecret, getEmailFrom } from "@/lib/app-config";
 import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
 import { db } from "@/lib/db";
 import { sendBookingNotification, sendRepresentativeBookingNotification } from "@/lib/notifications";
 import { getCurrentBusiness } from "./core";
 import { upsertBookingCustomer } from "./customers";
-import type { BookingAgendaItem, BookingAgendaSnapshot, BookingAgendaViewSnapshot, BookingAgendaWeekSnapshot } from "./types";
+import type {
+  BookingAgendaItem,
+  BookingAgendaSnapshot,
+  BookingAgendaViewSnapshot,
+  BookingAgendaWeekSnapshot,
+  CommunicationSnapshot,
+} from "./types";
+
+function maskNotificationRecipient(channel: "EMAIL" | "SMS", recipient: string) {
+  if (!recipient) {
+    return "Sem destinatário";
+  }
+
+  if (channel === "EMAIL") {
+    const [localPart, domain] = recipient.split("@");
+    if (!localPart || !domain) {
+      return recipient;
+    }
+
+    const visibleStart = localPart.slice(0, 2);
+    return `${visibleStart}${"*".repeat(Math.max(localPart.length - visibleStart.length, 2))}@${domain}`;
+  }
+
+  const normalized = recipient.replace(/\s+/g, "");
+  if (normalized.length <= 6) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 4)}${"*".repeat(Math.max(normalized.length - 6, 3))}${normalized.slice(-2)}`;
+}
 
 function mapBookingAgendaItem(booking: {
   id: string;
@@ -88,6 +118,82 @@ export async function getDashboardSnapshot() {
       status: booking.status,
       serviceName: booking.service.name,
       staffName: booking.staffMember?.fullName ?? "Sem profissional",
+    })),
+  };
+}
+
+export async function getCommunicationSnapshot(): Promise<CommunicationSnapshot> {
+  const business = await getCurrentBusiness();
+  const since = new Date(Date.now() - 24 * 60 * 60_000);
+
+  const [sentLast24h, failedLast24h, skippedLast24h, notifications] = await Promise.all([
+    db.notificationLog.count({
+      where: {
+        businessId: business.id,
+        createdAt: { gte: since },
+        status: "SENT",
+      },
+    }),
+    db.notificationLog.count({
+      where: {
+        businessId: business.id,
+        createdAt: { gte: since },
+        status: "FAILED",
+      },
+    }),
+    db.notificationLog.count({
+      where: {
+        businessId: business.id,
+        createdAt: { gte: since },
+        status: "SKIPPED",
+      },
+    }),
+    db.notificationLog.findMany({
+      where: {
+        businessId: business.id,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: {
+        booking: {
+          include: {
+            service: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  return {
+    channels: {
+      emailConfigured: Boolean(process.env.RESEND_API_KEY?.trim() && getEmailFrom()),
+      smsConfigured: Boolean(
+        process.env.TWILIO_ACCOUNT_SID?.trim() &&
+          process.env.TWILIO_AUTH_TOKEN?.trim() &&
+          process.env.TWILIO_PHONE_NUMBER?.trim()
+      ),
+      cronSecretConfigured: Boolean(getCronSecret()),
+    },
+    totals: {
+      sentLast24h,
+      failedLast24h,
+      skippedLast24h,
+    },
+    notifications: notifications.map((notification) => ({
+      id: notification.id,
+      createdAt: notification.createdAt,
+      sentAt: notification.sentAt,
+      status: notification.status,
+      channel: notification.channel,
+      kind: notification.kind,
+      recipientMasked: maskNotificationRecipient(notification.channel, notification.recipient),
+      errorMessage: notification.errorMessage,
+      booking: {
+        id: notification.booking.id,
+        customerName: notification.booking.customerName,
+        serviceName: notification.booking.service.name,
+        startsAt: notification.booking.startsAt,
+      },
     })),
   };
 }
