@@ -50,6 +50,13 @@ type BookingNotificationPayload = {
   } | null;
 };
 
+type NotificationTemplate = {
+  subject: string;
+  preview: string;
+  html: string;
+  text: string;
+};
+
 function buildManageUrl(booking: BookingNotificationPayload) {
   return booking.publicToken ? `${getAppUrl()}/booking/${booking.publicToken}` : `${getAppUrl()}/${booking.business.slug}`;
 }
@@ -66,96 +73,273 @@ function getRepresentativeSmsRecipient(booking: BookingNotificationPayload) {
   return booking.business.contactPhone;
 }
 
-function buildTemplate(kind: NotificationKind, booking: BookingNotificationPayload) {
-  const when = `${format(booking.startsAt, "dd/MM/yyyy")} as ${format(booking.startsAt, "HH:mm")}`;
+function buildEmailShell(input: {
+  preview: string;
+  eyebrow: string;
+  title: string;
+  body: string[];
+  ctaLabel?: string;
+  ctaUrl?: string;
+  muted?: string;
+  footer?: string[];
+}) {
+  const bodyHtml = input.body.map((paragraph) => `<p style="margin:0 0 14px;line-height:1.7;">${paragraph}</p>`).join("");
+  const ctaHtml =
+    input.ctaLabel && input.ctaUrl
+      ? `<p style="margin:24px 0 0;"><a href="${input.ctaUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:600;">${input.ctaLabel}</a></p>`
+      : "";
+  const mutedHtml = input.muted
+    ? `<p style="margin:18px 0 0;color:#6b7280;font-size:13px;line-height:1.6;">${input.muted}</p>`
+    : "";
+  const footerHtml =
+    input.footer && input.footer.length > 0
+      ? `<div style="margin-top:24px;padding-top:18px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:13px;line-height:1.7;">${input.footer
+          .map((line) => `<p style="margin:0 0 8px;">${line}</p>`)
+          .join("")}</div>`
+      : "";
+
+  return `
+    <div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0;">
+      ${input.preview}
+    </div>
+    <div style="background:#f5f7fb;padding:32px 16px;font-family:Arial,sans-serif;color:#111827;">
+      <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:24px;overflow:hidden;">
+        <div style="padding:28px 28px 18px;background:linear-gradient(135deg,#111827 0%,#1f2937 100%);color:#ffffff;">
+          <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;opacity:0.76;">${input.eyebrow}</p>
+          <h1 style="margin:0;font-size:28px;line-height:1.2;">${input.title}</h1>
+        </div>
+        <div style="padding:24px 28px 28px;">
+          ${bodyHtml}
+          ${ctaHtml}
+          ${mutedHtml}
+          ${footerHtml}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildTextTemplate(input: {
+  title: string;
+  body: string[];
+  ctaLabel?: string;
+  ctaUrl?: string;
+  footer?: string[];
+}) {
+  const sections = [input.title, "", ...input.body];
+
+  if (input.ctaLabel && input.ctaUrl) {
+    sections.push("", `${input.ctaLabel}: ${input.ctaUrl}`);
+  }
+
+  if (input.footer && input.footer.length > 0) {
+    sections.push("", ...input.footer);
+  }
+
+  return sections.join("\n");
+}
+
+function buildTemplate(kind: NotificationKind, booking: BookingNotificationPayload): NotificationTemplate {
+  const when = `${format(booking.startsAt, "dd/MM/yyyy")} às ${format(booking.startsAt, "HH:mm")}`;
   const manageUrl = buildManageUrl(booking);
   const publicPageUrl = buildPublicPageUrl(booking);
   const professional = booking.staffMember?.fullName ?? "equipa";
   const representativeName = booking.business.owner.firstName || booking.business.name;
+  const contactLines = [
+    booking.business.contactEmail ? `Email: ${booking.business.contactEmail}` : null,
+    booking.business.contactPhone ? `Telefone: ${booking.business.contactPhone}` : null,
+  ].filter((value): value is string => Boolean(value));
 
   switch (kind) {
     case "BOOKING_CREATED":
       return {
         subject: `Recebemos a tua reserva em ${booking.business.name}`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
-            <h1 style="font-size:24px;margin-bottom:12px;">Recebemos a tua reserva</h1>
-            <p>Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi registada com sucesso.</p>
-            <p><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
-            <p>Se precisares, podes acompanhar, confirmar ou cancelar no link abaixo.</p>
-            <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Gerir reserva</a></p>
-          </div>
-        `,
+        preview: `${booking.service.name} a ${when} com ${professional}.`,
+        html: buildEmailShell({
+          preview: `${booking.service.name} a ${when} com ${professional}.`,
+          eyebrow: "Nova reserva",
+          title: "Recebemos a tua reserva",
+          body: [
+            `Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi registada com sucesso.`,
+            `<strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
+            "Se precisares, podes acompanhar, confirmar ou cancelar no link abaixo.",
+          ],
+          ctaLabel: "Gerir reserva",
+          ctaUrl: manageUrl,
+          muted: `Barbearia: ${booking.business.name}`,
+          footer: contactLines,
+        }),
+        text: buildTextTemplate({
+          title: "Recebemos a tua reserva",
+          body: [
+            `Olá ${booking.customerName}, a tua reserva para ${booking.service.name} foi registada com sucesso.`,
+            `Quando: ${when}`,
+            `Profissional: ${professional}`,
+            "Se precisares, podes acompanhar, confirmar ou cancelar no link abaixo.",
+          ],
+          ctaLabel: "Gerir reserva",
+          ctaUrl: manageUrl,
+          footer: contactLines,
+        }),
       };
     case "BOOKING_CONFIRMED":
       return {
         subject: `Reserva confirmada em ${booking.business.name}`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
-            <h1 style="font-size:24px;margin-bottom:12px;">Reserva confirmada</h1>
-            <p>Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> esta confirmada.</p>
-            <p><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
-            <p>Guarda este link para consultar os detalhes sempre que precisares.</p>
-            <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Ver reserva</a></p>
-          </div>
-        `,
+        preview: `${booking.service.name} confirmada para ${when}.`,
+        html: buildEmailShell({
+          preview: `${booking.service.name} confirmada para ${when}.`,
+          eyebrow: "Reserva confirmada",
+          title: "Está tudo confirmado",
+          body: [
+            `Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> está confirmada.`,
+            `<strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
+            "Guarda este link para consultar os detalhes sempre que precisares.",
+          ],
+          ctaLabel: "Ver reserva",
+          ctaUrl: manageUrl,
+          muted: `Barbearia: ${booking.business.name}`,
+          footer: contactLines,
+        }),
+        text: buildTextTemplate({
+          title: "Está tudo confirmado",
+          body: [
+            `Olá ${booking.customerName}, a tua reserva para ${booking.service.name} está confirmada.`,
+            `Quando: ${when}`,
+            `Profissional: ${professional}`,
+            "Guarda este link para consultar os detalhes sempre que precisares.",
+          ],
+          ctaLabel: "Ver reserva",
+          ctaUrl: manageUrl,
+          footer: contactLines,
+        }),
       };
     case "BOOKING_CANCELLED":
       return {
         subject: `Reserva cancelada em ${booking.business.name}`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
-            <h1 style="font-size:24px;margin-bottom:12px;">Reserva cancelada</h1>
-            <p>Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi cancelada.</p>
-            <p>Se quiseres marcar novamente, a página pública continua disponível.</p>
-            <p><a href="${publicPageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Marcar novo horário</a></p>
-          </div>
-        `,
+        preview: `A tua reserva de ${booking.service.name} foi cancelada.`,
+        html: buildEmailShell({
+          preview: `A tua reserva de ${booking.service.name} foi cancelada.`,
+          eyebrow: "Reserva cancelada",
+          title: "A tua reserva foi cancelada",
+          body: [
+            `Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi cancelada.`,
+            "Se quiseres marcar novamente, a página pública da barbearia continua disponível.",
+          ],
+          ctaLabel: "Marcar novo horário",
+          ctaUrl: publicPageUrl,
+          muted: `Barbearia: ${booking.business.name}`,
+          footer: contactLines,
+        }),
+        text: buildTextTemplate({
+          title: "A tua reserva foi cancelada",
+          body: [
+            `Olá ${booking.customerName}, a tua reserva para ${booking.service.name} foi cancelada.`,
+            "Se quiseres marcar novamente, a página pública da barbearia continua disponível.",
+          ],
+          ctaLabel: "Marcar novo horário",
+          ctaUrl: publicPageUrl,
+          footer: contactLines,
+        }),
       };
     case "BOOKING_CANCELLED_INTERNAL":
       return {
         subject: `Cancelamento recebido: ${booking.customerName}`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
-            <h1 style="font-size:24px;margin-bottom:12px;">Cancelamento de reserva</h1>
-            <p>Olá ${representativeName}, a reserva abaixo foi cancelada pelo cliente ou pelo painel.</p>
-            <p><strong>Cliente:</strong> ${booking.customerName}<br /><strong>Serviço:</strong> ${booking.service.name}<br /><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
-            <p>Podes reabrir a agenda ou acompanhar a reserva no link abaixo.</p>
-            <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Ver reserva</a></p>
-          </div>
-        `,
+        preview: `${booking.customerName} cancelou ${booking.service.name} de ${when}.`,
+        html: buildEmailShell({
+          preview: `${booking.customerName} cancelou ${booking.service.name} de ${when}.`,
+          eyebrow: "Operação",
+          title: "Cancelamento de reserva",
+          body: [
+            `Olá ${representativeName}, a reserva abaixo foi cancelada pelo cliente ou pelo painel.`,
+            `<strong>Cliente:</strong> ${booking.customerName}<br /><strong>Serviço:</strong> ${booking.service.name}<br /><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
+            "Podes reabrir a agenda ou acompanhar a reserva no link abaixo.",
+          ],
+          ctaLabel: "Ver reserva",
+          ctaUrl: manageUrl,
+          muted: `Barbearia: ${booking.business.name}`,
+          footer: contactLines,
+        }),
+        text: buildTextTemplate({
+          title: "Cancelamento de reserva",
+          body: [
+            `Olá ${representativeName}, a reserva abaixo foi cancelada pelo cliente ou pelo painel.`,
+            `Cliente: ${booking.customerName}`,
+            `Serviço: ${booking.service.name}`,
+            `Quando: ${when}`,
+            `Profissional: ${professional}`,
+          ],
+          ctaLabel: "Ver reserva",
+          ctaUrl: manageUrl,
+          footer: contactLines,
+        }),
       };
     case "BOOKING_RESCHEDULED":
       return {
         subject: `Reserva remarcada em ${booking.business.name}`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
-            <h1 style="font-size:24px;margin-bottom:12px;">Reserva remarcada</h1>
-            <p>Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi atualizada.</p>
-            <p><strong>Novo horário:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
-            <p>Podes rever os detalhes sempre que precisares.</p>
-            <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Ver reserva</a></p>
-          </div>
-        `,
+        preview: `Novo horário definido para ${when}.`,
+        html: buildEmailShell({
+          preview: `Novo horário definido para ${when}.`,
+          eyebrow: "Reserva remarcada",
+          title: "Atualizámos a tua reserva",
+          body: [
+            `Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi atualizada.`,
+            `<strong>Novo horário:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
+            "Podes rever os detalhes sempre que precisares.",
+          ],
+          ctaLabel: "Ver reserva",
+          ctaUrl: manageUrl,
+          muted: `Barbearia: ${booking.business.name}`,
+          footer: contactLines,
+        }),
+        text: buildTextTemplate({
+          title: "Atualizámos a tua reserva",
+          body: [
+            `Olá ${booking.customerName}, a tua reserva para ${booking.service.name} foi atualizada.`,
+            `Novo horário: ${when}`,
+            `Profissional: ${professional}`,
+            "Podes rever os detalhes sempre que precisares.",
+          ],
+          ctaLabel: "Ver reserva",
+          ctaUrl: manageUrl,
+          footer: contactLines,
+        }),
       };
     case "BOOKING_REMINDER":
       return {
-        subject: `Lembrete: faltam 30 minutos para a tua reserva`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111827">
-            <h1 style="font-size:24px;margin-bottom:12px;">O teu horário está quase a chegar</h1>
-            <p>Olá ${booking.customerName}, faltam cerca de 30 minutos para a tua reserva de <strong>${booking.service.name}</strong>.</p>
-            <p><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}</p>
-            <p>Se precisares de rever os detalhes, usa este link:</p>
-            <p><a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;">Gerir reserva</a></p>
-          </div>
-        `,
+        subject: "Lembrete: faltam 30 minutos para a tua reserva",
+        preview: `${booking.service.name} começa em cerca de 30 minutos.`,
+        html: buildEmailShell({
+          preview: `${booking.service.name} começa em cerca de 30 minutos.`,
+          eyebrow: "Lembrete",
+          title: "Está quase na hora",
+          body: [
+            `Olá ${booking.customerName}, faltam cerca de 30 minutos para a tua reserva de <strong>${booking.service.name}</strong>.`,
+            `<strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
+            "Se precisares de rever os detalhes, usa este link.",
+          ],
+          ctaLabel: "Gerir reserva",
+          ctaUrl: manageUrl,
+          muted: `Barbearia: ${booking.business.name}`,
+          footer: contactLines,
+        }),
+        text: buildTextTemplate({
+          title: "Está quase na hora",
+          body: [
+            `Olá ${booking.customerName}, faltam cerca de 30 minutos para a tua reserva de ${booking.service.name}.`,
+            `Quando: ${when}`,
+            `Profissional: ${professional}`,
+            "Se precisares de rever os detalhes, usa este link.",
+          ],
+          ctaLabel: "Gerir reserva",
+          ctaUrl: manageUrl,
+          footer: contactLines,
+        }),
       };
   }
 }
 
 function buildSmsMessage(kind: NotificationKind, booking: BookingNotificationPayload) {
-  const when = `${format(booking.startsAt, "dd/MM HH:mm")}`;
+  const when = format(booking.startsAt, "dd/MM HH:mm");
   const professional = booking.staffMember?.fullName ?? "equipa";
   const manageUrl = buildManageUrl(booking);
 
@@ -332,6 +516,7 @@ async function sendEmailForKind(booking: BookingNotificationPayload, kind: Notif
         to: recipient,
         subject: template.subject,
         html: template.html,
+        text: template.text,
       }),
     });
 

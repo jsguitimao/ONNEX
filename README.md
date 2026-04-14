@@ -119,10 +119,24 @@ As notificacoes sao disparadas a partir de `src/lib/notifications.ts`.
 
 - email usa Resend
 - SMS usa Twilio
-- lembretes sao enviados pelo endpoint `POST /api/cron/send-reminders`
+- emails incluem versao HTML e `text/plain`
+- lembretes sao enviados pelo endpoint `GET/POST /api/cron/send-reminders`
 - o cron exige `CRON_SECRET` por header, bearer token ou query string
+- emails e SMS fazem retry simples em respostas `429` e `5xx` do provider
 
 Sem credenciais de email ou SMS, o sistema nao quebra. Em vez disso, regista `SKIPPED` em `NotificationLog`.
+
+### Scheduler de producao
+
+Como o plano Hobby da Vercel nao cobre o agendamento que precisamos aqui, o projeto usa um scheduler externo via GitHub Actions em [.github/workflows/send-reminders.yml](./.github/workflows/send-reminders.yml).
+
+Para ativar os lembretes automaticos em producao:
+
+1. Define `CRON_SECRET` na Vercel.
+2. Cria o secret `REMINDER_CRON_SECRET` no repositorio GitHub com exatamente o mesmo valor.
+3. Opcionalmente, cria a variable `REMINDER_CRON_URL` no GitHub se quiseres usar um dominio/URL diferente de `https://buk-next.vercel.app/api/cron/send-reminders`.
+
+O workflow chama o endpoint de 10 em 10 minutos com a janela `start=25` e `end=35`, o que fecha o lembrete "30 minutos antes" de forma robusta.
 
 ## Seguranca publica
 
