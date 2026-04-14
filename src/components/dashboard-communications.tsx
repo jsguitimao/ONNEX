@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   CheckCircle2,
   Clock3,
@@ -36,6 +36,9 @@ type RetryResult = {
   reason?: string;
   error?: string;
 };
+
+type NotificationFilter = "ALL" | "ATTENTION" | "FAILED" | "REMINDERS";
+type ChannelFilter = "ALL" | "EMAIL" | "SMS";
 
 const kindLabels: Record<CommunicationSnapshot["notifications"][number]["kind"], string> = {
   BOOKING_CREATED: "Reserva criada",
@@ -120,6 +123,25 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notificationFilter, setNotificationFilter] = useState<NotificationFilter>("ALL");
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>("ALL");
+
+  const filteredNotifications = useMemo(() => {
+    return initialSnapshot.notifications.filter((notification) => {
+      const matchesNotificationFilter =
+        notificationFilter === "ALL"
+          ? true
+          : notificationFilter === "ATTENTION"
+            ? notification.status === "FAILED" || notification.status === "SKIPPED"
+            : notificationFilter === "FAILED"
+              ? notification.status === "FAILED"
+              : notification.kind === "BOOKING_REMINDER";
+
+      const matchesChannelFilter = channelFilter === "ALL" ? true : notification.channel === channelFilter;
+
+      return matchesNotificationFilter && matchesChannelFilter;
+    });
+  }, [channelFilter, initialSnapshot.notifications, notificationFilter]);
 
   async function refreshDashboard() {
     startRefreshing(() => {
@@ -233,19 +255,69 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
         </div>
 
         <div className="rounded-3xl border border-border/70 bg-muted/20 p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <Clock3 className="size-4 text-primary" />
-            <p className="font-medium">Ultimos envios</p>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Clock3 className="size-4 text-primary" />
+              <p className="font-medium">Ultimos envios</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={notificationFilter === "ALL" ? "default" : "outline"}
+                onClick={() => setNotificationFilter("ALL")}
+              >
+                Todos
+              </Button>
+              <Button
+                variant={notificationFilter === "ATTENTION" ? "default" : "outline"}
+                onClick={() => setNotificationFilter("ATTENTION")}
+              >
+                Pedem acao
+              </Button>
+              <Button
+                variant={notificationFilter === "FAILED" ? "default" : "outline"}
+                onClick={() => setNotificationFilter("FAILED")}
+              >
+                Falharam
+              </Button>
+              <Button
+                variant={notificationFilter === "REMINDERS" ? "default" : "outline"}
+                onClick={() => setNotificationFilter("REMINDERS")}
+              >
+                Lembretes
+              </Button>
+            </div>
           </div>
 
-          {initialSnapshot.notifications.length === 0 ? (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <Button
+              variant={channelFilter === "ALL" ? "default" : "outline"}
+              onClick={() => setChannelFilter("ALL")}
+            >
+              Todos os canais
+            </Button>
+            <Button
+              variant={channelFilter === "EMAIL" ? "default" : "outline"}
+              onClick={() => setChannelFilter("EMAIL")}
+            >
+              Email
+            </Button>
+            <Button
+              variant={channelFilter === "SMS" ? "default" : "outline"}
+              onClick={() => setChannelFilter("SMS")}
+            >
+              SMS
+            </Button>
+            <span className="text-sm text-muted-foreground">{filteredNotifications.length} registos no filtro atual</span>
+          </div>
+
+          {filteredNotifications.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/80 bg-background/70 px-4 py-6 text-sm text-muted-foreground">
-              Ainda nao ha registos de comunicacao. Assim que entrarem reservas, confirmacoes ou lembretes,
-              os eventos aparecem aqui.
+              Nao ha registos para este filtro. Ajusta os filtros acima ou cria novas reservas para gerar historico.
             </div>
           ) : (
             <div className="grid gap-3">
-              {initialSnapshot.notifications.map((notification) => {
+              {filteredNotifications.map((notification) => {
                 const canRetry = notification.status !== "SENT";
 
                 return (
