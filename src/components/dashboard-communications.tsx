@@ -1,10 +1,32 @@
-import { CheckCircle2, Clock3, Mail, MessageSquareWarning, ShieldCheck, Siren, Smartphone } from "lucide-react";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import {
+  CheckCircle2,
+  Clock3,
+  LoaderCircle,
+  Mail,
+  MessageSquareWarning,
+  RefreshCw,
+  ShieldCheck,
+  Siren,
+  Smartphone,
+} from "lucide-react";
 import type { CommunicationSnapshot } from "@/lib/business";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type DashboardCommunicationsProps = {
   initialSnapshot: CommunicationSnapshot;
+};
+
+type ReminderRunResult = {
+  scanned: number;
+  sent: number;
+  skipped: number;
+  failed: number;
 };
 
 const kindLabels: Record<CommunicationSnapshot["notifications"][number]["kind"], string> = {
@@ -13,7 +35,7 @@ const kindLabels: Record<CommunicationSnapshot["notifications"][number]["kind"],
   BOOKING_CANCELLED: "Reserva cancelada",
   BOOKING_CANCELLED_INTERNAL: "Aviso interno de cancelamento",
   BOOKING_RESCHEDULED: "Reserva remarcada",
-  BOOKING_REMINDER: "Lembrete automático",
+  BOOKING_REMINDER: "Lembrete automatico",
 };
 
 const statusLabels: Record<CommunicationSnapshot["notifications"][number]["status"], string> = {
@@ -51,7 +73,7 @@ function ChannelState({
         <div>
           <p className="font-medium">{label}</p>
           <p className="text-sm text-muted-foreground">
-            {configured ? "Configurado e pronto a enviar" : "Ainda precisa de configuração"}
+            {configured ? "Configurado e pronto a enviar" : "Ainda precisa de configuracao"}
           </p>
         </div>
       </div>
@@ -60,28 +82,83 @@ function ChannelState({
   );
 }
 
+function buildReminderSummary(result: ReminderRunResult) {
+  return `Varredura concluida: ${result.scanned} reservas analisadas, ${result.sent} envios, ${result.skipped} ignorados e ${result.failed} falhas.`;
+}
+
 export function DashboardCommunications({ initialSnapshot }: DashboardCommunicationsProps) {
+  const router = useRouter();
+  const [isRefreshing, startRefreshing] = useTransition();
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function runReminderSweep() {
+    setFeedback(null);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/dashboard/communications/reminders", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as Partial<ReminderRunResult> & { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Nao foi possivel executar a varredura de lembretes.");
+      }
+
+      setFeedback(
+        buildReminderSummary({
+          scanned: payload.scanned ?? 0,
+          sent: payload.sent ?? 0,
+          skipped: payload.skipped ?? 0,
+          failed: payload.failed ?? 0,
+        })
+      );
+
+      startRefreshing(() => {
+        router.refresh();
+      });
+    } catch (runError) {
+      setError(runError instanceof Error ? runError.message : "Erro inesperado ao executar lembretes.");
+    }
+  }
+
   return (
     <Card className="mt-6 border-border/70">
       <CardHeader className="gap-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <CardTitle className="font-heading text-2xl">Comunicação e lembretes</CardTitle>
+            <CardTitle className="font-heading text-2xl">Comunicacao e lembretes</CardTitle>
             <CardDescription>
-              Estado dos canais e histórico recente de confirmações, cancelamentos, remarcações e lembretes.
+              Estado dos canais e historico recente de confirmacoes, cancelamentos, remarcacoes e lembretes.
             </CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{initialSnapshot.totals.sentLast24h} enviados em 24h</Badge>
             <Badge variant={initialSnapshot.totals.failedLast24h > 0 ? "destructive" : "outline"}>
               {initialSnapshot.totals.failedLast24h} falhas
             </Badge>
             <Badge variant="outline">{initialSnapshot.totals.skippedLast24h} ignorados</Badge>
+            <Button variant="outline" onClick={() => void runReminderSweep()} disabled={isRefreshing}>
+              {isRefreshing ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+              Executar lembretes agora
+            </Button>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="grid gap-6">
+        {feedback ? (
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
+            {feedback}
+          </div>
+        ) : null}
+        {error ? (
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        ) : null}
+
         <div className="grid gap-4 md:grid-cols-3">
           <ChannelState label="Email transacional" configured={initialSnapshot.channels.emailConfigured} icon={Mail} />
           <ChannelState label="SMS transacional" configured={initialSnapshot.channels.smsConfigured} icon={Smartphone} />
@@ -95,12 +172,12 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
         <div className="rounded-3xl border border-border/70 bg-muted/20 p-4">
           <div className="mb-4 flex items-center gap-2">
             <Clock3 className="size-4 text-primary" />
-            <p className="font-medium">Últimos envios</p>
+            <p className="font-medium">Ultimos envios</p>
           </div>
 
           {initialSnapshot.notifications.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/80 bg-background/70 px-4 py-6 text-sm text-muted-foreground">
-              Ainda não há registos de comunicação. Assim que entrarem reservas, confirmações ou lembretes,
+              Ainda nao ha registos de comunicacao. Assim que entrarem reservas, confirmacoes ou lembretes,
               os eventos aparecem aqui.
             </div>
           ) : (
@@ -127,7 +204,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
                         })}
                       </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">Destinatário: {notification.recipientMasked}</p>
+                    <p className="text-sm text-muted-foreground">Destinatario: {notification.recipientMasked}</p>
                     {notification.errorMessage ? (
                       <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                         <span className="inline-flex items-center gap-2">
@@ -158,7 +235,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
                             hour: "2-digit",
                             minute: "2-digit",
                           })}`
-                        : "Ainda sem confirmação de envio"}
+                        : "Ainda sem confirmacao de envio"}
                     </span>
                   </div>
                 </div>
