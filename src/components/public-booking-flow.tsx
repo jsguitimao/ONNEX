@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Loader2, ShieldCheck, UserRound } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import type { BookingSlot, PublicBusinessPayload } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type Props = {

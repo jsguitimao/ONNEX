@@ -1,10 +1,10 @@
-import { UserButton } from "@clerk/nextjs";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { AuthUserButton } from "@/components/auth-user-button";
 import { OnboardingStudio } from "@/components/onboarding-studio";
-import { getBusinessForOnboarding } from "@/lib/business";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { getBusinessForOnboarding } from "@/lib/business";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export default async function OnboardingPreviewPage() {
             Ver dashboard base
             <ArrowRight className="size-4" />
           </Link>
-          <UserButton />
+          <AuthUserButton />
         </div>
       </div>
 

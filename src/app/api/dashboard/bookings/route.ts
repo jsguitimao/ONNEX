@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     const result = bookingSchema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
+      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
     }
 
     const booking = await createManualBooking({
@@ -54,18 +54,18 @@ export async function POST(req: Request) {
     const message = error instanceof Error ? error.message : "ERRO";
     const mapped =
       message === "INVALID_JSON_BODY"
-        ? { status: 400, error: "Corpo JSON invalido." }
+        ? { status: 400, error: "Corpo JSON inválido." }
         : message === "HORARIO_OCUPADO"
-        ? { status: 409, error: "Ja existe uma reserva neste horario para este profissional." }
-        : message === "DADOS_INVALIDOS"
-          ? { status: 400, error: "Servico ou profissional invalido." }
-          : message === "PROFISSIONAL_INCOMPATIVEL"
-            ? { status: 400, error: "Este profissional nao executa o servico escolhido." }
-            : message === "HORARIO_BLOQUEADO"
-              ? { status: 409, error: "Este horario esta bloqueado na agenda." }
-              : message === "DATA_INVALIDA"
-                ? { status: 400, error: "Escolhe uma data valida para a reserva." }
-            : { status: 500, error: "Erro ao criar reserva manual." };
+          ? { status: 409, error: "Já existe uma reserva neste horário para este profissional." }
+          : message === "DADOS_INVALIDOS"
+            ? { status: 400, error: "Serviço ou profissional inválido." }
+            : message === "PROFISSIONAL_INCOMPATIVEL"
+              ? { status: 400, error: "Este profissional não executa o serviço escolhido." }
+              : message === "HORARIO_BLOQUEADO"
+                ? { status: 409, error: "Este horário está bloqueado na agenda." }
+                : message === "DATA_INVALIDA"
+                  ? { status: 400, error: "Escolhe uma data válida para a reserva." }
+                  : { status: 500, error: "Erro ao criar reserva manual." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }

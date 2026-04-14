@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const result = blockSchema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
+      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
     }
 
     const block = await createScheduleBlock({
@@ -31,12 +31,12 @@ export async function POST(req: Request) {
     const message = error instanceof Error ? error.message : "ERRO";
     const mapped =
       message === "INVALID_JSON_BODY"
-        ? { status: 400, error: "Corpo JSON invalido." }
+        ? { status: 400, error: "Corpo JSON inválido." }
         : message === "BLOQUEIO_INVALIDO"
-        ? { status: 400, error: "Define um intervalo de bloqueio valido." }
-        : message === "STAFF_NOT_FOUND"
-          ? { status: 404, error: "Profissional não encontrado." }
-          : { status: 500, error: "Erro ao criar bloqueio." };
+          ? { status: 400, error: "Define um intervalo de bloqueio válido." }
+          : message === "STAFF_NOT_FOUND"
+            ? { status: 404, error: "Profissional não encontrado." }
+            : { status: 500, error: "Erro ao criar bloqueio." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }

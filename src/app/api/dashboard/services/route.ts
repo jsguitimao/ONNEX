@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const result = serviceSchema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
+      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
     }
 
     const service = await createService(result.data);
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "ERRO";
     const status = message === "INVALID_JSON_BODY" ? 400 : 500;
-    const mapped = status === 400 ? "Corpo JSON invalido." : "Nao foi possivel criar o servico.";
+    const mapped = status === 400 ? "Corpo JSON inválido." : "Não foi possível criar o serviço.";
     return NextResponse.json({ error: mapped }, { status });
   }
 }

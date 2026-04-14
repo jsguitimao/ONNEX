@@ -3,7 +3,7 @@ import { authorizeCronRequest } from "@/lib/cron-auth";
 import { sendUpcomingBookingReminders } from "@/lib/notifications";
 import { captureException, logWarning } from "@/lib/observability";
 
-export async function POST(req: Request) {
+async function handleCronReminderRequest(req: Request) {
   const authorization = authorizeCronRequest(req);
 
   if (!authorization.configured) {
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       route: "/api/cron/send-reminders",
       isVercelCronUserAgent: authorization.isVercelCronUserAgent,
     });
-    return NextResponse.json({ error: "CRON_SECRET nao configurado." }, { status: 503 });
+    return NextResponse.json({ error: "CRON_SECRET não configurado." }, { status: 503 });
   }
 
   if (!authorization.ok) {
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       route: "/api/cron/send-reminders",
       isVercelCronUserAgent: authorization.isVercelCronUserAgent,
     });
-    return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 
   try {
@@ -41,4 +41,12 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ error: "Erro ao enviar lembretes." }, { status: 500 });
   }
+}
+
+export async function GET(req: Request) {
+  return handleCronReminderRequest(req);
+}
+
+export async function POST(req: Request) {
+  return handleCronReminderRequest(req);
 }

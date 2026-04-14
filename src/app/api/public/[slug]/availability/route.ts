@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: RouteProps) {
 
   if (!rateLimit.ok) {
     return NextResponse.json(
-      { error: "Demasiados pedidos. Aguarda um pouco antes de procurar mais horarios." },
+      { error: "Demasiados pedidos. Aguarda um pouco antes de procurar mais horários." },
       { status: 429, headers: buildRateLimitHeaders(rateLimit) }
     );
   }
@@ -38,7 +38,7 @@ export async function GET(req: Request, { params }: RouteProps) {
 
   if (!result.success) {
     return NextResponse.json(
-      { error: "Parametros invalidos." },
+      { error: "Parâmetros inválidos." },
       { status: 400, headers: buildRateLimitHeaders(rateLimit) }
     );
   }
@@ -63,7 +63,7 @@ export async function GET(req: Request, { params }: RouteProps) {
     });
 
     return NextResponse.json(
-      { error: "Nao foi possivel carregar os horarios disponiveis." },
+      { error: "Não foi possível carregar os horários disponíveis." },
       { status: 500, headers: buildRateLimitHeaders(rateLimit) }
     );
   }

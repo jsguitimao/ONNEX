@@ -27,7 +27,7 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     if (!business) {
       return NextResponse.json(
-        { error: "Negocio nao encontrado." },
+        { error: "Negócio não encontrado." },
         { status: 404, headers: buildRateLimitHeaders(rateLimit) }
       );
     }
@@ -38,7 +38,7 @@ export async function GET(req: Request, { params }: RouteProps) {
   } catch (error) {
     captureException("public_business.fetch_failed", error, { slug });
     return NextResponse.json(
-      { error: "Nao foi possivel carregar a pagina publica." },
+      { error: "Não foi possível carregar a página pública." },
       { status: 500, headers: buildRateLimitHeaders(rateLimit) }
     );
   }

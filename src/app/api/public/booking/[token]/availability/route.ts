@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: RouteProps) {
 
   if (!rateLimit.ok) {
     return NextResponse.json(
-      { error: "Demasiados pedidos. Aguarda um pouco antes de procurar mais horarios." },
+      { error: "Demasiados pedidos. Aguarda um pouco antes de procurar mais horários." },
       { status: 429, headers: buildRateLimitHeaders(rateLimit) }
     );
   }
@@ -34,7 +34,7 @@ export async function GET(req: Request, { params }: RouteProps) {
 
   if (!result.success) {
     return NextResponse.json(
-      { error: "Parametros invalidos." },
+      { error: "Parâmetros inválidos." },
       { status: 400, headers: buildRateLimitHeaders(rateLimit) }
     );
   }
@@ -44,7 +44,7 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     if (!slots) {
       return NextResponse.json(
-        { error: "Reserva nao encontrada." },
+        { error: "Reserva não encontrada." },
         { status: 404, headers: buildRateLimitHeaders(rateLimit) }
       );
     }
@@ -58,7 +58,7 @@ export async function GET(req: Request, { params }: RouteProps) {
   } catch (error) {
     captureException("public_booking_reschedule_slots.fetch_failed", error, { token });
     return NextResponse.json(
-      { error: "Nao foi possivel carregar os horarios para remarcacao." },
+      { error: "Não foi possível carregar os horários para remarcação." },
       { status: 500, headers: buildRateLimitHeaders(rateLimit) }
     );
   }

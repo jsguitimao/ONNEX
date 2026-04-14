@@ -1,4 +1,4 @@
-import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -11,6 +11,7 @@ import {
   Store,
   Users,
 } from "lucide-react";
+import { AuthUserButton } from "@/components/auth-user-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +46,16 @@ const roadmap = [
   "Deploy contínuo desde o primeiro ciclo",
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  let isSignedIn = false;
+
+  try {
+    const { userId } = await auth();
+    isSignedIn = Boolean(userId);
+  } catch {
+    isSignedIn = false;
+  }
+
   return (
     <main className="relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(circle_at_top,_color-mix(in_oklch,_var(--color-primary)_18%,_transparent),_transparent_55%)]" />
@@ -63,23 +73,24 @@ export default function HomePage() {
           </Link>
 
           <div className="flex items-center gap-3">
-            <Show when="signed-out">
-              <SignInButton mode="modal">
-                <button className={buttonVariants({ variant: "ghost" })}>Entrar</button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button className={buttonVariants({ className: "gap-2" })}>
+            {isSignedIn ? (
+              <>
+                <Link href="/dashboard" className={buttonVariants({ variant: "ghost" })}>
+                  Dashboard
+                </Link>
+                <AuthUserButton />
+              </>
+            ) : (
+              <>
+                <Link href="/sign-in" className={buttonVariants({ variant: "ghost" })}>
+                  Entrar
+                </Link>
+                <Link href="/sign-up" className={buttonVariants({ className: "gap-2" })}>
                   Criar conta
                   <ArrowRight className="size-4" />
-                </button>
-              </SignUpButton>
-            </Show>
-            <Show when="signed-in">
-              <Link href="/dashboard" className={buttonVariants({ variant: "ghost" })}>
-                Dashboard
-              </Link>
-              <UserButton />
-            </Show>
+                </Link>
+              </>
+            )}
           </div>
         </header>
 
@@ -98,20 +109,17 @@ export default function HomePage() {
             </p>
 
             <div className="mt-10 flex flex-wrap gap-3">
-              <Show when="signed-out">
-                <SignUpButton mode="modal">
-                  <button className={buttonVariants({ size: "lg", className: "gap-2" })}>
-                    Começar agora
-                    <ArrowRight className="size-4" />
-                  </button>
-                </SignUpButton>
-              </Show>
-              <Show when="signed-in">
+              {isSignedIn ? (
                 <Link href="/onboarding" className={buttonVariants({ size: "lg", className: "gap-2" })}>
                   Abrir onboarding
                   <ArrowRight className="size-4" />
                 </Link>
-              </Show>
+              ) : (
+                <Link href="/sign-up" className={buttonVariants({ size: "lg", className: "gap-2" })}>
+                  Começar agora
+                  <ArrowRight className="size-4" />
+                </Link>
+              )}
               <Link href="/barbearia-sample" className={buttonVariants({ size: "lg", variant: "outline" })}>
                 Abrir barbearia de exemplo
               </Link>

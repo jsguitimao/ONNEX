@@ -23,7 +23,7 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     const result = serviceSchema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
+      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
     }
 
     const service = await updateService(id, result.data);
@@ -31,7 +31,7 @@ export async function PATCH(req: Request, { params }: RouteProps) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "ERRO";
     const status = message === "INVALID_JSON_BODY" ? 400 : 500;
-    const mapped = status === 400 ? "Corpo JSON invalido." : "Nao foi possivel atualizar o servico.";
+    const mapped = status === 400 ? "Corpo JSON inválido." : "Não foi possível atualizar o serviço.";
     return NextResponse.json({ error: mapped }, { status });
   }
 }

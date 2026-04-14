@@ -6,11 +6,13 @@ import {
   normalizeCustomerPhone,
   sanitizeBookingCustomerInput,
 } from "../src/lib/customer-identity.ts";
+import { getPublicBookingTokenExpiresAt, isPublicBookingTokenExpired } from "../src/lib/public-booking-token.ts";
 import {
   consumeRateLimit,
   getClientIp,
   resetRateLimitStoreForTests,
 } from "../src/lib/rate-limit.ts";
+import { validatePublicMutationOrigin } from "../src/lib/request-origin.ts";
 
 type TestCase = {
   name: string;
@@ -188,6 +190,59 @@ const tests: TestCase[] = [
 
       assert.equal(result.ok, false);
       assert.equal(result.configured, false);
+    },
+  },
+  {
+    name: "validatePublicMutationOrigin accepts same-origin browser requests",
+    run: () => {
+      process.env.NEXT_PUBLIC_APP_URL = "https://buk-next.vercel.app";
+
+      const request = new Request("https://buk-next.vercel.app/api/public/demo/bookings", {
+        method: "POST",
+        headers: {
+          origin: "https://buk-next.vercel.app",
+          referer: "https://buk-next.vercel.app/demo",
+          "sec-fetch-site": "same-origin",
+        },
+      });
+
+      const result = validatePublicMutationOrigin(request);
+
+      assert.equal(result.ok, true);
+      assert.equal(result.reason, null);
+    },
+  },
+  {
+    name: "validatePublicMutationOrigin rejects cross-site mutation attempts",
+    run: () => {
+      process.env.NEXT_PUBLIC_APP_URL = "https://buk-next.vercel.app";
+
+      const request = new Request("https://buk-next.vercel.app/api/public/demo/bookings", {
+        method: "POST",
+        headers: {
+          origin: "https://evil.example",
+          referer: "https://evil.example/form",
+          "sec-fetch-site": "cross-site",
+        },
+      });
+
+      const result = validatePublicMutationOrigin(request);
+
+      assert.equal(result.ok, false);
+      assert.equal(result.reason, "ORIGIN_NOT_ALLOWED");
+    },
+  },
+  {
+    name: "public booking token expires 30 days after the latest booking anchor",
+    run: () => {
+      const endsAt = new Date("2026-04-14T10:00:00.000Z");
+      const updatedAt = new Date("2026-04-16T12:30:00.000Z");
+
+      const expiresAt = getPublicBookingTokenExpiresAt({ endsAt, updatedAt });
+
+      assert.equal(expiresAt.toISOString(), "2026-05-16T12:30:00.000Z");
+      assert.equal(isPublicBookingTokenExpired({ endsAt, updatedAt }, new Date("2026-05-16T12:29:59.000Z")), false);
+      assert.equal(isPublicBookingTokenExpired({ endsAt, updatedAt }, new Date("2026-05-16T12:30:01.000Z")), true);
     },
   },
 ];

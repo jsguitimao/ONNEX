@@ -1,16 +1,77 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Globe, Mail, MapPin, Phone, ShieldCheck, Sparkles } from "lucide-react";
-import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { PublicBookingFlow } from "@/components/public-booking-flow";
+import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
+import { getAppUrl } from "@/lib/app-config";
 
 export const dynamic = "force-dynamic";
 
 type PublicPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+function buildPublicPageMetadata(input: {
+  name: string;
+  slug: string;
+  description: string;
+  imageUrl?: string | null;
+}) {
+  const url = `${getAppUrl()}/${input.slug}`;
+  const images = input.imageUrl ? [{ url: input.imageUrl }] : undefined;
+
+  return {
+    title: input.name,
+    description: input.description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title: input.name,
+      description: input.description,
+      url,
+      type: "website",
+      images,
+    },
+    twitter: {
+      card: images ? "summary_large_image" : "summary",
+      title: input.name,
+      description: input.description,
+      images: input.imageUrl ? [input.imageUrl] : undefined,
+    },
+  } satisfies Metadata;
+}
+
+export async function generateMetadata({ params }: PublicPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const business = await getBusinessBySlug(slug);
+
+  if (!business) {
+    return {
+      title: "Página não encontrada | BUKBARBEARIA.COM",
+      description: "A página pública pedida não está disponível.",
+    };
+  }
+
+  const title =
+    business.bookingPage?.seoTitle?.trim() ||
+    `${business.name} | Marcação online na BUKBARBEARIA.COM`;
+  const description =
+    business.bookingPage?.seoDescription?.trim() ||
+    business.bookingPage?.headline?.trim() ||
+    business.description?.trim() ||
+    `Marca online com ${business.name} na BUKBARBEARIA.COM.`;
+
+  return buildPublicPageMetadata({
+    name: title,
+    slug: business.slug,
+    description,
+    imageUrl: business.coverImageUrl || business.logoUrl,
+  });
+}
 
 export default async function PublicBookingPage({ params }: PublicPageProps) {
   const { slug } = await params;
@@ -52,7 +113,9 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
               Página pública
             </Badge>
             <h1 className="mt-4 font-heading text-4xl font-semibold tracking-tight">{business.name}</h1>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-white/82">{business.bookingPage?.headline}</p>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-white/82">
+              {publicBusiness.headline ?? business.bookingPage?.headline}
+            </p>
 
             <div className="mt-5 flex flex-wrap justify-center gap-2 text-sm text-white/84">
               <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
@@ -131,7 +194,9 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
             <Sparkles className="size-4 text-primary" />
             <h2 className="font-heading text-lg font-semibold">Sobre a experiência</h2>
           </div>
-          <p className="text-sm leading-7 text-muted-foreground">{business.description || business.bookingPage?.subheadline}</p>
+          <p className="text-sm leading-7 text-muted-foreground">
+            {business.description || business.bookingPage?.subheadline}
+          </p>
           <div className="mt-4 rounded-2xl bg-muted/60 p-4 text-sm leading-7 text-foreground">
             {business.bookingPage?.welcomeMessage}
           </div>
@@ -187,12 +252,12 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         ) : null}
 
         <section className="rounded-[2rem] border bg-card p-5 text-center shadow-sm">
-          <p className="text-sm text-muted-foreground">Informacao util</p>
+          <p className="text-sm text-muted-foreground">Informação útil</p>
           <h2 className="mt-2 font-heading text-2xl font-semibold">
             Uma página pública mais fiel ao negócio
           </h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Esta página agora respeita branding, descrição, visibilidade da equipa, links externos e
+            Esta página respeita branding, descrição, visibilidade da equipa, links externos e
             regras reais de marcação.
           </p>
           {business.contactEmail ? (

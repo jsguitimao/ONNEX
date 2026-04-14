@@ -30,7 +30,7 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     const result = teamSchema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
+      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
     }
 
     const staffMember = await updateStaffMember(id, result.data);
@@ -38,7 +38,7 @@ export async function PATCH(req: Request, { params }: RouteProps) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "ERRO";
     const status = message === "INVALID_JSON_BODY" ? 400 : 500;
-    const mapped = status === 400 ? "Corpo JSON invalido." : "Nao foi possivel atualizar o profissional.";
+    const mapped = status === 400 ? "Corpo JSON inválido." : "Não foi possível atualizar o profissional.";
     return NextResponse.json({ error: mapped }, { status });
   }
 }

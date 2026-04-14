@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     const result = customerSchema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
+      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
     }
 
     const customer = await updateCustomer(id, {
@@ -39,9 +39,9 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     const status = message === "INVALID_JSON_BODY" ? 400 : message === "CUSTOMER_NOT_FOUND" ? 404 : 500;
     const mapped =
       status === 400
-        ? "Corpo JSON invalido."
+        ? "Corpo JSON inválido."
         : status === 404
-          ? "Cliente nao encontrado."
+          ? "Cliente não encontrado."
           : "Erro ao atualizar cliente.";
     return NextResponse.json({ error: mapped }, { status });
   }

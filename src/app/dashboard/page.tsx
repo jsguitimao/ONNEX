@@ -1,6 +1,6 @@
-import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { CalendarRange, Euro, LayoutDashboard, Sparkles, Users } from "lucide-react";
+import { AuthUserButton } from "@/components/auth-user-button";
 import { DashboardAgenda } from "@/components/dashboard-agenda";
 import { DashboardCustomers } from "@/components/dashboard-customers";
 import { DashboardOps } from "@/components/dashboard-ops";
@@ -61,8 +61,8 @@ export default async function DashboardPreviewPage() {
           </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight">{snapshot.businessName}</h1>
           <p className="mt-3 text-muted-foreground">
-            Esta área já está desenhada para o fluxo autenticado do negócio. Agora também
-            permite gerir serviços, equipa, disponibilidade e regras principais da agenda.
+            Esta área já está desenhada para o fluxo autenticado do negócio. Agora também permite
+            gerir serviços, equipa, disponibilidade e regras principais da agenda.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Cidade principal: {snapshot.city} - Página pública: /{snapshot.slug}
@@ -73,7 +73,7 @@ export default async function DashboardPreviewPage() {
           <Link href="/onboarding" className={buttonVariants()}>
             Ir para onboarding
           </Link>
-          <UserButton />
+          <AuthUserButton />
         </div>
       </div>
 

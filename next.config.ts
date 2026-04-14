@@ -7,6 +7,24 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  {
+    key: "Content-Security-Policy",
+    value: [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+      "object-src 'none'",
+      "img-src 'self' data: blob: https:",
+      "style-src 'self' 'unsafe-inline' https:",
+      "font-src 'self' data: https:",
+      "script-src 'self' 'unsafe-inline' https://*.clerk.com https://*.clerk.accounts.dev https://browser.sentry-cdn.com https://challenges.cloudflare.com",
+      "connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com https://*.sentry.io https://o*.ingest.sentry.io https://vitals.vercel-insights.com",
+      "frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+      "worker-src 'self' blob:",
+      "upgrade-insecure-requests",
+    ].join("; "),
+  },
 ];
 
 const nextConfig: NextConfig = {

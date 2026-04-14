@@ -3,6 +3,11 @@ import { getBookableRange, getBookingPolicySettings, getCancellationDeadline } f
 import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
 import { db } from "@/lib/db";
 import { sendBookingNotification, sendRepresentativeBookingNotification } from "@/lib/notifications";
+import {
+  createPublicBookingToken,
+  getPublicBookingTokenExpiresAt,
+  isPublicBookingTokenExpired,
+} from "@/lib/public-booking-token";
 import { upsertBookingCustomer } from "./customers";
 import { getBusinessBySlug } from "./core";
 import type { BookingSlot, PublicBookingDetails, PublicBusinessPayload } from "./types";
@@ -145,6 +150,7 @@ function buildPublicBookingDetails(booking: {
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
   startsAt: Date;
   endsAt: Date;
+  updatedAt: Date;
   customerName: string;
   customerEmail: string | null;
   customerPhone: string | null;
@@ -159,12 +165,17 @@ function buildPublicBookingDetails(booking: {
   };
 }): PublicBookingDetails {
   const cancellationDeadline = getCancellationDeadline(booking.startsAt, booking.business);
-  const canManageTime = ["PENDING", "CONFIRMED"].includes(booking.status) && new Date() < cancellationDeadline;
+  const tokenExpiresAt = getPublicBookingTokenExpiresAt(booking);
+  const canManageTime =
+    ["PENDING", "CONFIRMED"].includes(booking.status) &&
+    new Date() < cancellationDeadline &&
+    !isPublicBookingTokenExpired(booking);
   const policy = getBookingPolicySettings(booking.business);
 
   return {
     id: booking.id,
     publicToken: booking.publicToken ?? "",
+    tokenExpiresAt,
     status: booking.status,
     startsAt: booking.startsAt,
     endsAt: booking.endsAt,
@@ -185,6 +196,20 @@ function buildPublicBookingDetails(booking: {
     bookingLeadTimeHours: policy.bookingLeadTimeHours,
     bookingWindowDays: policy.bookingWindowDays,
   };
+}
+
+function ensureActivePublicToken<T extends { publicToken: string | null; endsAt: Date; updatedAt: Date }>(
+  booking: T | null
+) {
+  if (!booking || !booking.publicToken) {
+    return null;
+  }
+
+  if (isPublicBookingTokenExpired(booking)) {
+    return null;
+  }
+
+  return booking;
 }
 
 export async function getPublicBusinessPayload(slug: string): Promise<PublicBusinessPayload | null> {
@@ -255,14 +280,16 @@ export async function getAvailableSlots(input: {
 }
 
 export async function getPublicBookingRescheduleSlots(token: string, date: string) {
-  const booking = await db.booking.findUnique({
-    where: { publicToken: token },
-    include: {
-      business: true,
-      service: true,
-      staffMember: true,
-    },
-  });
+  const booking = ensureActivePublicToken(
+    await db.booking.findUnique({
+      where: { publicToken: token },
+      include: {
+        business: true,
+        service: true,
+        staffMember: true,
+      },
+    })
+  );
 
   if (!booking || !booking.staffMemberId) return null;
 
@@ -321,7 +348,7 @@ export async function createPublicBooking(input: {
   }
 
   const endsAt = new Date(startsAt.getTime() + service.durationMinutes * 60_000);
-  const publicToken = crypto.randomUUID();
+  const publicToken = createPublicBookingToken();
   const customerInput = sanitizeBookingCustomerInput({
     fullName: input.customerName,
     email: input.customerEmail,
@@ -403,14 +430,16 @@ export async function createPublicBooking(input: {
 }
 
 export async function getPublicBookingByToken(token: string): Promise<PublicBookingDetails | null> {
-  const booking = await db.booking.findUnique({
-    where: { publicToken: token },
-    include: {
-      business: true,
-      service: true,
-      staffMember: true,
-    },
-  });
+  const booking = ensureActivePublicToken(
+    await db.booking.findUnique({
+      where: { publicToken: token },
+      include: {
+        business: true,
+        service: true,
+        staffMember: true,
+      },
+    })
+  );
 
   if (!booking) return null;
 
@@ -431,6 +460,9 @@ export async function updatePublicBookingByToken(
   });
 
   if (!booking) return null;
+  if (isPublicBookingTokenExpired(booking)) {
+    throw new Error("BOOKING_TOKEN_EXPIRED");
+  }
 
   if (action === "confirm" && booking.status !== "PENDING") {
     throw new Error("BOOKING_ACTION_NOT_ALLOWED");
@@ -447,6 +479,7 @@ export async function updatePublicBookingByToken(
     where: { id: booking.id },
     data: {
       status: action === "confirm" ? "CONFIRMED" : "CANCELLED",
+      publicToken: createPublicBookingToken(),
     },
     include: {
       business: true,
@@ -485,6 +518,9 @@ export async function reschedulePublicBookingByToken(
   });
 
   if (!booking || !booking.staffMemberId || !booking.staffMember) return null;
+  if (isPublicBookingTokenExpired(booking)) {
+    throw new Error("BOOKING_TOKEN_EXPIRED");
+  }
 
   if (!["PENDING", "CONFIRMED"].includes(booking.status)) {
     throw new Error("BOOKING_ACTION_NOT_ALLOWED");
@@ -548,6 +584,7 @@ export async function reschedulePublicBookingByToken(
     data: {
       startsAt,
       endsAt,
+      publicToken: createPublicBookingToken(),
     },
     include: {
       business: true,

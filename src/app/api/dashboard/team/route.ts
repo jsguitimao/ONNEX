@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const result = teamSchema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados invalidos." }, { status: 400 });
+      return NextResponse.json({ error: result.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
     }
 
     const staffMember = await createStaffMember(result.data);
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "ERRO";
     const status = message === "INVALID_JSON_BODY" ? 400 : 500;
-    const mapped = status === 400 ? "Corpo JSON invalido." : "Nao foi possivel criar o profissional.";
+    const mapped = status === 400 ? "Corpo JSON inválido." : "Não foi possível criar o profissional.";
     return NextResponse.json({ error: mapped }, { status });
   }
 }

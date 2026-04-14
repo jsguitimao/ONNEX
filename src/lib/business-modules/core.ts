@@ -68,6 +68,11 @@ function getPrimaryEmailAddress(user: Awaited<ReturnType<typeof currentUser>>) {
   );
 }
 
+function getInternalUserEmailFallback(clerkUserId: string) {
+  const safeLocalPart = clerkUserId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return `${safeLocalPart || "user"}@users.bukbarbearia.local`;
+}
+
 function buildDemoStaffBio(specialties: string[]) {
   return specialties.join(" / ");
 }
@@ -140,10 +145,8 @@ async function fetchCurrentBusiness() {
     throw new Error("AUTH_REQUIRED");
   }
 
-  const email = getPrimaryEmailAddress(clerkUser);
-  if (!email) {
-    throw new Error("AUTH_REQUIRED");
-  }
+  const primaryEmail = getPrimaryEmailAddress(clerkUser);
+  const email = primaryEmail || getInternalUserEmailFallback(userId);
 
   const appUser = await syncCurrentUserProfile({
     clerkUserId: userId,
@@ -182,7 +185,7 @@ async function fetchCurrentBusiness() {
       name: businessName,
       slug: businessSlug,
       status: "ACTIVE",
-      contactEmail: email,
+      contactEmail: primaryEmail,
       primaryColor: demoBusiness.primaryColor,
       accentColor: demoBusiness.accentColor,
       bookingPage: {

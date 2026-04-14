@@ -4,6 +4,7 @@ import { getPublicBookingByToken, reschedulePublicBookingByToken, updatePublicBo
 import { captureException } from "@/lib/observability";
 import { buildRateLimitHeaders, checkRequestRateLimit } from "@/lib/rate-limit";
 import { readJsonBody } from "@/lib/request-body";
+import { validatePublicMutationOrigin } from "@/lib/request-origin";
 
 const actionSchema = z
   .object({
@@ -15,7 +16,7 @@ const actionSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["startsAt"],
-        message: "Escolhe um novo horario.",
+        message: "Escolhe um novo horário.",
       });
     }
   });
@@ -44,7 +45,7 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     if (!booking) {
       return NextResponse.json(
-        { error: "Reserva nao encontrada." },
+        { error: "Reserva não encontrada." },
         { status: 404, headers: buildRateLimitHeaders(rateLimit) }
       );
     }
@@ -55,7 +56,7 @@ export async function GET(req: Request, { params }: RouteProps) {
   } catch (error) {
     captureException("public_booking.fetch_failed", error, { token });
     return NextResponse.json(
-      { error: "Nao foi possivel carregar a reserva." },
+      { error: "Não foi possível carregar a reserva." },
       { status: 500, headers: buildRateLimitHeaders(rateLimit) }
     );
   }
@@ -77,13 +78,21 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     );
   }
 
+  const originValidation = validatePublicMutationOrigin(req);
+  if (!originValidation.ok) {
+    return NextResponse.json(
+      { error: "Origem não autorizada para alterar a reserva." },
+      { status: 403, headers: buildRateLimitHeaders(rateLimit) }
+    );
+  }
+
   try {
     const body = await readJsonBody(req);
     const result = actionSchema.safeParse(body);
 
     if (!result.success) {
       return NextResponse.json(
-        { error: "Acao invalida." },
+        { error: "Ação inválida." },
         { status: 400, headers: buildRateLimitHeaders(rateLimit) }
       );
     }
@@ -97,7 +106,7 @@ export async function PATCH(req: Request, { params }: RouteProps) {
 
     if (!booking) {
       return NextResponse.json(
-        { error: "Reserva nao encontrada." },
+        { error: "Reserva não encontrada." },
         { status: 404, headers: buildRateLimitHeaders(rateLimit) }
       );
     }
@@ -109,20 +118,22 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     const message = error instanceof Error ? error.message : "ERRO";
     const mapped =
       message === "INVALID_JSON_BODY"
-        ? { status: 400, error: "Corpo JSON invalido." }
-        : message === "BOOKING_ACTION_NOT_ALLOWED"
-        ? { status: 409, error: "Esta acao ja nao esta disponivel para a reserva." }
-        : message === "CANCEL_WINDOW_EXPIRED"
-          ? { status: 409, error: "O prazo automatico de cancelamento ja expirou." }
-          : message === "RESCHEDULE_WINDOW_EXPIRED"
-            ? { status: 409, error: "O prazo automatico para remarcar ja expirou." }
-            : message === "HORARIO_OCUPADO"
-              ? { status: 409, error: "Este horario acabou de ficar indisponivel." }
-              : message === "HORARIO_BLOQUEADO"
-                ? { status: 409, error: "Este horario esta bloqueado na agenda." }
-                : message === "DATA_INVALIDA"
-                  ? { status: 400, error: "Escolhe um novo horario valido dentro da janela permitida." }
-                  : { status: 500, error: "Nao foi possivel atualizar a reserva." };
+        ? { status: 400, error: "Corpo JSON inválido." }
+        : message === "BOOKING_TOKEN_EXPIRED"
+          ? { status: 410, error: "Este link de gestão já expirou." }
+          : message === "BOOKING_ACTION_NOT_ALLOWED"
+            ? { status: 409, error: "Esta ação já não está disponível para a reserva." }
+            : message === "CANCEL_WINDOW_EXPIRED"
+              ? { status: 409, error: "O prazo automático de cancelamento já expirou." }
+              : message === "RESCHEDULE_WINDOW_EXPIRED"
+                ? { status: 409, error: "O prazo automático para remarcar já expirou." }
+                : message === "HORARIO_OCUPADO"
+                  ? { status: 409, error: "Este horário acabou de ficar indisponível." }
+                  : message === "HORARIO_BLOQUEADO"
+                    ? { status: 409, error: "Este horário está bloqueado na agenda." }
+                    : message === "DATA_INVALIDA"
+                      ? { status: 400, error: "Escolhe um novo horário válido dentro da janela permitida." }
+                      : { status: 500, error: "Não foi possível atualizar a reserva." };
 
     captureException("public_booking.update_failed", error, {
       token,

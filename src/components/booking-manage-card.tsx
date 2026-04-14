@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, CheckCircle2, Loader2, ShieldAlert, XCircle } from "lucide-react";
-import type { BookingSlot, PublicBookingDetails } from "@/lib/business";
 import { Button } from "@/components/ui/button";
+import type { BookingSlot, PublicBookingDetails } from "@/lib/business";
 import { cn } from "@/lib/utils";
 
 type BookingManageCardProps = {
@@ -39,6 +39,14 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
         timeStyle: "short",
       }),
     [booking.cancellationDeadline]
+  );
+  const tokenExpiryLabel = useMemo(
+    () =>
+      new Date(booking.tokenExpiresAt).toLocaleString("pt-PT", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }),
+    [booking.tokenExpiresAt]
   );
 
   const minDate = useMemo(() => {
@@ -184,6 +192,7 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
             <p>Confirmação disponível enquanto a reserva estiver pendente.</p>
             <p>Cancelamento e remarcação disponíveis até {booking.cancellationWindowHours}h antes do horário.</p>
             <p>Prazo atual para gerir a reserva: {cancellationDeadlineLabel}.</p>
+            <p>Este link de gestão fica válido até {tokenExpiryLabel}.</p>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { createPublicBooking } from "@/lib/business";
 import { captureException } from "@/lib/observability";
 import { buildRateLimitHeaders, checkRequestRateLimit } from "@/lib/rate-limit";
 import { readJsonBody } from "@/lib/request-body";
+import { validatePublicMutationOrigin } from "@/lib/request-origin";
 
 const schema = z.object({
   serviceId: z.string().min(1),
@@ -39,13 +40,21 @@ export async function POST(req: Request, { params }: RouteProps) {
     );
   }
 
+  const originValidation = validatePublicMutationOrigin(req);
+  if (!originValidation.ok) {
+    return NextResponse.json(
+      { error: "Origem não autorizada para criar reservas." },
+      { status: 403, headers: buildRateLimitHeaders(rateLimit) }
+    );
+  }
+
   try {
     const body = await readJsonBody(req);
     const result = schema.safeParse(body);
 
     if (!result.success) {
       return NextResponse.json(
-        { error: result.error.issues[0]?.message ?? "Dados invalidos." },
+        { error: result.error.issues[0]?.message ?? "Dados inválidos." },
         { status: 400, headers: buildRateLimitHeaders(rateLimit) }
       );
     }
@@ -83,20 +92,20 @@ export async function POST(req: Request, { params }: RouteProps) {
     const message = error instanceof Error ? error.message : "ERRO";
     const mapped =
       message === "INVALID_JSON_BODY"
-        ? { status: 400, error: "Corpo JSON invalido." }
+        ? { status: 400, error: "Corpo JSON inválido." }
         : message === "HORARIO_OCUPADO"
-        ? { status: 409, error: "Este horario acabou de ficar indisponivel." }
-        : message === "ONLINE_BOOKING_DISABLED"
-          ? { status: 403, error: "As reservas online estao desativadas para esta pagina." }
-        : message === "DATA_INVALIDA"
-            ? { status: 400, error: "Escolhe um horario dentro da antecedencia e janela permitidas." }
-            : message === "HORARIO_BLOQUEADO"
-              ? { status: 409, error: "Este horario esta bloqueado na agenda." }
-              : message === "PROFISSIONAL_INCOMPATIVEL"
-                ? { status: 400, error: "Este profissional nao executa o servico escolhido." }
-                : message === "DADOS_INVALIDOS"
-                  ? { status: 400, error: "Servico, profissional ou localizacao invalidos." }
-                  : { status: 500, error: "Nao foi possivel criar a reserva." };
+          ? { status: 409, error: "Este horário acabou de ficar indisponível." }
+          : message === "ONLINE_BOOKING_DISABLED"
+            ? { status: 403, error: "As reservas online estão desativadas para esta página." }
+            : message === "DATA_INVALIDA"
+              ? { status: 400, error: "Escolhe um horário dentro da antecedência e da janela permitidas." }
+              : message === "HORARIO_BLOQUEADO"
+                ? { status: 409, error: "Este horário está bloqueado na agenda." }
+                : message === "PROFISSIONAL_INCOMPATIVEL"
+                  ? { status: 400, error: "Este profissional não executa o serviço escolhido." }
+                  : message === "DADOS_INVALIDOS"
+                    ? { status: 400, error: "Serviço, profissional ou localização inválidos." }
+                    : { status: 500, error: "Não foi possível criar a reserva." };
 
     captureException("public_booking.create_failed", error, {
       slug,

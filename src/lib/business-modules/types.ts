@@ -66,6 +66,7 @@ export type PublicBusinessPayload = {
 export type PublicBookingDetails = {
   id: string;
   publicToken: string;
+  tokenExpiresAt: Date;
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
   startsAt: Date;
   endsAt: Date;
