@@ -27,7 +27,7 @@ type RouteProps = {
 
 export async function GET(req: Request, { params }: RouteProps) {
   const { token } = await params;
-  const rateLimit = checkRequestRateLimit(req, {
+  const rateLimit = await checkRequestRateLimit(req, {
     namespace: "public-booking-read",
     limit: 60,
     windowMs: 60_000,
@@ -65,7 +65,7 @@ export async function GET(req: Request, { params }: RouteProps) {
 export async function PATCH(req: Request, { params }: RouteProps) {
   const { token } = await params;
   let action: "confirm" | "cancel" | "reschedule" | undefined;
-  const rateLimit = checkRequestRateLimit(req, {
+  const rateLimit = await checkRequestRateLimit(req, {
     namespace: "public-booking-write",
     limit: 12,
     windowMs: 10 * 60_000,

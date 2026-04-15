@@ -27,7 +27,7 @@ export async function POST(req: Request, { params }: RouteProps) {
         staffMemberId: string;
       }
     | null = null;
-  const rateLimit = checkRequestRateLimit(req, {
+  const rateLimit = await checkRequestRateLimit(req, {
     namespace: "public-bookings",
     limit: 12,
     windowMs: 5 * 60_000,

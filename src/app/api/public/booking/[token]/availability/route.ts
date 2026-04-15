@@ -14,7 +14,7 @@ type RouteProps = {
 
 export async function GET(req: Request, { params }: RouteProps) {
   const { token } = await params;
-  const rateLimit = checkRequestRateLimit(req, {
+  const rateLimit = await checkRequestRateLimit(req, {
     namespace: "public-booking-reschedule-slots",
     limit: 30,
     windowMs: 60_000,
