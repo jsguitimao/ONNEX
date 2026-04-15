@@ -15,6 +15,7 @@ import { AuthUserButton } from "@/components/auth-user-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PublicSiteFooter } from "@/components/public-site-footer";
 
 const pillars = [
   {
@@ -181,6 +182,8 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      <PublicSiteFooter />
     </main>
   );
 }
