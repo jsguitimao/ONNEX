@@ -1,5 +1,8 @@
+import type { Prisma } from "@prisma/client";
 import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
 import { db } from "@/lib/db";
+
+type PrismaClientLike = typeof db | Prisma.TransactionClient;
 import { getCurrentBusiness } from "./core";
 import type { CustomerSnapshot } from "./types";
 
@@ -118,8 +121,12 @@ export async function updateCustomer(
   });
 }
 
-async function findCustomerByNormalizedPhone(businessId: string, phone: string) {
-  const candidates = await db.customer.findMany({
+async function findCustomerByNormalizedPhone(
+  businessId: string,
+  phone: string,
+  client: PrismaClientLike = db
+) {
+  const candidates = await client.customer.findMany({
     where: {
       businessId,
       phone: { not: null },
@@ -139,13 +146,16 @@ async function findCustomerByNormalizedPhone(businessId: string, phone: string) 
   );
 }
 
-export async function upsertBookingCustomer(input: {
-  businessId: string;
-  fullName: string;
-  email?: string | null;
-  phone?: string | null;
-  lastBookedAt: Date;
-}) {
+export async function upsertBookingCustomer(
+  input: {
+    businessId: string;
+    fullName: string;
+    email?: string | null;
+    phone?: string | null;
+    lastBookedAt: Date;
+  },
+  client: PrismaClientLike = db
+) {
   const sanitized = sanitizeBookingCustomerInput({
     fullName: input.fullName,
     email: input.email,
@@ -155,7 +165,7 @@ export async function upsertBookingCustomer(input: {
   let existingCustomer = null;
 
   if (sanitized.email) {
-    existingCustomer = await db.customer.findFirst({
+    existingCustomer = await client.customer.findFirst({
       where: {
         businessId: input.businessId,
         email: {
@@ -168,11 +178,11 @@ export async function upsertBookingCustomer(input: {
   }
 
   if (!existingCustomer && sanitized.phone) {
-    existingCustomer = await findCustomerByNormalizedPhone(input.businessId, sanitized.phone);
+    existingCustomer = await findCustomerByNormalizedPhone(input.businessId, sanitized.phone, client);
   }
 
   if (!existingCustomer) {
-    return db.customer.create({
+    return client.customer.create({
       data: {
         businessId: input.businessId,
         fullName: sanitized.fullName,
@@ -188,7 +198,7 @@ export async function upsertBookingCustomer(input: {
       ? existingCustomer.lastBookedAt
       : input.lastBookedAt;
 
-  return db.customer.update({
+  return client.customer.update({
     where: { id: existingCustomer.id },
     data: {
       fullName: sanitized.fullName,

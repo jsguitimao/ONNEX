@@ -1,5 +1,6 @@
 import { addDays, endOfWeek, format, set, startOfWeek } from "date-fns";
 import { getCronSecret, getEmailFrom } from "@/lib/app-config";
+import { assertSlotAvailable, runBookingTransaction } from "@/lib/booking-transaction";
 import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
 import { db } from "@/lib/db";
 import {
@@ -396,73 +397,48 @@ export async function createManualBooking(input: {
     email: input.customerEmail,
     phone: input.customerPhone,
   });
-  const conflict = await db.booking.findFirst({
-    where: {
+  const booking = await runBookingTransaction(async (tx) => {
+    await assertSlotAvailable(tx, {
       businessId: business.id,
       staffMemberId: staffMember.id,
-      status: {
-        notIn: ["CANCELLED", "NO_SHOW"],
-      },
-      startsAt: {
-        lt: endsAt,
-      },
-      endsAt: {
-        gt: startsAt,
-      },
-    },
-  });
-
-  if (conflict) {
-    throw new Error("HORARIO_OCUPADO");
-  }
-
-  const blocked = await db.scheduleBlock.findFirst({
-    where: {
-      businessId: business.id,
-      OR: [{ staffMemberId: staffMember.id }, { staffMemberId: null }],
-      startsAt: {
-        lt: endsAt,
-      },
-      endsAt: {
-        gt: startsAt,
-      },
-    },
-  });
-
-  if (blocked) {
-    throw new Error("HORARIO_BLOQUEADO");
-  }
-
-  const customer = await upsertBookingCustomer({
-    businessId: business.id,
-    fullName: customerInput.fullName,
-    email: customerInput.email,
-    phone: customerInput.phone,
-    lastBookedAt: startsAt,
-  });
-
-  const booking = await db.booking.create({
-    data: {
-      businessId: business.id,
-      locationId: location.id,
-      serviceId: service.id,
-      staffMemberId: staffMember.id,
-      customerId: customer.id,
-      status: input.status ?? "CONFIRMED",
-      source: "MANUAL",
-      paymentStatus: "UNPAID",
-      publicToken: crypto.randomUUID(),
       startsAt,
       endsAt,
-      priceCents: service.priceCents,
-      customerName: customerInput.fullName,
-      customerEmail: customerInput.email,
-      customerPhone: customerInput.phone,
-    },
-    include: {
-      service: true,
-      staffMember: true,
-    },
+    });
+
+    const customer = await upsertBookingCustomer(
+      {
+        businessId: business.id,
+        fullName: customerInput.fullName,
+        email: customerInput.email,
+        phone: customerInput.phone,
+        lastBookedAt: startsAt,
+      },
+      tx
+    );
+
+    return tx.booking.create({
+      data: {
+        businessId: business.id,
+        locationId: location.id,
+        serviceId: service.id,
+        staffMemberId: staffMember.id,
+        customerId: customer.id,
+        status: input.status ?? "CONFIRMED",
+        source: "MANUAL",
+        paymentStatus: "UNPAID",
+        publicToken: crypto.randomUUID(),
+        startsAt,
+        endsAt,
+        priceCents: service.priceCents,
+        customerName: customerInput.fullName,
+        customerEmail: customerInput.email,
+        customerPhone: customerInput.phone,
+      },
+      include: {
+        service: true,
+        staffMember: true,
+      },
+    });
   });
 
   if (booking.status === "CONFIRMED") {
@@ -604,63 +580,42 @@ export async function updateDashboardBooking(
       throw new Error("PROFISSIONAL_INCOMPATIVEL");
     }
 
-    const nextEndsAt = new Date(nextStartsAt.getTime() + booking.service.durationMinutes * 60_000);
-    const conflict = await db.booking.findFirst({
-      where: {
-        businessId: booking.businessId,
-        staffMemberId: booking.staffMemberId,
-        id: { not: booking.id },
-        status: {
-          notIn: ["CANCELLED", "NO_SHOW"],
-        },
-        startsAt: {
-          lt: nextEndsAt,
-        },
-        endsAt: {
-          gt: nextStartsAt,
-        },
-      },
-    });
-
-    if (conflict) {
-      throw new Error("HORARIO_OCUPADO");
-    }
-
-    const blocked = await db.scheduleBlock.findFirst({
-      where: {
-        businessId: booking.businessId,
-        OR: [{ staffMemberId: booking.staffMemberId }, { staffMemberId: null }],
-        startsAt: {
-          lt: nextEndsAt,
-        },
-        endsAt: {
-          gt: nextStartsAt,
-        },
-      },
-    });
-
-    if (blocked) {
-      throw new Error("HORARIO_BLOQUEADO");
-    }
-
     startsAt = nextStartsAt;
-    endsAt = nextEndsAt;
+    endsAt = new Date(nextStartsAt.getTime() + booking.service.durationMinutes * 60_000);
   }
 
-  const updated = await db.booking.update({
-    where: { id: booking.id },
-    data: {
+  const rescheduled = Boolean(input.startsAt) && startsAt.getTime() !== booking.startsAt.getTime();
+  const staffMemberId = booking.staffMemberId;
+
+  const updated = await (async () => {
+    const updateData = {
       status: nextStatus,
       startsAt,
       endsAt,
       internalNotes: input.internalNotes === undefined ? booking.internalNotes : input.internalNotes || null,
-    },
-    include: {
+    };
+    const include = {
       business: true,
       service: true,
       staffMember: true,
-    },
-  });
+    } as const;
+
+    if (rescheduled && staffMemberId) {
+      return runBookingTransaction(async (tx) => {
+        await assertSlotAvailable(tx, {
+          businessId: booking.businessId,
+          staffMemberId,
+          startsAt,
+          endsAt,
+          excludeBookingId: booking.id,
+        });
+
+        return tx.booking.update({ where: { id: booking.id }, data: updateData, include });
+      });
+    }
+
+    return db.booking.update({ where: { id: booking.id }, data: updateData, include });
+  })();
 
   if (input.startsAt && startsAt.getTime() !== booking.startsAt.getTime()) {
     await sendBookingNotification(updated.id, "BOOKING_RESCHEDULED");
