@@ -16,7 +16,7 @@ type RouteProps = {
 
 export async function GET(req: Request, { params }: RouteProps) {
   const { slug } = await params;
-  const rateLimit = checkRequestRateLimit(req, {
+  const rateLimit = await checkRequestRateLimit(req, {
     namespace: "public-availability",
     limit: 45,
     windowMs: 60_000,

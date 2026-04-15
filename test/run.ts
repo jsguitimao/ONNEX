@@ -45,24 +45,24 @@ const tests: TestCase[] = [
   },
   {
     name: "consumeRateLimit blocks requests above the configured limit",
-    run: () => {
+    run: async () => {
       resetRateLimitStoreForTests();
 
-      const first = consumeRateLimit({
+      const first = await consumeRateLimit({
         namespace: "tests:block",
         identifier: "127.0.0.1",
         limit: 2,
         windowMs: 60_000,
         now: 1_000,
       });
-      const second = consumeRateLimit({
+      const second = await consumeRateLimit({
         namespace: "tests:block",
         identifier: "127.0.0.1",
         limit: 2,
         windowMs: 60_000,
         now: 1_100,
       });
-      const third = consumeRateLimit({
+      const third = await consumeRateLimit({
         namespace: "tests:block",
         identifier: "127.0.0.1",
         limit: 2,
@@ -78,10 +78,10 @@ const tests: TestCase[] = [
   },
   {
     name: "consumeRateLimit resets after the configured window",
-    run: () => {
+    run: async () => {
       resetRateLimitStoreForTests();
 
-      consumeRateLimit({
+      await consumeRateLimit({
         namespace: "tests:reset",
         identifier: "127.0.0.1",
         limit: 1,
@@ -89,7 +89,7 @@ const tests: TestCase[] = [
         now: 10_000,
       });
 
-      const afterWindow = consumeRateLimit({
+      const afterWindow = await consumeRateLimit({
         namespace: "tests:reset",
         identifier: "127.0.0.1",
         limit: 1,
