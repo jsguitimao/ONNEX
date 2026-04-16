@@ -27,7 +27,6 @@ export function PublicBookingFlow({ business }: Props) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [customerName, setCustomerName] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [manageUrl, setManageUrl] = useState("");
 
@@ -115,7 +114,6 @@ export function PublicBookingFlow({ business }: Props) {
           staffMemberId,
           startsAt: selectedSlot,
           customerName,
-          customerEmail,
           customerPhone,
         }),
       });
@@ -133,7 +131,6 @@ export function PublicBookingFlow({ business }: Props) {
 
       setMessage(`Reserva criada para ${data.serviceName} em ${new Date(data.startsAt ?? "").toLocaleString("pt-PT")}.`);
       setCustomerName("");
-      setCustomerEmail("");
       setCustomerPhone("");
       setSelectedSlot("");
       setDate("");
@@ -164,7 +161,7 @@ export function PublicBookingFlow({ business }: Props) {
         </select>
       </label>
 
-      {compatibleStaffMembers.length > 1 ? (
+      {compatibleStaffMembers.length > 0 ? (
         <label className="mt-4 grid gap-2">
           <span className="text-xs font-medium text-neutral-300">Selecione um profissional</span>
           <select
@@ -235,17 +232,6 @@ export function PublicBookingFlow({ business }: Props) {
           placeholder="Digite o teu nome"
           value={customerName}
           onChange={(event) => setCustomerName(event.target.value)}
-          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
-        />
-      </label>
-
-      <label className="mt-4 grid gap-2">
-        <span className="text-xs font-medium text-neutral-300">Email</span>
-        <input
-          type="email"
-          placeholder="Digite o teu email"
-          value={customerEmail}
-          onChange={(event) => setCustomerEmail(event.target.value)}
           className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
         />
       </label>
