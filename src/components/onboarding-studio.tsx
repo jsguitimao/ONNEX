@@ -17,10 +17,6 @@ import {
   Store,
   UserRound,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import type { OnboardingDraft } from "@/lib/business";
 import { demoBusiness, formatEuro } from "@/lib/demo-data";
 import { normalizeOnboardingDraft } from "@/lib/onboarding-input";
@@ -64,42 +60,44 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
 
   return (
     <div className="grid gap-8 xl:grid-cols-[1fr_1.05fr]">
-      <Card className="border-border/70">
-        <CardHeader className="space-y-3">
-          <Badge variant="secondary" className="w-fit">
+      <div className="rounded-[1.75rem] border border-white/10 bg-[#141a2d] p-6 text-white shadow-xl shadow-black/20 sm:p-8">
+        <div className="mb-6 space-y-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-amber-300">
             Setup realista
-          </Badge>
-          <CardTitle className="font-heading text-2xl">Configurações essenciais da barbearia</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-8">
+          </span>
+          <h2 className="font-heading text-2xl font-semibold tracking-tight text-white">
+            Configurações essenciais da barbearia
+          </h2>
+        </div>
+
+        <div className="space-y-8">
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Store className="size-4 text-primary" />
+            <div className="flex items-center gap-2 text-sm font-medium text-white">
+              <Store className="size-4 text-amber-300" />
               Dados do negócio
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Nome do negócio">
-                <Input value={form.businessName} onChange={(e) => updateField("businessName", e.target.value)} />
+                <DarkInput value={form.businessName} onChange={(e) => updateField("businessName", e.target.value)} />
               </Field>
               <Field label="Slug público">
-                <Input value={form.slug} onChange={(e) => updateField("slug", e.target.value.toLowerCase())} />
+                <DarkInput value={form.slug} onChange={(e) => updateField("slug", e.target.value.toLowerCase())} />
               </Field>
               <Field label="Cidade">
-                <Input value={form.city} onChange={(e) => updateField("city", e.target.value)} />
+                <DarkInput value={form.city} onChange={(e) => updateField("city", e.target.value)} />
               </Field>
               <Field label="Telefone">
-                <Input value={form.phone} onChange={(e) => updateField("phone", e.target.value)} />
+                <DarkInput value={form.phone} onChange={(e) => updateField("phone", e.target.value)} />
               </Field>
               <Field label="Email de contacto">
-                <Input type="email" value={form.contactEmail} onChange={(e) => updateField("contactEmail", e.target.value)} />
+                <DarkInput type="email" value={form.contactEmail} onChange={(e) => updateField("contactEmail", e.target.value)} />
               </Field>
               <Field label="Website">
-                <Input value={form.websiteUrl} onChange={(e) => updateField("websiteUrl", e.target.value)} placeholder="https://..." />
+                <DarkInput value={form.websiteUrl} onChange={(e) => updateField("websiteUrl", e.target.value)} placeholder="https://..." />
               </Field>
             </div>
             <Field label="Descrição curta do negócio">
-              <textarea
-                className="min-h-24 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring/50"
+              <DarkTextarea
                 value={form.description}
                 onChange={(e) => updateField("description", e.target.value)}
               />
@@ -107,16 +105,16 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           </section>
 
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <ImageIcon className="size-4 text-primary" />
+            <div className="flex items-center gap-2 text-sm font-medium text-white">
+              <ImageIcon className="size-4 text-amber-300" />
               Visuais
             </div>
             <div className="grid gap-4">
               <Field label="Logo por URL">
-                <Input value={form.logoUrl} onChange={(e) => updateField("logoUrl", e.target.value)} placeholder="https://..." />
+                <DarkInput value={form.logoUrl} onChange={(e) => updateField("logoUrl", e.target.value)} placeholder="https://..." />
               </Field>
               <Field label="Imagem de capa por URL">
-                <Input
+                <DarkInput
                   value={form.coverImageUrl}
                   onChange={(e) => updateField("coverImageUrl", e.target.value)}
                   placeholder="https://..."
@@ -126,24 +124,22 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           </section>
 
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Palette className="size-4 text-primary" />
+            <div className="flex items-center gap-2 text-sm font-medium text-white">
+              <Palette className="size-4 text-amber-300" />
               Marca e comunicação
             </div>
             <div className="grid gap-4">
               <Field label="Headline">
-                <Input value={form.headline} onChange={(e) => updateField("headline", e.target.value)} />
+                <DarkInput value={form.headline} onChange={(e) => updateField("headline", e.target.value)} />
               </Field>
               <Field label="Subheadline">
-                <textarea
-                  className="min-h-24 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring/50"
+                <DarkTextarea
                   value={form.subheadline}
                   onChange={(e) => updateField("subheadline", e.target.value)}
                 />
               </Field>
               <Field label="Mensagem de boas-vindas">
-                <textarea
-                  className="min-h-24 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring/50"
+                <DarkTextarea
                   value={form.welcomeMessage}
                   onChange={(e) => updateField("welcomeMessage", e.target.value)}
                 />
@@ -153,22 +149,22 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                   <div className="flex items-center gap-3">
                     <input
                       type="color"
-                      className="h-11 w-14 rounded-lg border border-input bg-transparent"
+                      className="h-11 w-14 cursor-pointer rounded-lg border border-white/15 bg-white/5"
                       value={form.primaryColor}
                       onChange={(e) => updateField("primaryColor", e.target.value)}
                     />
-                    <Input value={form.primaryColor} onChange={(e) => updateField("primaryColor", e.target.value)} />
+                    <DarkInput value={form.primaryColor} onChange={(e) => updateField("primaryColor", e.target.value)} />
                   </div>
                 </Field>
                 <Field label="Cor de destaque">
                   <div className="flex items-center gap-3">
                     <input
                       type="color"
-                      className="h-11 w-14 rounded-lg border border-input bg-transparent"
+                      className="h-11 w-14 cursor-pointer rounded-lg border border-white/15 bg-white/5"
                       value={form.accentColor}
                       onChange={(e) => updateField("accentColor", e.target.value)}
                     />
-                    <Input value={form.accentColor} onChange={(e) => updateField("accentColor", e.target.value)} />
+                    <DarkInput value={form.accentColor} onChange={(e) => updateField("accentColor", e.target.value)} />
                   </div>
                 </Field>
               </div>
@@ -176,8 +172,8 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           </section>
 
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Settings2 className="size-4 text-primary" />
+            <div className="flex items-center gap-2 text-sm font-medium text-white">
+              <Settings2 className="size-4 text-amber-300" />
               Preferências operacionais
             </div>
             <div className="grid gap-3">
@@ -205,13 +201,13 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           </section>
 
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <ShieldCheck className="size-4 text-primary" />
+            <div className="flex items-center gap-2 text-sm font-medium text-white">
+              <ShieldCheck className="size-4 text-amber-300" />
               Regras de marcação
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Antecedência mínima (horas)">
-                <Input
+                <DarkInput
                   type="number"
                   min={0}
                   max={168}
@@ -220,7 +216,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                 />
               </Field>
               <Field label="Janela de reservas (dias)">
-                <Input
+                <DarkInput
                   type="number"
                   min={1}
                   max={365}
@@ -229,7 +225,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                 />
               </Field>
               <Field label="Intervalo entre slots (min)">
-                <Input
+                <DarkInput
                   type="number"
                   min={5}
                   max={120}
@@ -239,7 +235,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                 />
               </Field>
               <Field label="Cancelamento automático até (horas)">
-                <Input
+                <DarkInput
                   type="number"
                   min={0}
                   max={168}
@@ -250,13 +246,13 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
             </div>
           </section>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-muted/50 p-4">
-            <div className="text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="text-sm text-neutral-300">
               Estas alterações já são persistidas e alimentam imediatamente a página pública.
             </div>
             <button
               type="button"
-              className={cn(buttonVariants({ className: "gap-2" }))}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-[#0b1020] transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={handleSave}
               disabled={status === "saving"}
             >
@@ -270,17 +266,17 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               className={cn(
                 "rounded-2xl border px-4 py-3 text-sm",
                 status === "error"
-                  ? "border-destructive/30 bg-destructive/10 text-destructive"
-                  : "border-primary/20 bg-primary/5 text-foreground"
+                  ? "border-red-400/30 bg-red-500/10 text-red-200"
+                  : "border-amber-300/30 bg-amber-300/10 text-amber-100"
               )}
             >
               {message}
             </div>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="overflow-hidden border-border/70">
+      <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#141a2d] text-white shadow-xl shadow-black/20">
         <div
           className="px-6 pb-8 pt-8 text-center text-white"
           style={{
@@ -305,7 +301,9 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               form.businessName.charAt(0)
             )}
           </div>
-          <Badge className="mt-5 border-white/20 bg-white/12 text-white hover:bg-white/12">Preview ao vivo</Badge>
+          <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-white">
+            Preview ao vivo
+          </span>
           <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight">{form.businessName}</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-white/82">{form.headline}</p>
           <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm text-white/82">
@@ -332,21 +330,21 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           </div>
         </div>
 
-        <CardContent className="grid gap-5 p-5">
-          <div className="rounded-2xl border bg-muted/50 p-4 text-left">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <Sparkles className="size-4 text-primary" />
+        <div className="grid gap-5 p-5">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
+              <Sparkles className="size-4 text-amber-300" />
               Posicionamento da barbearia
             </div>
-            <p className="text-sm leading-7 text-muted-foreground">{form.description}</p>
+            <p className="text-sm leading-7 text-neutral-300">{form.description}</p>
           </div>
 
-          <div className="rounded-2xl border bg-muted/50 p-4 text-left">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <ShieldCheck className="size-4 text-primary" />
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
+              <ShieldCheck className="size-4 text-amber-300" />
               Políticas de marcação
             </div>
-            <div className="grid gap-2 text-sm text-muted-foreground">
+            <div className="grid gap-2 text-sm text-neutral-300">
               <p>Antecedência mínima: {form.bookingLeadTimeHours}h.</p>
               <p>Janela de reservas: até {form.bookingWindowDays} dias.</p>
               <p>Intervalo entre horários: {form.slotIntervalMinutes} min.</p>
@@ -358,34 +356,36 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
             {form.onlineBooking ? (
               <a
                 href={`/${form.slug || "barbearia-sample"}`}
-                className={cn(buttonVariants({ size: "lg", className: "h-12 w-full justify-between rounded-2xl px-5" }))}
+                className="inline-flex h-12 w-full items-center justify-between rounded-2xl bg-amber-400 px-5 text-sm font-semibold text-[#0b1020] transition hover:bg-amber-300"
               >
                 Reservar agora
                 <ArrowRight className="size-4" />
               </a>
             ) : (
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-700">
+              <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">
                 As reservas online estão desativadas. A página pública vai mostrar contacto e branding, mas sem CTA de marcação.
               </div>
             )}
 
-            <div className="rounded-2xl border bg-muted/50 p-4 text-left">
-              <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                <Sparkles className="size-4 text-primary" />
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
+                <Sparkles className="size-4 text-amber-300" />
                 Mensagem em destaque
               </div>
-              <p className="text-sm leading-7 text-muted-foreground">{form.subheadline}</p>
-              <p className="mt-3 rounded-2xl bg-background px-4 py-3 text-sm text-foreground">{form.welcomeMessage}</p>
+              <p className="text-sm leading-7 text-neutral-300">{form.subheadline}</p>
+              <p className="mt-3 rounded-2xl bg-[#0b1020] px-4 py-3 text-sm text-white ring-1 ring-white/10">
+                {form.welcomeMessage}
+              </p>
             </div>
           </div>
 
           <div className="grid gap-3">
             {demoBusiness.services.map((service) => (
-              <div key={service.id} className="rounded-[1.5rem] border bg-card p-4">
+              <div key={service.id} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="font-medium">{service.name}</h3>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{service.description}</p>
+                    <h3 className="font-medium text-white">{service.name}</h3>
+                    <p className="mt-1 text-sm leading-6 text-neutral-300">{service.description}</p>
                   </div>
                   {form.showDurations ? (
                     <span
@@ -397,7 +397,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                   ) : null}
                 </div>
                 {form.showPrices ? (
-                  <p className="mt-4 font-semibold" style={{ color: form.primaryColor }}>
+                  <p className="mt-4 font-semibold text-amber-300">
                     {formatEuro(service.priceCents)}
                   </p>
                 ) : null}
@@ -407,13 +407,16 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
 
           {form.showTeam ? (
             <div>
-              <div className="mb-4 flex items-center gap-2 text-sm font-medium">
-                <UserRound className="size-4" />
+              <div className="mb-4 flex items-center gap-2 text-sm font-medium text-white">
+                <UserRound className="size-4 text-amber-300" />
                 Equipa visível na página pública
               </div>
               <div className="grid gap-3">
                 {demoBusiness.team.map((member) => (
-                  <div key={member.id} className="flex items-start justify-between gap-3 rounded-[1.5rem] border p-4">
+                  <div
+                    key={member.id}
+                    className="flex items-start justify-between gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
+                  >
                     <div className="flex gap-3">
                       <div
                         className="flex size-12 items-center justify-center rounded-2xl text-sm font-semibold text-white"
@@ -422,15 +425,12 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                         {member.name.charAt(0)}
                       </div>
                       <div>
-                        <p className="font-medium">{member.name}</p>
-                        <p className="text-sm text-muted-foreground">{member.role}</p>
-                        <p className="mt-2 text-sm text-muted-foreground">{member.specialties.join(" / ")}</p>
+                        <p className="font-medium text-white">{member.name}</p>
+                        <p className="text-sm text-neutral-300">{member.role}</p>
+                        <p className="mt-2 text-sm text-neutral-400">{member.specialties.join(" / ")}</p>
                       </div>
                     </div>
-                    <span
-                      className="rounded-full px-3 py-1 text-xs font-semibold"
-                      style={{ backgroundColor: `${form.primaryColor}14`, color: form.primaryColor }}
-                    >
+                    <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-semibold text-amber-300">
                       Disponível
                     </span>
                   </div>
@@ -439,18 +439,21 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
             </div>
           ) : null}
 
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-muted/50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
             <div>
-              <p className="text-sm font-medium">Rota pública prevista</p>
-              <p className="text-sm text-muted-foreground">/{form.slug || "nome-da-barbearia"}</p>
+              <p className="text-sm font-medium text-white">Rota pública prevista</p>
+              <p className="text-sm text-neutral-300">/{form.slug || "nome-da-barbearia"}</p>
             </div>
-            <a href={`/${form.slug || "barbearia-sample"}`} className={cn(buttonVariants({ className: "gap-2" }))}>
+            <a
+              href={`/${form.slug || "barbearia-sample"}`}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-[#0b1020] transition hover:bg-amber-300"
+            >
               Ver página pública
               <ArrowRight className="size-4" />
             </a>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -458,9 +461,35 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-xs font-medium text-neutral-300">{label}</span>
       {children}
     </label>
+  );
+}
+
+function DarkInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { className, ...rest } = props;
+  return (
+    <input
+      {...rest}
+      className={cn(
+        "w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-neutral-500 focus:border-amber-400/50 [color-scheme:dark]",
+        className
+      )}
+    />
+  );
+}
+
+function DarkTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const { className, ...rest } = props;
+  return (
+    <textarea
+      {...rest}
+      className={cn(
+        "min-h-24 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-neutral-500 focus:border-amber-400/50",
+        className
+      )}
+    />
   );
 }
 
@@ -474,9 +503,14 @@ function ToggleRow({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-center justify-between gap-3 rounded-2xl border bg-background px-4 py-3 text-sm">
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:border-white/20">
       <span>{label}</span>
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="size-4 accent-amber-400"
+      />
     </label>
   );
 }
