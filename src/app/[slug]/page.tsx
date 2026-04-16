@@ -365,31 +365,41 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                   : "sm:grid-cols-2"
               }`}
             >
-              {business.locations.slice(0, 4).map((loc, idx) => (
-                <div
-                  key={idx}
-                  className="relative overflow-hidden rounded-2xl shadow-xl shadow-black/10 ring-1 ring-black/5"
-                >
+              {business.locations.slice(0, 4).map((loc, idx) => {
+                const mapQuery = [loc.addressLine1, loc.city]
+                  .filter(Boolean)
+                  .join(", ");
+
+                return (
                   <div
-                    className="aspect-[4/3] w-full bg-[#0b1020] bg-cover bg-center"
-                    style={
-                      business.coverImageUrl
-                        ? { backgroundImage: `url(${business.coverImageUrl})` }
-                        : undefined
-                    }
-                  />
-                  <div className="absolute bottom-4 left-1/2 w-[85%] -translate-x-1/2 rounded-2xl bg-[#0b1020] px-5 py-3 text-center shadow-xl">
-                    <p className="text-sm font-medium text-white">
-                      {loc.addressLine1 ?? loc.city ?? "Morada"}
-                    </p>
-                    {loc.addressLine1 && loc.city ? (
-                      <p className="mt-0.5 text-[11px] uppercase tracking-[0.3em] text-amber-300">
-                        {loc.city}
+                    key={idx}
+                    className="relative overflow-hidden rounded-2xl shadow-xl shadow-black/10 ring-1 ring-black/5"
+                  >
+                    {mapQuery ? (
+                      <iframe
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                        title={`Mapa de ${loc.addressLine1 ?? loc.city ?? "localização"}`}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        className="aspect-[4/3] w-full border-0"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <div className="aspect-[4/3] w-full bg-[#0b1020]" />
+                    )}
+                    <div className="absolute bottom-4 left-1/2 w-[85%] -translate-x-1/2 rounded-2xl bg-[#0b1020] px-5 py-3 text-center shadow-xl">
+                      <p className="text-sm font-medium text-white">
+                        {loc.addressLine1 ?? loc.city ?? "Morada"}
                       </p>
-                    ) : null}
+                      {loc.addressLine1 && loc.city ? (
+                        <p className="mt-0.5 text-[11px] uppercase tracking-[0.3em] text-amber-300">
+                          {loc.city}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

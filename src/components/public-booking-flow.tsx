@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Loader2, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import type { BookingSlot, PublicBusinessPayload } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
@@ -147,202 +147,150 @@ export function PublicBookingFlow({ business }: Props) {
   };
 
   return (
-    <section className="rounded-[2rem] p-5 text-white sm:p-6">
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.35em] text-amber-300/80">Reserva rápida</p>
-          <h3 className="mt-1 font-serif text-xl text-white">Marca já o teu horário</h3>
-        </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
-          <span className="size-1.5 rounded-full bg-emerald-400" />
-          Ao vivo
-        </span>
-      </div>
+    <section className="rounded-[1.75rem] bg-transparent p-6 text-white sm:p-8">
+      <label className="grid gap-2">
+        <span className="text-xs font-medium text-neutral-300">Selecione um serviço</span>
+        <select
+          value={serviceId}
+          onChange={(event) => setServiceId(event.target.value)}
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-amber-400/50"
+        >
+          {business.services.map((service) => (
+            <option key={service.id} value={service.id} className="bg-[#0b1020] text-white">
+              {service.name}
+              {business.showPrices ? ` — ${formatEuro(service.priceCents)}` : ""}
+            </option>
+          ))}
+        </select>
+      </label>
 
-      <div className="mb-5 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-sm text-neutral-300">
-        <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 size-4 text-amber-400" />
-          <div className="grid gap-1">
-            <p className="font-semibold text-white">Política de marcação</p>
-            <p>Antecedência mínima: {business.bookingLeadTimeHours}h.</p>
-            <p>Janela de reservas: até {business.bookingWindowDays} dias.</p>
-            <p>Cancelamento automático pelo cliente: até {business.cancellationWindowHours}h antes.</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-3">
-        {business.services.map((service) => (
-          <button
-            key={service.id}
-            type="button"
-            onClick={() => setServiceId(service.id)}
-            className={cn(
-              "rounded-[1.5rem] border p-4 text-left transition",
-              service.id === serviceId
-                ? "border-amber-400/50 bg-amber-400/10"
-                : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
-            )}
+      {compatibleStaffMembers.length > 1 ? (
+        <label className="mt-4 grid gap-2">
+          <span className="text-xs font-medium text-neutral-300">Selecione um profissional</span>
+          <select
+            value={staffMemberId}
+            onChange={(event) => setStaffMemberId(event.target.value)}
+            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-amber-400/50"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-white">{service.name}</h3>
-                <p className="mt-1 text-sm leading-6 text-neutral-400">{service.description}</p>
-              </div>
-              <ArrowRight className={cn("mt-1 size-4", service.id === serviceId ? "text-amber-400" : "text-neutral-500")} />
-            </div>
-            <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-neutral-300">
-                <Clock3 className="size-4" />
-                {service.durationMinutes} min
-              </span>
-              {business.showPrices ? <span className="font-semibold text-amber-300">{formatEuro(service.priceCents)}</span> : null}
-            </div>
-          </button>
-        ))}
-      </div>
+            {compatibleStaffMembers.map((member) => (
+              <option key={member.id} value={member.id} className="bg-[#0b1020] text-white">
+                {member.fullName}
+                {member.roleTitle ? ` — ${member.roleTitle}` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
-      <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-          <UserRound className="size-4 text-amber-400" />
-          Profissional
-        </div>
-        <div className="grid gap-2">
-          {compatibleStaffMembers.length > 0 ? (
-            compatibleStaffMembers.map((member) => (
+      <label className="mt-4 grid gap-2">
+        <span className="text-xs font-medium text-neutral-300">Selecione a data</span>
+        <input
+          type="date"
+          value={date}
+          min={minDate}
+          max={maxDate}
+          onChange={(event) => setDate(event.target.value)}
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-amber-400/50"
+        />
+      </label>
+
+      <div className="mt-4">
+        <p className="mb-2 text-xs font-medium text-neutral-300">Selecione um horário</p>
+        {loadingSlots ? (
+          <div className="flex items-center gap-2 text-sm text-neutral-400">
+            <Loader2 className="size-4 animate-spin" />
+            A carregar horários...
+          </div>
+        ) : slots.length > 0 ? (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {slots.map((slot) => (
               <button
-                key={member.id}
+                key={slot.iso}
                 type="button"
-                onClick={() => setStaffMemberId(member.id)}
+                onClick={() => setSelectedSlot(slot.iso)}
                 className={cn(
-                  "flex items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition",
-                  member.id === staffMemberId
-                    ? "border-amber-400/50 bg-amber-400/10"
-                    : "border-white/10 bg-transparent hover:border-white/20 hover:bg-white/5"
+                  "rounded-xl border px-3 py-2 text-sm transition",
+                  selectedSlot === slot.iso
+                    ? "border-amber-400 bg-amber-400 font-semibold text-[#0b1020]"
+                    : "border-white/15 text-white hover:border-amber-300/40 hover:bg-white/5"
                 )}
               >
-                <div>
-                  <p className="font-semibold text-white">{member.fullName}</p>
-                  <p className="text-neutral-400">{member.roleTitle}</p>
-                </div>
-                {member.id === staffMemberId ? <CheckCircle2 className="size-4 text-amber-400" /> : null}
+                {slot.label}
               </button>
-            ))
-          ) : (
-            <p className="text-sm text-neutral-400">
-              Ainda não há profissionais configurados para este serviço.
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-5 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
-        <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-          <label className="grid gap-2">
-            <span className="flex items-center gap-2 text-sm font-semibold text-white">
-              <CalendarDays className="size-4 text-amber-400" />
-              Data
-            </span>
-            <input
-              type="date"
-              className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none [color-scheme:dark] focus:border-amber-400/50"
-              value={date}
-              min={minDate}
-              max={maxDate}
-              onChange={(event) => setDate(event.target.value)}
-            />
-          </label>
-          <p className="mt-2 text-xs text-neutral-400">
-            Slots de {business.slotIntervalMinutes} em {business.slotIntervalMinutes} minutos.
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-neutral-400">
+            {date
+              ? "Não há horários disponíveis para os filtros escolhidos."
+              : "Escolhe data, serviço e profissional para ver horários."}
           </p>
-        </div>
-
-        <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-          <p className="mb-3 text-sm font-semibold text-white">Horários disponíveis</p>
-          {loadingSlots ? (
-            <div className="flex items-center gap-2 text-sm text-neutral-400">
-              <Loader2 className="size-4 animate-spin" />
-              A carregar horários...
-            </div>
-          ) : slots.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {slots.map((slot) => (
-                <button
-                  key={slot.iso}
-                  type="button"
-                  onClick={() => setSelectedSlot(slot.iso)}
-                  className={cn(
-                    "rounded-xl border px-3 py-2 text-sm transition",
-                    selectedSlot === slot.iso
-                      ? "border-amber-400 bg-amber-400 font-semibold text-[#0b1020]"
-                      : "border-white/15 text-white hover:border-amber-300/40 hover:bg-white/5"
-                  )}
-                >
-                  {slot.label}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-neutral-400">
-              {date
-                ? "Não há horários disponíveis para os filtros escolhidos."
-                : "Escolhe data, serviço e profissional para ver horários."}
-            </p>
-          )}
-        </div>
+        )}
       </div>
 
-      <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-        <p className="mb-3 text-sm font-semibold text-white">Os teus dados</p>
-        <div className="grid gap-3 md:grid-cols-2">
-          <input
-            type="text"
-            placeholder="Nome"
-            value={customerName}
-            onChange={(event) => setCustomerName(event.target.value)}
-            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={customerEmail}
-            onChange={(event) => setCustomerEmail(event.target.value)}
-            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
-          />
-          <input
-            type="tel"
-            placeholder="Telefone"
-            value={customerPhone}
-            onChange={(event) => setCustomerPhone(event.target.value)}
-            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50 md:col-span-2"
-          />
-        </div>
+      <label className="mt-4 grid gap-2">
+        <span className="text-xs font-medium text-neutral-300">Nome completo</span>
+        <input
+          type="text"
+          placeholder="Digite o teu nome"
+          value={customerName}
+          onChange={(event) => setCustomerName(event.target.value)}
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
+        />
+      </label>
 
-        <button
-          type="button"
-          onClick={handleBooking}
-          disabled={!selectedService || !selectedSlot || !customerName || !staffMemberId || submitting}
-          className={cn(
-            "mt-4 inline-flex h-12 w-full items-center justify-between rounded-2xl bg-amber-400 px-5 text-sm font-semibold uppercase tracking-[0.15em] text-[#0b1020] shadow-lg shadow-amber-500/20 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50",
-            submitting && "opacity-80"
-          )}
+      <label className="mt-4 grid gap-2">
+        <span className="text-xs font-medium text-neutral-300">Email</span>
+        <input
+          type="email"
+          placeholder="Digite o teu email"
+          value={customerEmail}
+          onChange={(event) => setCustomerEmail(event.target.value)}
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
+        />
+      </label>
+
+      <label className="mt-4 grid gap-2">
+        <span className="text-xs font-medium text-neutral-300">Telefone</span>
+        <input
+          type="tel"
+          placeholder="Digite o teu telefone"
+          value={customerPhone}
+          onChange={(event) => setCustomerPhone(event.target.value)}
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
+        />
+      </label>
+
+      <button
+        type="button"
+        onClick={handleBooking}
+        disabled={!selectedService || !selectedSlot || !customerName || !staffMemberId || submitting}
+        className={cn(
+          "mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-semibold text-[#0b1020] transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50",
+          submitting && "opacity-80"
+        )}
+      >
+        {submitting ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            A agendar...
+          </>
+        ) : (
+          "Agendar horário"
+        )}
+      </button>
+
+      {message ? <p className="mt-3 text-sm text-emerald-300">{message}</p> : null}
+      {manageUrl ? (
+        <Link
+          href={manageUrl}
+          className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-amber-300 transition hover:text-amber-200"
         >
-          {submitting ? "A criar reserva..." : "Confirmar marcação"}
-          {submitting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-        </button>
-
-        {message ? <p className="mt-3 text-sm text-emerald-300">{message}</p> : null}
-        {manageUrl ? (
-          <Link
-            href={manageUrl}
-            className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-amber-300 transition hover:text-amber-200"
-          >
-            Gerir esta reserva
-            <ArrowRight className="size-4" />
-          </Link>
-        ) : null}
-        {error ? <p className="mt-3 text-sm text-red-400">{error}</p> : null}
-      </div>
+          Gerir esta reserva
+          <ArrowRight className="size-4" />
+        </Link>
+      ) : null}
+      {error ? <p className="mt-3 text-sm text-red-400">{error}</p> : null}
     </section>
   );
 }

@@ -20,7 +20,7 @@ const securityHeaders = [
       "font-src 'self' data: https:",
       "script-src 'self' 'unsafe-inline' https://*.clerk.com https://*.clerk.accounts.dev https://browser.sentry-cdn.com https://challenges.cloudflare.com",
       "connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com https://*.sentry.io https://*.ingest.sentry.io https://vitals.vercel-insights.com",
-      "frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+      "frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://challenges.cloudflare.com https://www.google.com",
       "worker-src 'self' blob:",
       "upgrade-insecure-requests",
     ].join("; "),
