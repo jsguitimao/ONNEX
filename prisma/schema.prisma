@@ -80,6 +80,10 @@ model BookingPage {
   headline          String?
   subheadline       String?
   welcomeMessage    String?
+  heroImageUrl      String?
+  aboutImageUrl     String?
+  servicesImageUrl  String?
+  teamImageUrl      String?
   showTeam          Boolean  @default(true)
   showPrices        Boolean  @default(true)
   showDurations     Boolean  @default(true)

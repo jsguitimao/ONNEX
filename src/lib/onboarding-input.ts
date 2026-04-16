@@ -103,6 +103,10 @@ export const onboardingSchema = z.object({
   accentColor: hexColorSchema,
   logoUrl: optionalUrlSchema,
   coverImageUrl: optionalUrlSchema,
+  heroImageUrl: optionalUrlSchema,
+  aboutImageUrl: optionalUrlSchema,
+  servicesImageUrl: optionalUrlSchema,
+  teamImageUrl: optionalUrlSchema,
   onlineBooking: z.boolean(),
   showTeam: z.boolean(),
   showPrices: z.boolean(),
@@ -130,5 +134,9 @@ export function normalizeOnboardingDraft(input: OnboardingDraft): OnboardingDraf
     accentColor: ensureString(normalizeHexColorInput(input.accentColor)),
     logoUrl: ensureString(normalizeOptionalUrlInput(input.logoUrl)),
     coverImageUrl: ensureString(normalizeOptionalUrlInput(input.coverImageUrl)),
+    heroImageUrl: ensureString(normalizeOptionalUrlInput(input.heroImageUrl)),
+    aboutImageUrl: ensureString(normalizeOptionalUrlInput(input.aboutImageUrl)),
+    servicesImageUrl: ensureString(normalizeOptionalUrlInput(input.servicesImageUrl)),
+    teamImageUrl: ensureString(normalizeOptionalUrlInput(input.teamImageUrl)),
   };
 }

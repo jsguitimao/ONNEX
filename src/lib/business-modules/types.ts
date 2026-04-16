@@ -13,6 +13,10 @@ export type OnboardingDraft = {
   accentColor: string;
   logoUrl: string;
   coverImageUrl: string;
+  heroImageUrl: string;
+  aboutImageUrl: string;
+  servicesImageUrl: string;
+  teamImageUrl: string;
   onlineBooking: boolean;
   showTeam: boolean;
   showPrices: boolean;
@@ -36,6 +40,10 @@ export type PublicBusinessPayload = {
   accentColor: string | null;
   logoUrl: string | null;
   coverImageUrl: string | null;
+  heroImageUrl: string | null;
+  aboutImageUrl: string | null;
+  servicesImageUrl: string | null;
+  teamImageUrl: string | null;
   headline: string | null;
   subheadline: string | null;
   welcomeMessage: string | null;

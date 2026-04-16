@@ -4,21 +4,14 @@ import { useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
-  Globe,
   ImageIcon,
   Loader2,
-  Mail,
-  MapPin,
   Palette,
-  Phone,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Store,
-  UserRound,
 } from "lucide-react";
 import type { OnboardingDraft } from "@/lib/business";
-import { demoBusiness, formatEuro } from "@/lib/demo-data";
 import { normalizeOnboardingDraft } from "@/lib/onboarding-input";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +19,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
   const [form, setForm] = useState<OnboardingDraft>(initialData);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [previewVersion, setPreviewVersion] = useState(0);
 
   const updateField = <K extends keyof OnboardingDraft>(field: K, value: OnboardingDraft[K]) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -52,11 +46,15 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
       setForm(payload);
       setStatus("saved");
       setMessage("Configuração guardada com sucesso.");
+      setPreviewVersion((v) => v + 1);
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Erro inesperado ao guardar.");
     }
   };
+
+  const previewSlug = form.slug || "barbearia-sample";
+  const previewUrl = `/${previewSlug}`;
 
   return (
     <div className="grid gap-8 xl:grid-cols-[1fr_1.05fr]">
@@ -107,16 +105,47 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <ImageIcon className="size-4 text-amber-300" />
-              Visuais
+              Imagens por secção do site
             </div>
+            <p className="-mt-2 text-xs text-neutral-400">
+              Cola o URL de uma foto para cada secção. Se ficar vazio, a imagem de capa é usada como fallback.
+            </p>
             <div className="grid gap-4">
               <Field label="Logo por URL">
                 <DarkInput value={form.logoUrl} onChange={(e) => updateField("logoUrl", e.target.value)} placeholder="https://..." />
               </Field>
-              <Field label="Imagem de capa por URL">
+              <Field label="Imagem de capa (fallback geral)">
                 <DarkInput
                   value={form.coverImageUrl}
                   onChange={(e) => updateField("coverImageUrl", e.target.value)}
+                  placeholder="https://..."
+                />
+              </Field>
+              <Field label="Foto da secção Principal (hero)">
+                <DarkInput
+                  value={form.heroImageUrl}
+                  onChange={(e) => updateField("heroImageUrl", e.target.value)}
+                  placeholder="https://..."
+                />
+              </Field>
+              <Field label="Foto da secção Sobre">
+                <DarkInput
+                  value={form.aboutImageUrl}
+                  onChange={(e) => updateField("aboutImageUrl", e.target.value)}
+                  placeholder="https://..."
+                />
+              </Field>
+              <Field label="Foto da secção Serviços">
+                <DarkInput
+                  value={form.servicesImageUrl}
+                  onChange={(e) => updateField("servicesImageUrl", e.target.value)}
+                  placeholder="https://..."
+                />
+              </Field>
+              <Field label="Foto da secção Equipa">
+                <DarkInput
+                  value={form.teamImageUrl}
+                  onChange={(e) => updateField("teamImageUrl", e.target.value)}
                   placeholder="https://..."
                 />
               </Field>
@@ -248,7 +277,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="text-sm text-neutral-300">
-              Estas alterações já são persistidas e alimentam imediatamente a página pública.
+              Ao guardar, a página pública e o preview à direita actualizam-se.
             </div>
             <button
               type="button"
@@ -276,182 +305,32 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#141a2d] text-white shadow-xl shadow-black/20">
-        <div
-          className="px-6 pb-8 pt-8 text-center text-white"
-          style={{
-            background: `linear-gradient(180deg, ${form.primaryColor} 0%, ${form.accentColor} 100%)`,
-          }}
-        >
-          {form.coverImageUrl ? (
-            <div
-              className="mb-5 h-36 rounded-[1.75rem] bg-cover bg-center"
-              style={{ backgroundImage: `linear-gradient(rgba(0,0,0,.2), rgba(0,0,0,.35)), url(${form.coverImageUrl})` }}
-            />
-          ) : null}
-
-          <div className="mx-auto flex size-24 items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/20 bg-white/12 text-3xl font-semibold shadow-lg shadow-black/10">
-            {form.logoUrl ? (
-              <div
-                className="h-full w-full bg-cover bg-center"
-                aria-label={form.businessName}
-                style={{ backgroundImage: `url(${form.logoUrl})` }}
-              />
-            ) : (
-              form.businessName.charAt(0)
-            )}
-          </div>
-          <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-white">
-            Preview ao vivo
-          </span>
-          <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight">{form.businessName}</h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-white/82">{form.headline}</p>
-          <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm text-white/82">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
-              <MapPin className="size-4" />
-              {form.city}
+      <div className="flex flex-col overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#141a2d] text-white shadow-xl shadow-black/20">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-amber-300">
+              Preview ao vivo
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
-              <Phone className="size-4" />
-              {form.phone}
-            </span>
-            {form.contactEmail ? (
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
-                <Mail className="size-4" />
-                {form.contactEmail}
-              </span>
-            ) : null}
-            {form.websiteUrl ? (
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
-                <Globe className="size-4" />
-                Website
-              </span>
-            ) : null}
+            <span className="text-xs text-neutral-400">{previewUrl}</span>
           </div>
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-3 py-1.5 text-xs font-semibold text-[#0b1020] transition hover:bg-amber-300"
+          >
+            Abrir em nova aba
+            <ArrowRight className="size-3.5" />
+          </a>
         </div>
-
-        <div className="grid gap-5 p-5">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
-              <Sparkles className="size-4 text-amber-300" />
-              Posicionamento da barbearia
-            </div>
-            <p className="text-sm leading-7 text-neutral-300">{form.description}</p>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
-              <ShieldCheck className="size-4 text-amber-300" />
-              Políticas de marcação
-            </div>
-            <div className="grid gap-2 text-sm text-neutral-300">
-              <p>Antecedência mínima: {form.bookingLeadTimeHours}h.</p>
-              <p>Janela de reservas: até {form.bookingWindowDays} dias.</p>
-              <p>Intervalo entre horários: {form.slotIntervalMinutes} min.</p>
-              <p>Cancelamento pelo cliente: até {form.cancellationWindowHours}h antes.</p>
-            </div>
-          </div>
-
-          <div className="grid gap-3">
-            {form.onlineBooking ? (
-              <a
-                href={`/${form.slug || "barbearia-sample"}`}
-                className="inline-flex h-12 w-full items-center justify-between rounded-2xl bg-amber-400 px-5 text-sm font-semibold text-[#0b1020] transition hover:bg-amber-300"
-              >
-                Reservar agora
-                <ArrowRight className="size-4" />
-              </a>
-            ) : (
-              <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">
-                As reservas online estão desativadas. A página pública vai mostrar contacto e branding, mas sem CTA de marcação.
-              </div>
-            )}
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
-              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
-                <Sparkles className="size-4 text-amber-300" />
-                Mensagem em destaque
-              </div>
-              <p className="text-sm leading-7 text-neutral-300">{form.subheadline}</p>
-              <p className="mt-3 rounded-2xl bg-[#0b1020] px-4 py-3 text-sm text-white ring-1 ring-white/10">
-                {form.welcomeMessage}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-3">
-            {demoBusiness.services.map((service) => (
-              <div key={service.id} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="font-medium text-white">{service.name}</h3>
-                    <p className="mt-1 text-sm leading-6 text-neutral-300">{service.description}</p>
-                  </div>
-                  {form.showDurations ? (
-                    <span
-                      className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                      style={{ backgroundColor: `${form.accentColor}20`, color: form.accentColor }}
-                    >
-                      {service.durationMinutes} min
-                    </span>
-                  ) : null}
-                </div>
-                {form.showPrices ? (
-                  <p className="mt-4 font-semibold text-amber-300">
-                    {formatEuro(service.priceCents)}
-                  </p>
-                ) : null}
-              </div>
-            ))}
-          </div>
-
-          {form.showTeam ? (
-            <div>
-              <div className="mb-4 flex items-center gap-2 text-sm font-medium text-white">
-                <UserRound className="size-4 text-amber-300" />
-                Equipa visível na página pública
-              </div>
-              <div className="grid gap-3">
-                {demoBusiness.team.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-start justify-between gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
-                  >
-                    <div className="flex gap-3">
-                      <div
-                        className="flex size-12 items-center justify-center rounded-2xl text-sm font-semibold text-white"
-                        style={{ background: `linear-gradient(135deg, ${form.primaryColor}, ${form.accentColor})` }}
-                      >
-                        {member.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-medium text-white">{member.name}</p>
-                        <p className="text-sm text-neutral-300">{member.role}</p>
-                        <p className="mt-2 text-sm text-neutral-400">{member.specialties.join(" / ")}</p>
-                      </div>
-                    </div>
-                    <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-semibold text-amber-300">
-                      Disponível
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div>
-              <p className="text-sm font-medium text-white">Rota pública prevista</p>
-              <p className="text-sm text-neutral-300">/{form.slug || "nome-da-barbearia"}</p>
-            </div>
-            <a
-              href={`/${form.slug || "barbearia-sample"}`}
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-[#0b1020] transition hover:bg-amber-300"
-            >
-              Ver página pública
-              <ArrowRight className="size-4" />
-            </a>
-          </div>
+        <div className="relative flex-1 bg-[#0b1020]">
+          <iframe
+            key={previewVersion}
+            src={previewUrl}
+            title="Preview da página pública"
+            className="h-[900px] w-full border-0"
+            loading="lazy"
+          />
         </div>
       </div>
     </div>

@@ -81,7 +81,11 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   const location = business.locations[0];
   const phoneDigits = (business.contactPhone ?? "").replace(/\D/g, "");
   const servicesPreview = publicBusiness.services.slice(0, 3);
-  const portraitImage = business.coverImageUrl ?? business.logoUrl;
+  const fallbackImage = business.coverImageUrl ?? business.logoUrl;
+  const heroImage = publicBusiness.heroImageUrl ?? fallbackImage;
+  const aboutImage = publicBusiness.aboutImageUrl ?? fallbackImage;
+  const servicesImage = publicBusiness.servicesImageUrl ?? business.coverImageUrl ?? null;
+  const teamImage = publicBusiness.teamImageUrl ?? null;
 
   return (
     <main className="relative min-h-screen bg-[#0b1020] text-white">
@@ -123,7 +127,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           <div
             className="absolute inset-0 bg-[#0b1020] bg-cover bg-center"
             style={
-              portraitImage ? { backgroundImage: `url(${portraitImage})` } : undefined
+              heroImage ? { backgroundImage: `url(${heroImage})` } : undefined
             }
             aria-hidden
           />
@@ -205,16 +209,16 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           <div className="grid gap-12 sm:grid-cols-2 sm:items-center sm:gap-16">
             {/* Colagem fotográfica */}
             <div className="relative h-[420px] sm:h-[520px]">
-              {portraitImage ? (
+              {aboutImage ? (
                 <>
                   <div
                     className="absolute right-0 top-0 h-72 w-52 rounded-3xl bg-cover bg-center shadow-2xl shadow-black/60 ring-1 ring-white/10 sm:h-96 sm:w-72"
-                    style={{ backgroundImage: `url(${portraitImage})` }}
+                    style={{ backgroundImage: `url(${aboutImage})` }}
                   />
                   <div
                     className="absolute bottom-0 left-0 h-64 w-44 rounded-3xl bg-cover bg-center shadow-2xl shadow-black/60 ring-4 ring-[#0b1020] sm:h-72 sm:w-56"
                     style={{
-                      backgroundImage: `url(${portraitImage})`,
+                      backgroundImage: `url(${aboutImage})`,
                       filter: "grayscale(0.35) brightness(0.85)",
                     }}
                   />
@@ -276,8 +280,8 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                   <div
                     className="aspect-[4/3] w-full bg-[#0b1020] bg-cover bg-center"
                     style={
-                      business.coverImageUrl
-                        ? { backgroundImage: `url(${business.coverImageUrl})` }
+                      servicesImage
+                        ? { backgroundImage: `url(${servicesImage})` }
                         : undefined
                     }
                   />
@@ -329,9 +333,17 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     key={member.id}
                     className="overflow-hidden rounded-2xl bg-white/5 ring-1 ring-white/10 transition hover:-translate-y-1 hover:ring-amber-300/40"
                   >
-                    <div className="flex aspect-[3/4] items-center justify-center bg-gradient-to-br from-white/10 via-white/5 to-transparent text-7xl font-semibold text-white/15">
-                      {member.fullName.charAt(0)}
-                    </div>
+                    {teamImage ? (
+                      <div
+                        className="aspect-[3/4] w-full bg-cover bg-center"
+                        style={{ backgroundImage: `url(${teamImage})` }}
+                        aria-label={member.fullName}
+                      />
+                    ) : (
+                      <div className="flex aspect-[3/4] items-center justify-center bg-gradient-to-br from-white/10 via-white/5 to-transparent text-7xl font-semibold text-white/15">
+                        {member.fullName.charAt(0)}
+                      </div>
+                    )}
                     <div className="p-5 text-center">
                       <p className="font-semibold text-amber-300">{member.fullName}</p>
                       {member.roleTitle ? (
