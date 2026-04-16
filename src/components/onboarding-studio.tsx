@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -10,6 +10,8 @@ import {
   Settings2,
   ShieldCheck,
   Store,
+  Upload,
+  X,
 } from "lucide-react";
 import type { OnboardingDraft } from "@/lib/business";
 import { normalizeOnboardingDraft } from "@/lib/onboarding-input";
@@ -111,44 +113,36 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               Cola o URL de uma foto para cada secção. Se ficar vazio, a imagem de capa é usada como fallback.
             </p>
             <div className="grid gap-4">
-              <Field label="Logo por URL">
-                <DarkInput value={form.logoUrl} onChange={(e) => updateField("logoUrl", e.target.value)} placeholder="https://..." />
-              </Field>
-              <Field label="Imagem de capa (fallback geral)">
-                <DarkInput
-                  value={form.coverImageUrl}
-                  onChange={(e) => updateField("coverImageUrl", e.target.value)}
-                  placeholder="https://..."
-                />
-              </Field>
-              <Field label="Foto da secção Principal (hero)">
-                <DarkInput
-                  value={form.heroImageUrl}
-                  onChange={(e) => updateField("heroImageUrl", e.target.value)}
-                  placeholder="https://..."
-                />
-              </Field>
-              <Field label="Foto da secção Sobre">
-                <DarkInput
-                  value={form.aboutImageUrl}
-                  onChange={(e) => updateField("aboutImageUrl", e.target.value)}
-                  placeholder="https://..."
-                />
-              </Field>
-              <Field label="Foto da secção Serviços">
-                <DarkInput
-                  value={form.servicesImageUrl}
-                  onChange={(e) => updateField("servicesImageUrl", e.target.value)}
-                  placeholder="https://..."
-                />
-              </Field>
-              <Field label="Foto da secção Equipa">
-                <DarkInput
-                  value={form.teamImageUrl}
-                  onChange={(e) => updateField("teamImageUrl", e.target.value)}
-                  placeholder="https://..."
-                />
-              </Field>
+              <ImageField
+                label="Logo"
+                value={form.logoUrl}
+                onChange={(value) => updateField("logoUrl", value)}
+              />
+              <ImageField
+                label="Imagem de capa (fallback geral)"
+                value={form.coverImageUrl}
+                onChange={(value) => updateField("coverImageUrl", value)}
+              />
+              <ImageField
+                label="Foto da secção Principal (hero)"
+                value={form.heroImageUrl}
+                onChange={(value) => updateField("heroImageUrl", value)}
+              />
+              <ImageField
+                label="Foto da secção Sobre"
+                value={form.aboutImageUrl}
+                onChange={(value) => updateField("aboutImageUrl", value)}
+              />
+              <ImageField
+                label="Foto da secção Serviços"
+                value={form.servicesImageUrl}
+                onChange={(value) => updateField("servicesImageUrl", value)}
+              />
+              <ImageField
+                label="Foto da secção Equipa"
+                value={form.teamImageUrl}
+                onChange={(value) => updateField("teamImageUrl", value)}
+              />
             </div>
           </section>
 
@@ -369,6 +363,104 @@ function DarkTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) 
         className
       )}
     />
+  );
+}
+
+function ImageField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = (await response.json()) as { url?: string; error?: string };
+
+      if (!response.ok || !data.url) {
+        throw new Error(data.error ?? "Erro ao carregar ficheiro.");
+      }
+
+      onChange(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  return (
+    <div className="grid gap-2">
+      <span className="text-xs font-medium text-neutral-300">{label}</span>
+      <div className="flex gap-2">
+        <DarkInput
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="https://... ou carrega um ficheiro"
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-300/40 bg-amber-300/10 px-3 py-2.5 text-xs font-semibold text-amber-200 transition hover:bg-amber-300/20 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+          {uploading ? "A carregar..." : "Carregar"}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </div>
+      {value ? (
+        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={value}
+            alt={label}
+            className="h-16 w-16 rounded-lg object-cover"
+            onError={(event) => {
+              (event.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="inline-flex items-center gap-1 text-xs text-neutral-400 transition hover:text-red-300"
+          >
+            <X className="size-3.5" />
+            Remover
+          </button>
+        </div>
+      ) : null}
+      {error ? <p className="text-xs text-red-300">{error}</p> : null}
+    </div>
   );
 }
 
