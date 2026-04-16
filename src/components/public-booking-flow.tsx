@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Loader2, ShieldCheck, UserRound } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import type { BookingSlot, PublicBusinessPayload } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
@@ -148,20 +147,23 @@ export function PublicBookingFlow({ business }: Props) {
   };
 
   return (
-    <section id="booking" className="rounded-[2rem] border bg-card p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <section className="rounded-[2rem] p-5 text-white sm:p-6">
+      <div className="mb-6 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">Reserva rápida</p>
-          <h2 className="font-heading text-2xl font-semibold">Marca já o teu horário</h2>
+          <p className="text-[10px] uppercase tracking-[0.35em] text-amber-300/80">Reserva rápida</p>
+          <h3 className="mt-1 font-serif text-xl text-white">Marca já o teu horário</h3>
         </div>
-        <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">Ao vivo</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
+          <span className="size-1.5 rounded-full bg-emerald-400" />
+          Ao vivo
+        </span>
       </div>
 
-      <div className="mb-5 rounded-[1.5rem] border bg-muted/50 p-4 text-sm text-muted-foreground">
+      <div className="mb-5 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-sm text-neutral-300">
         <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 size-4 text-primary" />
+          <ShieldCheck className="mt-0.5 size-4 text-amber-400" />
           <div className="grid gap-1">
-            <p className="font-medium text-foreground">Política de marcação</p>
+            <p className="font-semibold text-white">Política de marcação</p>
             <p>Antecedência mínima: {business.bookingLeadTimeHours}h.</p>
             <p>Janela de reservas: até {business.bookingWindowDays} dias.</p>
             <p>Cancelamento automático pelo cliente: até {business.cancellationWindowHours}h antes.</p>
@@ -176,31 +178,33 @@ export function PublicBookingFlow({ business }: Props) {
             type="button"
             onClick={() => setServiceId(service.id)}
             className={cn(
-              "rounded-[1.5rem] border bg-background p-4 text-left transition",
-              service.id === serviceId ? "border-primary/40 bg-primary/5" : "hover:border-primary/20 hover:bg-muted/40"
+              "rounded-[1.5rem] border p-4 text-left transition",
+              service.id === serviceId
+                ? "border-amber-400/50 bg-amber-400/10"
+                : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
             )}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="font-medium">{service.name}</h3>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">{service.description}</p>
+                <h3 className="font-semibold text-white">{service.name}</h3>
+                <p className="mt-1 text-sm leading-6 text-neutral-400">{service.description}</p>
               </div>
-              <ArrowRight className={cn("mt-1 size-4", service.id === serviceId ? "text-primary" : "text-muted-foreground")} />
+              <ArrowRight className={cn("mt-1 size-4", service.id === serviceId ? "text-amber-400" : "text-neutral-500")} />
             </div>
             <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-              <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-muted-foreground">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-neutral-300">
                 <Clock3 className="size-4" />
                 {service.durationMinutes} min
               </span>
-              {business.showPrices ? <span className="font-semibold text-foreground">{formatEuro(service.priceCents)}</span> : null}
+              {business.showPrices ? <span className="font-semibold text-amber-300">{formatEuro(service.priceCents)}</span> : null}
             </div>
           </button>
         ))}
       </div>
 
-      <div className="mt-5 rounded-[1.5rem] border bg-background p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-          <UserRound className="size-4 text-primary" />
+      <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+          <UserRound className="size-4 text-amber-400" />
           Profissional
         </div>
         <div className="grid gap-2">
@@ -212,18 +216,20 @@ export function PublicBookingFlow({ business }: Props) {
                 onClick={() => setStaffMemberId(member.id)}
                 className={cn(
                   "flex items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition",
-                  member.id === staffMemberId ? "border-primary/40 bg-primary/5" : "hover:border-primary/20 hover:bg-muted/40"
+                  member.id === staffMemberId
+                    ? "border-amber-400/50 bg-amber-400/10"
+                    : "border-white/10 bg-transparent hover:border-white/20 hover:bg-white/5"
                 )}
               >
                 <div>
-                  <p className="font-medium">{member.fullName}</p>
-                  <p className="text-muted-foreground">{member.roleTitle}</p>
+                  <p className="font-semibold text-white">{member.fullName}</p>
+                  <p className="text-neutral-400">{member.roleTitle}</p>
                 </div>
-                {member.id === staffMemberId ? <CheckCircle2 className="size-4 text-primary" /> : null}
+                {member.id === staffMemberId ? <CheckCircle2 className="size-4 text-amber-400" /> : null}
               </button>
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-neutral-400">
               Ainda não há profissionais configurados para este serviço.
             </p>
           )}
@@ -231,30 +237,30 @@ export function PublicBookingFlow({ business }: Props) {
       </div>
 
       <div className="mt-5 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
-        <div className="rounded-[1.5rem] border bg-background p-4">
+        <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
           <label className="grid gap-2">
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <CalendarDays className="size-4 text-primary" />
+            <span className="flex items-center gap-2 text-sm font-semibold text-white">
+              <CalendarDays className="size-4 text-amber-400" />
               Data
             </span>
             <input
               type="date"
-              className="rounded-xl border border-input bg-transparent px-3 py-2 text-sm outline-none"
+              className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none [color-scheme:dark] focus:border-amber-400/50"
               value={date}
               min={minDate}
               max={maxDate}
               onChange={(event) => setDate(event.target.value)}
             />
           </label>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-xs text-neutral-400">
             Slots de {business.slotIntervalMinutes} em {business.slotIntervalMinutes} minutos.
           </p>
         </div>
 
-        <div className="rounded-[1.5rem] border bg-background p-4">
-          <p className="mb-3 text-sm font-medium">Horários disponíveis</p>
+        <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+          <p className="mb-3 text-sm font-semibold text-white">Horários disponíveis</p>
           {loadingSlots ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-neutral-400">
               <Loader2 className="size-4 animate-spin" />
               A carregar horários...
             </div>
@@ -267,7 +273,9 @@ export function PublicBookingFlow({ business }: Props) {
                   onClick={() => setSelectedSlot(slot.iso)}
                   className={cn(
                     "rounded-xl border px-3 py-2 text-sm transition",
-                    selectedSlot === slot.iso ? "border-primary bg-primary text-primary-foreground" : "hover:border-primary/30"
+                    selectedSlot === slot.iso
+                      ? "border-amber-400 bg-amber-400 font-semibold text-[#0b1020]"
+                      : "border-white/15 text-white hover:border-amber-300/40 hover:bg-white/5"
                   )}
                 >
                   {slot.label}
@@ -275,7 +283,7 @@ export function PublicBookingFlow({ business }: Props) {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-neutral-400">
               {date
                 ? "Não há horários disponíveis para os filtros escolhidos."
                 : "Escolhe data, serviço e profissional para ver horários."}
@@ -284,29 +292,29 @@ export function PublicBookingFlow({ business }: Props) {
         </div>
       </div>
 
-      <div className="mt-5 rounded-[1.5rem] border bg-background p-4">
-        <p className="mb-3 text-sm font-medium">Os teus dados</p>
+      <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+        <p className="mb-3 text-sm font-semibold text-white">Os teus dados</p>
         <div className="grid gap-3 md:grid-cols-2">
           <input
             type="text"
             placeholder="Nome"
             value={customerName}
             onChange={(event) => setCustomerName(event.target.value)}
-            className="rounded-xl border border-input bg-transparent px-3 py-2 text-sm outline-none"
+            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
           />
           <input
             type="email"
             placeholder="Email"
             value={customerEmail}
             onChange={(event) => setCustomerEmail(event.target.value)}
-            className="rounded-xl border border-input bg-transparent px-3 py-2 text-sm outline-none"
+            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
           />
           <input
             type="tel"
             placeholder="Telefone"
             value={customerPhone}
             onChange={(event) => setCustomerPhone(event.target.value)}
-            className="rounded-xl border border-input bg-transparent px-3 py-2 text-sm outline-none md:col-span-2"
+            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50 md:col-span-2"
           />
         </div>
 
@@ -315,7 +323,7 @@ export function PublicBookingFlow({ business }: Props) {
           onClick={handleBooking}
           disabled={!selectedService || !selectedSlot || !customerName || !staffMemberId || submitting}
           className={cn(
-            buttonVariants({ size: "lg", className: "mt-4 h-12 w-full justify-between rounded-2xl px-5" }),
+            "mt-4 inline-flex h-12 w-full items-center justify-between rounded-2xl bg-amber-400 px-5 text-sm font-semibold uppercase tracking-[0.15em] text-[#0b1020] shadow-lg shadow-amber-500/20 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50",
             submitting && "opacity-80"
           )}
         >
@@ -323,17 +331,17 @@ export function PublicBookingFlow({ business }: Props) {
           {submitting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
         </button>
 
-        {message ? <p className="mt-3 text-sm text-green-700">{message}</p> : null}
+        {message ? <p className="mt-3 text-sm text-emerald-300">{message}</p> : null}
         {manageUrl ? (
           <Link
             href={manageUrl}
-            className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+            className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-amber-300 transition hover:text-amber-200"
           >
             Gerir esta reserva
             <ArrowRight className="size-4" />
           </Link>
         ) : null}
-        {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
+        {error ? <p className="mt-3 text-sm text-red-400">{error}</p> : null}
       </div>
     </section>
   );
