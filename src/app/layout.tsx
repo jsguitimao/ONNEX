@@ -1,6 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
+import { Inter, Instrument_Serif, Manrope } from "next/font/google";
 import { getAppUrl } from "@/lib/app-config";
 import { cn } from "@/lib/utils";
 import "./globals.css";
@@ -13,6 +13,12 @@ const fontSans = Inter({
 const fontHeading = Manrope({
   variable: "--font-heading",
   subsets: ["latin"],
+});
+
+const fontSerif = Instrument_Serif({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -31,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-PT" className={cn("h-full antialiased", fontSans.variable, fontHeading.variable)}>
+    <html lang="pt-PT" className={cn("h-full antialiased", fontSans.variable, fontHeading.variable, fontSerif.variable)}>
       <body className="min-h-full bg-background text-foreground">
         <ClerkProvider>{children}</ClerkProvider>
       </body>
