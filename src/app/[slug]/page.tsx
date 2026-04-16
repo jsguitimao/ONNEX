@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Globe, Mail, MapPin, Phone, ShieldCheck, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { MoveRight } from "lucide-react";
 import { PublicBookingFlow } from "@/components/public-booking-flow";
 import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
 import { getAppUrl } from "@/lib/app-config";
+import { formatEuro } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +24,7 @@ function buildPublicPageMetadata(input: {
   return {
     title: input.name,
     description: input.description,
-    alternates: {
-      canonical: url,
-    },
+    alternates: { canonical: url },
     openGraph: {
       title: input.name,
       description: input.description,
@@ -83,190 +79,389 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   }
 
   const location = business.locations[0];
-  const primaryColor = business.primaryColor ?? "#1570ef";
-  const accentColor = business.accentColor ?? "#0f9f7a";
+  const phoneDigits = (business.contactPhone ?? "").replace(/\D/g, "");
+  const servicesPreview = publicBusiness.services.slice(0, 3);
+  const portraitImage = business.coverImageUrl ?? business.logoUrl;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_color-mix(in_oklch,_var(--color-primary)_16%,_transparent),_transparent_50%)] px-4 py-8 sm:px-6">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
-        <section className="overflow-hidden rounded-[2rem] border bg-card shadow-xl shadow-black/5">
-          <div
-            className="px-6 pb-8 pt-10 text-center text-primary-foreground"
-            style={{
-              background: business.coverImageUrl
-                ? `linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.45)), url(${business.coverImageUrl}) center/cover`
-                : `linear-gradient(180deg, ${primaryColor} 0%, ${accentColor} 100%)`,
-            }}
+    <main className="relative min-h-screen bg-[#0b1020] text-white">
+      {/* TOP NAV — flutuante sobre o hero */}
+      <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 py-5 sm:px-10">
+        <p className="font-serif text-xl tracking-tight">{business.name}</p>
+        <div className="hidden items-center gap-7 text-[11px] uppercase tracking-[0.25em] text-white/80 sm:flex">
+          {business.description ? (
+            <a href="#sobre" className="transition hover:text-amber-300">
+              Sobre
+            </a>
+          ) : null}
+          {servicesPreview.length ? (
+            <a href="#servicos" className="transition hover:text-amber-300">
+              Serviços
+            </a>
+          ) : null}
+          {publicBusiness.showTeam && business.staffMembers.length ? (
+            <a href="#equipa" className="transition hover:text-amber-300">
+              Equipa
+            </a>
+          ) : null}
+        </div>
+        {publicBusiness.onlineBooking ? (
+          <a
+            href="#booking"
+            className="rounded-full bg-amber-400 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0b1020] transition hover:-translate-y-0.5 hover:bg-amber-300"
           >
-            <div className="mx-auto flex size-24 items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/20 bg-white/12 text-3xl font-semibold shadow-lg shadow-black/10">
-              {business.logoUrl ? (
-                <div
-                  className="h-full w-full bg-cover bg-center"
-                  aria-label={business.name}
-                  style={{ backgroundImage: `url(${business.logoUrl})` }}
-                />
+            Agendar
+          </a>
+        ) : (
+          <span className="opacity-0" aria-hidden />
+        )}
+      </nav>
+
+      {/* 1. HERO — imagem full-bleed com fusão no navy + CTA âmbar */}
+      <section className="relative">
+        <div className="relative h-[90vh] w-full sm:h-screen">
+          <div
+            className="absolute inset-0 bg-[#0b1020] bg-cover bg-center"
+            style={
+              portraitImage ? { backgroundImage: `url(${portraitImage})` } : undefined
+            }
+            aria-hidden
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0b1020]/60 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-b from-transparent via-[#0b1020]/85 to-[#0b1020]" />
+
+          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center px-5 pb-12 text-center sm:pb-20">
+            <div className="flex w-full max-w-[640px] flex-col items-center gap-6">
+              <p className="text-[10px] uppercase tracking-[0.5em] text-amber-300/90 sm:text-xs">
+                Barbearia {location?.city ? `· ${location.city}` : "Premium"}
+              </p>
+              <h1 className="font-serif text-5xl leading-[0.95] tracking-tight sm:text-7xl">
+                {business.name}
+              </h1>
+              <p className="max-w-md text-sm leading-relaxed text-neutral-300 sm:text-base">
+                {business.bookingPage?.headline?.trim() ||
+                  business.description?.trim() ||
+                  "Estilo é um reflexo da tua atitude e personalidade."}
+              </p>
+
+              <div className="mt-2 flex items-center gap-3">
+                {phoneDigits ? (
+                  <a
+                    href={`https://wa.me/${phoneDigits}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="WhatsApp"
+                    className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm transition hover:border-amber-300 hover:bg-amber-300 hover:text-[#0b1020]"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.4A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.3-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.5-2.6-1.2-4.4-3.8-4.5-4-.1-.2-1-1.3-1-2.5 0-1.2.6-1.8.9-2.1.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.7.8 1.8.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.2-.1.5.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l.8-1c.2-.3.5-.2.7-.1l1.7.8c.3.2.5.3.5.5.1.2.1.9-.1 1.6z" />
+                    </svg>
+                  </a>
+                ) : null}
+                <a
+                  href="#"
+                  aria-label="Instagram"
+                  className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm transition hover:border-amber-300 hover:bg-amber-300 hover:text-[#0b1020]"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <rect x="3" y="3" width="18" height="18" rx="5" />
+                    <circle cx="12" cy="12" r="4" />
+                    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
+                  </svg>
+                </a>
+                {business.websiteUrl ? (
+                  <a
+                    href={business.websiteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Website"
+                    className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm transition hover:border-amber-300 hover:bg-amber-300 hover:text-[#0b1020]"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
+                    </svg>
+                  </a>
+                ) : null}
+              </div>
+
+              {publicBusiness.onlineBooking ? (
+                <a
+                  href="#booking"
+                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-400 px-7 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-[#0b1020] shadow-lg shadow-amber-500/20 transition hover:-translate-y-0.5 hover:bg-amber-300"
+                >
+                  Agendar horário
+                  <MoveRight className="size-4" />
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. SOBRE — navy, colagem + texto */}
+      {business.description ? (
+        <section id="sobre" className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-24">
+          <div className="grid gap-12 sm:grid-cols-2 sm:items-center sm:gap-16">
+            {/* Colagem fotográfica */}
+            <div className="relative h-[420px] sm:h-[520px]">
+              {portraitImage ? (
+                <>
+                  <div
+                    className="absolute right-0 top-0 h-72 w-52 rounded-3xl bg-cover bg-center shadow-2xl shadow-black/60 ring-1 ring-white/10 sm:h-96 sm:w-72"
+                    style={{ backgroundImage: `url(${portraitImage})` }}
+                  />
+                  <div
+                    className="absolute bottom-0 left-0 h-64 w-44 rounded-3xl bg-cover bg-center shadow-2xl shadow-black/60 ring-4 ring-[#0b1020] sm:h-72 sm:w-56"
+                    style={{
+                      backgroundImage: `url(${portraitImage})`,
+                      filter: "grayscale(0.35) brightness(0.85)",
+                    }}
+                  />
+                  <div
+                    className="pointer-events-none absolute -left-6 top-20 size-32 rounded-full bg-amber-400/10 blur-3xl"
+                    aria-hidden
+                  />
+                  <div
+                    className="pointer-events-none absolute bottom-16 right-8 size-24 rounded-full bg-amber-400/20 blur-2xl"
+                    aria-hidden
+                  />
+                </>
               ) : (
-                business.name.charAt(0)
+                <div className="h-full w-full rounded-3xl bg-white/5 ring-1 ring-white/10" />
               )}
             </div>
-            <Badge className="mt-5 border-white/20 bg-white/12 text-white hover:bg-white/12">
-              Página pública
-            </Badge>
-            <h1 className="mt-4 font-heading text-4xl font-semibold tracking-tight">{business.name}</h1>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-white/82">
-              {publicBusiness.headline ?? business.bookingPage?.headline}
-            </p>
 
-            <div className="mt-5 flex flex-wrap justify-center gap-2 text-sm text-white/84">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
-                <MapPin className="size-4" />
-                {location?.city ?? "Portugal"}
-              </span>
-              {business.contactPhone ? (
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
-                  <Phone className="size-4" />
-                  {business.contactPhone}
-                </span>
-              ) : null}
-              {business.contactEmail ? (
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
-                  <Mail className="size-4" />
-                  {business.contactEmail}
-                </span>
-              ) : null}
-              {business.websiteUrl ? (
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5">
-                  <Globe className="size-4" />
-                  Website
-                </span>
+            {/* Texto */}
+            <div className="space-y-6">
+              <p className="text-[10px] uppercase tracking-[0.5em] text-amber-300">Sobre</p>
+              <h2 className="font-serif text-4xl leading-tight sm:text-5xl">
+                O ofício, a paixão.
+              </h2>
+              <p className="text-sm leading-relaxed text-neutral-300 sm:text-base">
+                {business.description}
+              </p>
+              {location?.city || location?.addressLine1 ? (
+                <div className="border-t border-white/10 pt-5">
+                  <p className="text-[10px] uppercase tracking-[0.4em] text-amber-300">
+                    Onde
+                  </p>
+                  <p className="mt-2 text-sm text-neutral-200">
+                    {[location?.addressLine1, location?.city].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
               ) : null}
             </div>
           </div>
-
-          <div className="grid gap-3 p-4 sm:p-5">
-            {business.onlineBooking ? (
-              <Link
-                href="#booking"
-                className={buttonVariants({
-                  size: "lg",
-                  className: "h-12 w-full justify-between rounded-2xl px-5",
-                })}
-              >
-                Reservar agora
-                <ArrowRight className="size-4" />
-              </Link>
-            ) : null}
-
-            {business.contactPhone ? (
-              <a
-                href={`https://wa.me/${(business.contactPhone ?? "").replace(/\D/g, "")}`}
-                className={buttonVariants({
-                  size: "lg",
-                  variant: "outline",
-                  className: "h-12 w-full justify-between rounded-2xl px-5",
-                })}
-              >
-                Falar no WhatsApp
-                <ArrowRight className="size-4" />
-              </a>
-            ) : null}
-
-            {business.websiteUrl ? (
-              <a
-                href={business.websiteUrl}
-                target="_blank"
-                rel="noreferrer"
-                className={buttonVariants({
-                  size: "lg",
-                  variant: "outline",
-                  className: "h-12 w-full justify-between rounded-2xl px-5",
-                })}
-              >
-                Visitar website
-                <ArrowRight className="size-4" />
-              </a>
-            ) : null}
-          </div>
         </section>
+      ) : null}
 
-        <section className="rounded-[2rem] border bg-card p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="size-4 text-primary" />
-            <h2 className="font-heading text-lg font-semibold">Sobre a experiência</h2>
-          </div>
-          <p className="text-sm leading-7 text-muted-foreground">
-            {business.description || business.bookingPage?.subheadline}
-          </p>
-          <div className="mt-4 rounded-2xl bg-muted/60 p-4 text-sm leading-7 text-foreground">
-            {business.bookingPage?.welcomeMessage}
-          </div>
-        </section>
-
-        <section className="rounded-[2rem] border bg-card p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <ShieldCheck className="size-4 text-primary" />
-            <h2 className="font-heading text-lg font-semibold">Políticas desta agenda</h2>
-          </div>
-          <div className="grid gap-2 text-sm text-muted-foreground">
-            <p>Antecedência mínima para marcar: {publicBusiness.bookingLeadTimeHours}h.</p>
-            <p>Janela máxima para novas reservas: {publicBusiness.bookingWindowDays} dias.</p>
-            <p>Novos horários gerados a cada {publicBusiness.slotIntervalMinutes} minutos.</p>
-            <p>Cancelamento automático permitido até {publicBusiness.cancellationWindowHours}h antes.</p>
-          </div>
-        </section>
-
-        {publicBusiness.onlineBooking ? <PublicBookingFlow business={publicBusiness} /> : null}
-
-        {publicBusiness.showTeam ? (
-          <section className="rounded-[2rem] border bg-card p-5 shadow-sm">
-            <div className="mb-4">
-              <p className="text-sm text-muted-foreground">Profissionais</p>
-              <h2 className="font-heading text-2xl font-semibold">Escolhe com quem marcar</h2>
+      {/* 3. SERVIÇOS — WHITE section */}
+      {servicesPreview.length ? (
+        <section id="servicos" className="bg-white py-16 text-[#0b1020] sm:py-24">
+          <div className="mx-auto max-w-6xl px-5">
+            <div className="mb-10 text-center sm:mb-14">
+              <p className="text-[10px] uppercase tracking-[0.5em] text-amber-600">Serviços</p>
+              <h2 className="mt-3 font-serif text-4xl sm:text-5xl">O que oferecemos</h2>
+              <p className="mx-auto mt-4 max-w-lg text-sm text-neutral-600">
+                Cortes desenhados à tua medida. Escolhe o serviço e vem ter connosco.
+              </p>
             </div>
-
-            <div className="grid gap-3">
-              {business.staffMembers.map((member) => (
-                <div key={member.id} className="rounded-[1.5rem] border bg-background p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex gap-3">
-                      <div
-                        className="flex size-12 items-center justify-center rounded-2xl text-sm font-semibold text-white"
-                        style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
-                      >
-                        {member.fullName.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-medium">{member.fullName}</p>
-                        <p className="text-sm text-muted-foreground">{member.roleTitle}</p>
-                        <p className="mt-2 text-sm text-muted-foreground">{member.bio}</p>
-                      </div>
+            <div className="grid gap-5 sm:grid-cols-3 sm:gap-6">
+              {servicesPreview.map((service) => (
+                <div
+                  key={service.id}
+                  className="group overflow-hidden rounded-2xl bg-white shadow-xl shadow-black/5 ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-2xl"
+                >
+                  <div
+                    className="aspect-[4/3] w-full bg-[#0b1020] bg-cover bg-center"
+                    style={
+                      business.coverImageUrl
+                        ? { backgroundImage: `url(${business.coverImageUrl})` }
+                        : undefined
+                    }
+                  />
+                  <div className="flex items-center justify-between gap-3 p-5">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{service.name}</p>
+                      {publicBusiness.showDurations ? (
+                        <p className="mt-0.5 text-xs text-neutral-500">
+                          {service.durationMinutes} min
+                        </p>
+                      ) : null}
                     </div>
-                    <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">
-                      Disponível
-                    </span>
+                    {publicBusiness.showPrices ? (
+                      <span className="shrink-0 rounded-full bg-[#0b1020] px-3.5 py-1.5 text-xs font-semibold text-amber-300">
+                        {formatEuro(service.priceCents)}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               ))}
             </div>
-          </section>
-        ) : null}
-
-        <section className="rounded-[2rem] border bg-card p-5 text-center shadow-sm">
-          <p className="text-sm text-muted-foreground">Informação útil</p>
-          <h2 className="mt-2 font-heading text-2xl font-semibold">
-            Uma página pública mais fiel ao negócio
-          </h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Esta página respeita branding, descrição, visibilidade da equipa, links externos e
-            regras reais de marcação.
-          </p>
-          {business.contactEmail ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              Contacto: <span className="font-medium text-foreground">{business.contactEmail}</span>
-            </p>
-          ) : null}
+          </div>
         </section>
-      </div>
+      ) : null}
+
+      {/* 4. EQUIPA — navy, "Equipa" vertical + cards */}
+      {publicBusiness.showTeam && business.staffMembers.length ? (
+        <section id="equipa" className="relative overflow-hidden py-16 sm:py-24">
+          <div className="relative mx-auto flex max-w-6xl items-start gap-10 px-5">
+            {/* Vertical label */}
+            <p
+              className="hidden shrink-0 font-serif text-7xl text-white/5 sm:block"
+              style={{ writingMode: "vertical-rl" }}
+              aria-hidden
+            >
+              Equipa
+            </p>
+
+            <div className="flex-1">
+              <div className="mb-10 sm:mb-12">
+                <p className="text-[10px] uppercase tracking-[0.5em] text-amber-300">
+                  Equipa
+                </p>
+                <h2 className="mt-3 font-serif text-4xl sm:text-5xl">Os barbeiros</h2>
+              </div>
+              <div className="grid gap-5 sm:grid-cols-3 sm:gap-6">
+                {business.staffMembers.slice(0, 3).map((member) => (
+                  <div
+                    key={member.id}
+                    className="overflow-hidden rounded-2xl bg-white/5 ring-1 ring-white/10 transition hover:-translate-y-1 hover:ring-amber-300/40"
+                  >
+                    <div className="flex aspect-[3/4] items-center justify-center bg-gradient-to-br from-white/10 via-white/5 to-transparent text-7xl font-semibold text-white/15">
+                      {member.fullName.charAt(0)}
+                    </div>
+                    <div className="p-5 text-center">
+                      <p className="font-semibold text-amber-300">{member.fullName}</p>
+                      {member.roleTitle ? (
+                        <p className="mt-0.5 text-xs uppercase tracking-widest text-neutral-400">
+                          {member.roleTitle}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 5. UNIDADES — WHITE section */}
+      {business.locations.length ? (
+        <section className="bg-white py-16 text-[#0b1020] sm:py-24">
+          <div className="mx-auto max-w-6xl px-5">
+            <div className="mb-10 text-center sm:mb-14">
+              <p className="text-[10px] uppercase tracking-[0.5em] text-amber-600">
+                Localização
+              </p>
+              <h2 className="mt-3 font-serif text-4xl sm:text-5xl">Onde estamos</h2>
+            </div>
+            <div
+              className={`mx-auto grid gap-6 ${
+                business.locations.length === 1
+                  ? "max-w-xl"
+                  : "sm:grid-cols-2"
+              }`}
+            >
+              {business.locations.slice(0, 4).map((loc, idx) => (
+                <div
+                  key={idx}
+                  className="relative overflow-hidden rounded-2xl shadow-xl shadow-black/10 ring-1 ring-black/5"
+                >
+                  <div
+                    className="aspect-[4/3] w-full bg-[#0b1020] bg-cover bg-center"
+                    style={
+                      business.coverImageUrl
+                        ? { backgroundImage: `url(${business.coverImageUrl})` }
+                        : undefined
+                    }
+                  />
+                  <div className="absolute bottom-4 left-1/2 w-[85%] -translate-x-1/2 rounded-2xl bg-[#0b1020] px-5 py-3 text-center shadow-xl">
+                    <p className="text-sm font-medium text-white">
+                      {loc.addressLine1 ?? loc.city ?? "Morada"}
+                    </p>
+                    {loc.addressLine1 && loc.city ? (
+                      <p className="mt-0.5 text-[11px] uppercase tracking-[0.3em] text-amber-300">
+                        {loc.city}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 6. BOOKING — navy card com flow existente */}
+      {publicBusiness.onlineBooking ? (
+        <section id="booking" className="py-16 sm:py-24">
+          <div className="mx-auto max-w-[680px] px-5">
+            <div className="mb-10 text-center">
+              <p className="text-[10px] uppercase tracking-[0.5em] text-amber-300">Reserva</p>
+              <h2 className="mt-3 font-serif text-4xl sm:text-5xl">Agendar horário</h2>
+              <p className="mx-auto mt-4 max-w-md text-sm text-neutral-400">
+                Escolhe serviço, barbeiro e horário. Confirmação imediata.
+              </p>
+            </div>
+            <div className="rounded-[28px] border border-white/10 bg-[#141a2d] p-2 shadow-2xl shadow-black/50">
+              <PublicBookingFlow business={publicBusiness} />
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 7. FOOTER */}
+      <footer className="border-t border-white/10 bg-[#080c18] py-12">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-5 text-center">
+          <p className="font-serif text-3xl">{business.name}</p>
+          <div className="flex items-center gap-3">
+            {phoneDigits ? (
+              <a
+                href={`https://wa.me/${phoneDigits}`}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="WhatsApp"
+                className="flex size-9 items-center justify-center rounded-full border border-white/15 text-neutral-400 transition hover:border-amber-300 hover:text-amber-300"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.4A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.3-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.5-2.6-1.2-4.4-3.8-4.5-4-.1-.2-1-1.3-1-2.5 0-1.2.6-1.8.9-2.1.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.7.8 1.8.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.2-.1.5.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l.8-1c.2-.3.5-.2.7-.1l1.7.8c.3.2.5.3.5.5.1.2.1.9-.1 1.6z" />
+                </svg>
+              </a>
+            ) : null}
+            <a
+              href="#"
+              aria-label="Instagram"
+              className="flex size-9 items-center justify-center rounded-full border border-white/15 text-neutral-400 transition hover:border-amber-300 hover:text-amber-300"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
+              </svg>
+            </a>
+          </div>
+          {business.contactEmail ? (
+            <a
+              href={`mailto:${business.contactEmail}`}
+              className="text-xs text-neutral-500 transition hover:text-amber-300"
+            >
+              {business.contactEmail}
+            </a>
+          ) : null}
+          <p className="text-[10px] uppercase tracking-[0.3em] text-neutral-600">
+            © {new Date().getFullYear()} · {business.name} · Marcação segura
+            {publicBusiness.cancellationWindowHours
+              ? ` · Cancelamento até ${publicBusiness.cancellationWindowHours}h antes`
+              : ""}
+          </p>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-neutral-700">
+            Powered by BUK
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }

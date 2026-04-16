@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Corte de Luxo · Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#0b1020; --bg2:#141a2d; --bg3:#080c18; --amber:#fbbf24; --amber-soft:#fcd34d; }
+    html,body { background: var(--bg); }
+    body { font-family: "Inter", system-ui, sans-serif; color:#fff; -webkit-font-smoothing:antialiased; }
+    .serif { font-family: "Instrument Serif", "Playfair Display", serif; font-weight:400; letter-spacing:-0.015em; }
+    .fade { animation: fade .7s ease-out both; }
+    @keyframes fade { from { opacity:0; transform: translateY(10px) } to { opacity:1; transform:none } }
+
+    /* Imagens de referência (Unsplash). A versão real usa business.coverImageUrl / logoUrl */
+    .hero-img {
+      background-image: url("https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1800&q=85");
+      background-size: cover; background-position: center;
+    }
+    .cover {
+      background-image: url("https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80");
+      background-size: cover; background-position: center;
+    }
+    .cover-alt {
+      background-image: url("https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=1200&q=80");
+      background-size: cover; background-position: center;
+    }
+    .cover-3 {
+      background-image: url("https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=1200&q=80");
+      background-size: cover; background-position: center;
+    }
+
+    .social {
+      width:40px; height:40px; border-radius:999px;
+      border:1px solid rgba(255,255,255,0.25);
+      background:rgba(255,255,255,0.06);
+      backdrop-filter: blur(6px);
+      display:inline-flex; align-items:center; justify-content:center;
+      color:#fff; transition:.2s;
+    }
+    .social:hover { background:var(--amber); color:var(--bg); border-color:var(--amber); }
+
+    .social-sm {
+      width:36px; height:36px; border-radius:999px;
+      border:1px solid rgba(255,255,255,0.15);
+      display:inline-flex; align-items:center; justify-content:center;
+      color:#8a8a8a; transition:.2s;
+    }
+    .social-sm:hover { color:var(--amber); border-color:var(--amber); }
+
+    .pill-amber {
+      display:inline-flex; align-items:center; gap:.5rem;
+      background: var(--amber); color: var(--bg);
+      padding:.65rem 1.5rem; border-radius:999px;
+      font-weight:600; font-size:.75rem;
+      letter-spacing:.2em; text-transform:uppercase;
+      transition:.2s; box-shadow: 0 12px 30px rgba(251,191,36,.18);
+    }
+    .pill-amber:hover { background: var(--amber-soft); transform: translateY(-2px); }
+
+    .pill-nav {
+      background: var(--amber); color: var(--bg);
+      padding:.55rem 1rem; border-radius:999px;
+      font-weight:600; font-size:.68rem;
+      letter-spacing:.2em; text-transform:uppercase;
+      transition:.2s;
+    }
+    .pill-nav:hover { background: var(--amber-soft); transform: translateY(-1px); }
+
+    .service-card {
+      background:#fff; border-radius:1rem; overflow:hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+      border:1px solid rgba(0,0,0,0.04);
+      transition:.25s ease;
+    }
+    .service-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+
+    .price-pill {
+      background: var(--bg); color: var(--amber);
+      padding:.4rem .9rem; border-radius:999px;
+      font-weight:600; font-size:.75rem;
+    }
+
+    .team-card {
+      background: rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:1rem; overflow:hidden;
+      transition:.25s ease;
+    }
+    .team-card:hover { transform: translateY(-4px); border-color: rgba(251,191,36,0.35); }
+
+    .vertical-label {
+      writing-mode: vertical-rl;
+      color: rgba(255,255,255,0.05);
+      font-family:"Instrument Serif", serif;
+      font-size: 5rem;
+      line-height: 1;
+    }
+
+    ::selection { background: var(--amber); color: var(--bg); }
+    .no-scrollbar::-webkit-scrollbar { display:none; }
+    .no-scrollbar { scrollbar-width: none; }
+  </style>
+</head>
+<body class="min-h-screen relative">
+
+  <!-- NAV -->
+  <nav class="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 py-5 sm:px-10">
+    <p class="serif text-xl tracking-tight">Corte de Luxo</p>
+    <div class="hidden items-center gap-7 text-[11px] uppercase tracking-[0.25em] text-white/80 sm:flex">
+      <a href="#sobre" class="transition hover:text-amber-300">Sobre</a>
+      <a href="#servicos" class="transition hover:text-amber-300">Serviços</a>
+      <a href="#equipa" class="transition hover:text-amber-300">Equipa</a>
+    </div>
+    <a href="#booking" class="pill-nav">Agendar</a>
+  </nav>
+
+  <!-- 1. HERO -->
+  <section class="relative">
+    <div class="relative h-[90vh] w-full sm:h-screen">
+      <div class="hero-img absolute inset-0"></div>
+      <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0b1020]/60 via-transparent to-transparent"></div>
+      <div class="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-b from-transparent via-[#0b1020]/85 to-[#0b1020]"></div>
+
+      <div class="absolute inset-x-0 bottom-0 flex flex-col items-center px-5 pb-12 text-center sm:pb-20">
+        <div class="fade flex w-full max-w-[640px] flex-col items-center gap-6">
+          <p class="text-[10px] uppercase tracking-[0.5em] text-amber-300/90 sm:text-xs">Barbearia · Lisboa</p>
+          <h1 class="serif text-5xl leading-[0.95] sm:text-7xl">Corte de Luxo</h1>
+          <p class="max-w-md text-sm leading-relaxed text-neutral-300 sm:text-base">
+            Estilo é um reflexo da tua atitude e personalidade. Vem descobrir o corte que te define.
+          </p>
+
+          <div class="mt-2 flex items-center gap-3">
+            <a href="#" aria-label="Instagram" class="social">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+            </a>
+            <a href="#" aria-label="TikTok" class="social">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c.5 2 2 3.5 4 4v3c-1.5 0-3-.4-4-1v6.5a6 6 0 1 1-6-6c.3 0 .7 0 1 .1V13a3 3 0 1 0 2 2.8V3h3z"/></svg>
+            </a>
+            <a href="#" aria-label="WhatsApp" class="social">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.4A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.3-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.5-2.6-1.2-4.4-3.8-4.5-4-.1-.2-1-1.3-1-2.5 0-1.2.6-1.8.9-2.1.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.7.8 1.8.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.2-.1.5.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l.8-1c.2-.3.5-.2.7-.1l1.7.8c.3.2.5.3.5.5.1.2.1.9-.1 1.6z"/></svg>
+            </a>
+          </div>
+
+          <a href="#booking" class="pill-amber mt-3">
+            Agendar horário
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. SOBRE -->
+  <section id="sobre" class="mx-auto w-full max-w-6xl px-5 py-16 sm:py-24">
+    <div class="grid gap-12 sm:grid-cols-2 sm:items-center sm:gap-16">
+      <!-- Colagem -->
+      <div class="relative h-[420px] sm:h-[520px]">
+        <div class="hero-img absolute right-0 top-0 h-72 w-52 rounded-3xl shadow-2xl shadow-black/60 ring-1 ring-white/10 sm:h-96 sm:w-72"></div>
+        <div class="hero-img absolute bottom-0 left-0 h-64 w-44 rounded-3xl shadow-2xl shadow-black/60 ring-4 ring-[#0b1020] sm:h-72 sm:w-56" style="filter: grayscale(0.35) brightness(0.85);"></div>
+        <div class="pointer-events-none absolute -left-6 top-20 size-32 rounded-full bg-amber-400/10 blur-3xl"></div>
+        <div class="pointer-events-none absolute bottom-16 right-8 size-24 rounded-full bg-amber-400/20 blur-2xl"></div>
+      </div>
+      <!-- Texto -->
+      <div class="space-y-6">
+        <p class="text-[10px] uppercase tracking-[0.5em] text-amber-300">Sobre</p>
+        <h2 class="serif text-4xl leading-tight sm:text-5xl">O ofício, a paixão.</h2>
+        <p class="text-sm leading-relaxed text-neutral-300 sm:text-base">
+          Na Corte de Luxo, cada corte conta uma história. Cuidamos do teu estilo com o mesmo
+          rigor que um alfaiate tem pelo tecido — porque um bom corte acompanha-te todos os dias.
+        </p>
+        <p class="text-sm leading-relaxed text-neutral-400 sm:text-base">
+          Estamos em Lisboa há mais de 10 anos. Equipa experiente, produtos premium,
+          ambiente exclusivo.
+        </p>
+        <div class="border-t border-white/10 pt-5">
+          <p class="text-[10px] uppercase tracking-[0.4em] text-amber-300">Onde</p>
+          <p class="mt-2 text-sm text-neutral-200">Rua Augusta, 120 · Lisboa</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. SERVIÇOS (WHITE) -->
+  <section id="servicos" class="bg-white py-16 text-[#0b1020] sm:py-24">
+    <div class="mx-auto max-w-6xl px-5">
+      <div class="mb-10 text-center sm:mb-14">
+        <p class="text-[10px] uppercase tracking-[0.5em] text-amber-600">Serviços</p>
+        <h2 class="serif mt-3 text-4xl sm:text-5xl">O que oferecemos</h2>
+        <p class="mx-auto mt-4 max-w-lg text-sm text-neutral-600">
+          Cortes desenhados à tua medida. Escolhe o serviço e vem ter connosco.
+        </p>
+      </div>
+      <div class="grid gap-5 sm:grid-cols-3 sm:gap-6">
+        <div class="service-card">
+          <div class="cover aspect-[4/3] w-full"></div>
+          <div class="flex items-center justify-between gap-3 p-5">
+            <div class="min-w-0">
+              <p class="truncate font-semibold">Corte de cabelo</p>
+              <p class="mt-0.5 text-xs text-neutral-500">30 min</p>
+            </div>
+            <span class="price-pill">15,00 €</span>
+          </div>
+        </div>
+        <div class="service-card">
+          <div class="cover-alt aspect-[4/3] w-full"></div>
+          <div class="flex items-center justify-between gap-3 p-5">
+            <div class="min-w-0">
+              <p class="truncate font-semibold">Corte completo</p>
+              <p class="mt-0.5 text-xs text-neutral-500">45 min</p>
+            </div>
+            <span class="price-pill">20,00 €</span>
+          </div>
+        </div>
+        <div class="service-card">
+          <div class="cover-3 aspect-[4/3] w-full"></div>
+          <div class="flex items-center justify-between gap-3 p-5">
+            <div class="min-w-0">
+              <p class="truncate font-semibold">Corte & Barba</p>
+              <p class="mt-0.5 text-xs text-neutral-500">60 min</p>
+            </div>
+            <span class="price-pill">28,00 €</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. EQUIPA -->
+  <section id="equipa" class="relative overflow-hidden py-16 sm:py-24">
+    <div class="relative mx-auto flex max-w-6xl items-start gap-10 px-5">
+      <p class="vertical-label hidden shrink-0 sm:block">Equipa</p>
+      <div class="flex-1">
+        <div class="mb-10 sm:mb-12">
+          <p class="text-[10px] uppercase tracking-[0.5em] text-amber-300">Equipa</p>
+          <h2 class="serif mt-3 text-4xl sm:text-5xl">Os barbeiros</h2>
+        </div>
+        <div class="grid gap-5 sm:grid-cols-3 sm:gap-6">
+          <div class="team-card">
+            <div class="flex aspect-[3/4] items-center justify-center bg-gradient-to-br from-white/10 via-white/5 to-transparent text-7xl font-semibold text-white/15">L</div>
+            <div class="p-5 text-center">
+              <p class="font-semibold text-amber-300">Lucas Silva</p>
+              <p class="mt-0.5 text-xs uppercase tracking-widest text-neutral-400">Master Barber</p>
+            </div>
+          </div>
+          <div class="team-card">
+            <div class="flex aspect-[3/4] items-center justify-center bg-gradient-to-br from-white/10 via-white/5 to-transparent text-7xl font-semibold text-white/15">H</div>
+            <div class="p-5 text-center">
+              <p class="font-semibold text-amber-300">Henrique Souza</p>
+              <p class="mt-0.5 text-xs uppercase tracking-widest text-neutral-400">Barber</p>
+            </div>
+          </div>
+          <div class="team-card">
+            <div class="flex aspect-[3/4] items-center justify-center bg-gradient-to-br from-white/10 via-white/5 to-transparent text-7xl font-semibold text-white/15">T</div>
+            <div class="p-5 text-center">
+              <p class="font-semibold text-amber-300">Tiago Mendes</p>
+              <p class="mt-0.5 text-xs uppercase tracking-widest text-neutral-400">Barber</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. UNIDADES (WHITE) -->
+  <section class="bg-white py-16 text-[#0b1020] sm:py-24">
+    <div class="mx-auto max-w-6xl px-5">
+      <div class="mb-10 text-center sm:mb-14">
+        <p class="text-[10px] uppercase tracking-[0.5em] text-amber-600">Localização</p>
+        <h2 class="serif mt-3 text-4xl sm:text-5xl">Onde estamos</h2>
+      </div>
+      <div class="mx-auto grid max-w-xl gap-6 sm:max-w-none sm:grid-cols-2">
+        <div class="relative overflow-hidden rounded-2xl shadow-xl shadow-black/10 ring-1 ring-black/5">
+          <div class="cover aspect-[4/3] w-full"></div>
+          <div class="absolute bottom-4 left-1/2 w-[85%] -translate-x-1/2 rounded-2xl bg-[#0b1020] px-5 py-3 text-center shadow-xl">
+            <p class="text-sm font-medium text-white">Rua Augusta, 120</p>
+            <p class="mt-0.5 text-[11px] uppercase tracking-[0.3em] text-amber-300">Lisboa</p>
+          </div>
+        </div>
+        <div class="relative overflow-hidden rounded-2xl shadow-xl shadow-black/10 ring-1 ring-black/5">
+          <div class="cover-alt aspect-[4/3] w-full"></div>
+          <div class="absolute bottom-4 left-1/2 w-[85%] -translate-x-1/2 rounded-2xl bg-[#0b1020] px-5 py-3 text-center shadow-xl">
+            <p class="text-sm font-medium text-white">Av. da Liberdade, 42</p>
+            <p class="mt-0.5 text-[11px] uppercase tracking-[0.3em] text-amber-300">Lisboa</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. BOOKING -->
+  <section id="booking" class="py-16 sm:py-24">
+    <div class="mx-auto max-w-[680px] px-5">
+      <div class="mb-10 text-center">
+        <p class="text-[10px] uppercase tracking-[0.5em] text-amber-300">Reserva</p>
+        <h2 class="serif mt-3 text-4xl sm:text-5xl">Agendar horário</h2>
+        <p class="mx-auto mt-4 max-w-md text-sm text-neutral-400">
+          Escolhe serviço, barbeiro e horário. Confirmação imediata.
+        </p>
+      </div>
+      <div class="rounded-[28px] border border-white/10 bg-[#141a2d] p-8 shadow-2xl shadow-black/50">
+        <!-- Mock do booking flow real (no app usa o componente PublicBookingFlow) -->
+        <div class="space-y-5">
+          <div>
+            <label class="text-xs uppercase tracking-widest text-neutral-400">Serviço</label>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <button class="rounded-full border border-amber-400 bg-amber-400/10 px-4 py-2 text-sm text-amber-300">Corte completo · 20€</button>
+              <button class="rounded-full border border-white/15 px-4 py-2 text-sm text-neutral-300 hover:border-amber-400 hover:text-amber-300">Corte & Barba · 28€</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs uppercase tracking-widest text-neutral-400">Data</label>
+            <div class="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-7">
+              <button class="rounded-xl border border-white/15 px-2 py-3 text-center text-xs text-neutral-300 hover:border-amber-400">
+                <p class="text-neutral-500">Seg</p><p class="mt-1 text-white">15</p>
+              </button>
+              <button class="rounded-xl border border-amber-400 bg-amber-400/10 px-2 py-3 text-center text-xs">
+                <p class="text-amber-300">Ter</p><p class="mt-1 text-amber-300">16</p>
+              </button>
+              <button class="rounded-xl border border-white/15 px-2 py-3 text-center text-xs text-neutral-300 hover:border-amber-400">
+                <p class="text-neutral-500">Qua</p><p class="mt-1 text-white">17</p>
+              </button>
+              <button class="rounded-xl border border-white/15 px-2 py-3 text-center text-xs text-neutral-300 hover:border-amber-400">
+                <p class="text-neutral-500">Qui</p><p class="mt-1 text-white">18</p>
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs uppercase tracking-widest text-neutral-400">Horário</label>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <button class="rounded-full border border-white/15 px-4 py-2 text-sm text-neutral-300 hover:border-amber-400">09:00</button>
+              <button class="rounded-full border border-amber-400 bg-amber-400/10 px-4 py-2 text-sm text-amber-300">10:00</button>
+              <button class="rounded-full border border-white/15 px-4 py-2 text-sm text-neutral-300 hover:border-amber-400">11:00</button>
+              <button class="rounded-full border border-white/15 px-4 py-2 text-sm text-neutral-300 hover:border-amber-400">14:00</button>
+            </div>
+          </div>
+          <button class="w-full rounded-full bg-amber-400 py-3 text-sm font-semibold uppercase tracking-widest text-[#0b1020] transition hover:bg-amber-300">
+            Confirmar reserva
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. FOOTER -->
+  <footer class="border-t border-white/10 bg-[#080c18] py-12">
+    <div class="mx-auto flex max-w-6xl flex-col items-center gap-5 px-5 text-center">
+      <p class="serif text-3xl">Corte de Luxo</p>
+      <div class="flex items-center gap-3">
+        <a href="#" aria-label="WhatsApp" class="social-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.4A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.3-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.5-2.6-1.2-4.4-3.8-4.5-4-.1-.2-1-1.3-1-2.5 0-1.2.6-1.8.9-2.1.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.7.8 1.8.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.2-.1.5.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l.8-1c.2-.3.5-.2.7-.1l1.7.8c.3.2.5.3.5.5.1.2.1.9-.1 1.6z"/></svg>
+        </a>
+        <a href="#" aria-label="Instagram" class="social-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+        </a>
+      </div>
+      <a href="mailto:ola@cortedeluxo.com" class="text-xs text-neutral-500 transition hover:text-amber-300">ola@cortedeluxo.com</a>
+      <p class="text-[10px] uppercase tracking-[0.3em] text-neutral-600">
+        © 2026 · Corte de Luxo · Marcação segura · Cancelamento até 24h antes
+      </p>
+      <p class="text-[10px] uppercase tracking-[0.4em] text-neutral-700">Powered by BUK</p>
+    </div>
+  </footer>
+
+</body>
+</html>
