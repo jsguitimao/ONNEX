@@ -121,7 +121,6 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   const primaryRgb = hexToRgb(primary);
   const cardBg = adjustHex(reservaBg, 12);
   const darkBadge = "#111827";
-  const footerBg = "#0a0f1e";
   const servicosLight = isLightColor(servicosBg);
   const localizacaoLight = isLightColor(localizacaoBg);
   const reservaLight = isLightColor(reservaBg);
@@ -490,9 +489,9 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
       ) : null}
 
       {/* 7. FOOTER */}
-      <footer className="border-t border-white/10 py-12" style={{ backgroundColor: footerBg }}>
+      <footer className={`border-t py-12 ${reservaLight ? "border-black/10" : "border-white/10"}`} style={{ backgroundColor: reservaBg }}>
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-5 text-center">
-          <p className="font-serif text-3xl">{business.name}</p>
+          <p className={`font-serif text-3xl ${reservaLight ? "text-neutral-900" : "text-white"}`}>{business.name}</p>
           <div className="flex items-center gap-3">
             {phoneDigits ? (
               <a
@@ -500,7 +499,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                 target="_blank"
                 rel="noreferrer"
                 aria-label="WhatsApp"
-                className="flex size-9 items-center justify-center rounded-full border border-white/15 text-neutral-400 accent-hover transition"
+                className={`flex size-9 items-center justify-center rounded-full border accent-hover transition ${reservaLight ? "border-black/15 text-neutral-500" : "border-white/15 text-neutral-400"}`}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.4A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.3-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.5-2.6-1.2-4.4-3.8-4.5-4-.1-.2-1-1.3-1-2.5 0-1.2.6-1.8.9-2.1.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.7.8 1.8.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.2-.1.5.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l.8-1c.2-.3.5-.2.7-.1l1.7.8c.3.2.5.3.5.5.1.2.1.9-.1 1.6z" />
@@ -510,7 +509,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
             <a
               href="#"
               aria-label="Instagram"
-              className="flex size-9 items-center justify-center rounded-full border border-white/15 text-neutral-400 accent-hover transition"
+              className={`flex size-9 items-center justify-center rounded-full border accent-hover transition ${reservaLight ? "border-black/15 text-neutral-500" : "border-white/15 text-neutral-400"}`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -522,18 +521,18 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           {business.contactEmail ? (
             <a
               href={`mailto:${business.contactEmail}`}
-              className="text-xs text-neutral-500 accent-hover transition"
+              className={`text-xs accent-hover transition ${reservaLight ? "text-neutral-500" : "text-neutral-500"}`}
             >
               {business.contactEmail}
             </a>
           ) : null}
-          <p className="text-[10px] uppercase tracking-[0.3em] text-neutral-600">
+          <p className={`text-[10px] uppercase tracking-[0.3em] ${reservaLight ? "text-neutral-400" : "text-neutral-600"}`}>
             © {new Date().getFullYear()} · {business.name} · Marcação segura
             {publicBusiness.cancellationWindowHours
               ? ` · Cancelamento até ${publicBusiness.cancellationWindowHours}h antes`
               : ""}
           </p>
-          <p className="text-[10px] uppercase tracking-[0.4em] text-neutral-700">
+          <p className={`text-[10px] uppercase tracking-[0.4em] ${reservaLight ? "text-neutral-300" : "text-neutral-700"}`}>
             Powered by BUK
           </p>
         </div>
