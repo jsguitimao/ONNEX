@@ -125,6 +125,11 @@ export const onboardingSchema = z.object({
     },
     z.array(z.string().url("Cada URL de imagem deve ser valido.")).max(6),
   ),
+  sobreColor: hexColorSchema,
+  servicosColor: hexColorSchema,
+  equipaColor: hexColorSchema,
+  localizacaoColor: hexColorSchema,
+  reservaColor: hexColorSchema,
   onlineBooking: z.boolean(),
   showTeam: z.boolean(),
   showPrices: z.boolean(),
@@ -162,5 +167,10 @@ export function normalizeOnboardingDraft(input: OnboardingDraft): OnboardingDraf
     teamImages: input.teamImages
       .map((url) => ensureString(normalizeOptionalUrlInput(url)))
       .filter((url) => url.length > 0),
+    sobreColor: ensureString(normalizeHexColorInput(input.sobreColor)),
+    servicosColor: ensureString(normalizeHexColorInput(input.servicosColor)),
+    equipaColor: ensureString(normalizeHexColorInput(input.equipaColor)),
+    localizacaoColor: ensureString(normalizeHexColorInput(input.localizacaoColor)),
+    reservaColor: ensureString(normalizeHexColorInput(input.reservaColor)),
   };
 }

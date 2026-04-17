@@ -17,6 +17,11 @@ export type OnboardingDraft = {
   aboutImages: string[];
   servicesImages: string[];
   teamImages: string[];
+  sobreColor: string;
+  servicosColor: string;
+  equipaColor: string;
+  localizacaoColor: string;
+  reservaColor: string;
   onlineBooking: boolean;
   showTeam: boolean;
   showPrices: boolean;
@@ -47,6 +52,11 @@ export type PublicBusinessPayload = {
   headline: string | null;
   subheadline: string | null;
   welcomeMessage: string | null;
+  sobreColor: string | null;
+  servicosColor: string | null;
+  equipaColor: string | null;
+  localizacaoColor: string | null;
+  reservaColor: string | null;
   onlineBooking: boolean;
   showTeam: boolean;
   showPrices: boolean;

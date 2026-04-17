@@ -143,6 +143,28 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                 images={form.teamImages}
                 onChange={(images) => updateField("teamImages", images)}
               />
+              <div className="mt-2 space-y-3">
+                <p className="text-xs font-medium text-neutral-400">Cor de destaque por secção</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {([
+                    ["sobreColor", "Sobre"],
+                    ["servicosColor", "Serviços"],
+                    ["equipaColor", "Equipa"],
+                    ["localizacaoColor", "Localização"],
+                    ["reservaColor", "Reserva"],
+                  ] as const).map(([field, label]) => (
+                    <div key={field} className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        className="h-8 w-10 cursor-pointer rounded border border-white/15 bg-white/5"
+                        value={form[field] || form.accentColor}
+                        onChange={(e) => updateField(field, e.target.value)}
+                      />
+                      <span className="text-xs text-neutral-300">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </section>
 
