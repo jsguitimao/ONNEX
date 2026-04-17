@@ -11,6 +11,14 @@ function hexToRgb(hex: string) {
   return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
 }
 
+function isLightColor(hex: string) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5;
+}
+
 function adjustHex(hex: string, amount: number) {
   const n = parseInt(hex.slice(1), 16);
   const r = Math.min(255, Math.max(0, ((n >> 16) & 255) + amount));
@@ -114,6 +122,9 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   const cardBg = adjustHex(reservaBg, 12);
   const darkBadge = "#111827";
   const footerBg = "#0a0f1e";
+  const servicosLight = isLightColor(servicosBg);
+  const localizacaoLight = isLightColor(localizacaoBg);
+  const reservaLight = isLightColor(reservaBg);
 
   return (
     <main className="relative min-h-screen text-white" style={{ backgroundColor: primary }}>
@@ -300,12 +311,12 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 3. SERVIÇOS — WHITE section */}
       {servicesPreview.length ? (
-        <section id="servicos" className="py-16 sm:py-24" style={{ backgroundColor: servicosBg, color: "#111827" }}>
+        <section id="servicos" className="py-16 sm:py-24" style={{ backgroundColor: servicosBg, color: servicosLight ? "#111827" : "#ffffff" }}>
           <div className="mx-auto max-w-6xl px-5">
             <div className="mb-10 text-center sm:mb-14">
               <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>Serviços</p>
               <h2 className="mt-3 font-serif text-4xl sm:text-5xl">O que oferecemos</h2>
-              <p className="mx-auto mt-4 max-w-lg text-sm text-neutral-600">
+              <p className={`mx-auto mt-4 max-w-lg text-sm ${servicosLight ? "text-neutral-600" : "text-neutral-300"}`}>
                 Cortes desenhados à tua medida. Escolhe o serviço e vem ter connosco.
               </p>
             </div>
@@ -313,7 +324,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
               {servicesPreview.map((service, idx) => (
                 <div
                   key={service.id}
-                  className="group overflow-hidden rounded-2xl bg-white shadow-xl shadow-black/5 ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-2xl"
+                  className={`group overflow-hidden rounded-2xl transition hover:-translate-y-1 hover:shadow-2xl ${servicosLight ? "bg-white shadow-xl shadow-black/5 ring-1 ring-black/5" : "bg-white/5 shadow-xl shadow-black/30 ring-1 ring-white/10"}`}
                 >
                   <div
                     className="aspect-[4/3] w-full bg-cover bg-center"
@@ -328,7 +339,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{service.name}</p>
                       {publicBusiness.showDurations ? (
-                        <p className="mt-0.5 text-xs text-neutral-500">
+                        <p className={`mt-0.5 text-xs ${servicosLight ? "text-neutral-500" : "text-neutral-400"}`}>
                           {service.durationMinutes} min
                         </p>
                       ) : null}
@@ -405,7 +416,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 5. UNIDADES — WHITE section */}
       {business.locations.length ? (
-        <section className="py-16 sm:py-24" style={{ backgroundColor: localizacaoBg, color: "#111827" }}>
+        <section className="py-16 sm:py-24" style={{ backgroundColor: localizacaoBg, color: localizacaoLight ? "#111827" : "#ffffff" }}>
           <div className="mx-auto max-w-6xl px-5">
             <div className="mb-10 text-center sm:mb-14">
               <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>
@@ -428,7 +439,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                 return (
                   <div
                     key={idx}
-                    className="relative overflow-hidden rounded-2xl shadow-xl shadow-black/10 ring-1 ring-black/5"
+                    className={`relative overflow-hidden rounded-2xl ${localizacaoLight ? "shadow-xl shadow-black/10 ring-1 ring-black/5" : "shadow-xl shadow-black/30 ring-1 ring-white/10"}`}
                   >
                     {mapQuery ? (
                       <iframe
@@ -466,13 +477,13 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           <div className="mx-auto max-w-[680px] px-5">
             <div className="mb-10 text-center">
               <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>Reserva</p>
-              <h2 className="mt-3 font-serif text-4xl sm:text-5xl">Agendar horário</h2>
-              <p className="mx-auto mt-4 max-w-md text-sm text-neutral-400">
+              <h2 className="mt-3 font-serif text-4xl sm:text-5xl" style={{ color: reservaLight ? "#111827" : "#ffffff" }}>Agendar horário</h2>
+              <p className={`mx-auto mt-4 max-w-md text-sm ${reservaLight ? "text-neutral-600" : "text-neutral-400"}`}>
                 Escolhe serviço, barbeiro e horário. Confirmação imediata.
               </p>
             </div>
-            <div className="rounded-[28px] border border-white/10 p-2 shadow-2xl shadow-black/50" style={{ backgroundColor: cardBg }}>
-              <PublicBookingFlow business={publicBusiness} accentColor={accent} cardBg={cardBg} />
+            <div className={`rounded-[28px] border p-2 shadow-2xl ${reservaLight ? "border-black/10 shadow-black/10" : "border-white/10 shadow-black/50"}`} style={{ backgroundColor: cardBg }}>
+              <PublicBookingFlow business={publicBusiness} accentColor={accent} cardBg={cardBg} lightMode={reservaLight} />
             </div>
           </div>
         </section>

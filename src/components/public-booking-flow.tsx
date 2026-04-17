@@ -11,6 +11,7 @@ type Props = {
   business: PublicBusinessPayload;
   accentColor?: string;
   cardBg?: string;
+  lightMode?: boolean;
 };
 
 function toDateInputValue(date: Date) {
@@ -18,7 +19,7 @@ function toDateInputValue(date: Date) {
   return local.toISOString().slice(0, 10);
 }
 
-export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = "#0b1020" }: Props) {
+export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = "#0b1020", lightMode = false }: Props) {
   const [serviceId, setServiceId] = useState(business.services[0]?.id ?? "");
   const [staffMemberId, setStaffMemberId] = useState("");
   const [date, setDate] = useState("");
@@ -145,14 +146,20 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
     }
   };
 
+  const labelClass = `text-xs font-medium ${lightMode ? "text-neutral-600" : "text-neutral-300"}`;
+  const inputClass = lightMode
+    ? "rounded-xl border border-black/15 bg-black/5 px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-black/30"
+    : "rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-white/30";
+  const placeholderClass = lightMode ? "placeholder:text-neutral-400" : "placeholder:text-neutral-500";
+
   return (
-    <section className="rounded-[1.75rem] bg-transparent p-6 text-white sm:p-8">
+    <section className={`rounded-[1.75rem] bg-transparent p-6 sm:p-8 ${lightMode ? "text-neutral-900" : "text-white"}`}>
       <label className="grid gap-2">
-        <span className="text-xs font-medium text-neutral-300">Selecione um serviço</span>
+        <span className={labelClass}>Selecione um serviço</span>
         <select
           value={serviceId}
           onChange={(event) => setServiceId(event.target.value)}
-          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-white/30"
+          className={inputClass}
         >
           {business.services.map((service) => (
             <option key={service.id} value={service.id} style={{ backgroundColor: cardBg }}>
@@ -165,11 +172,11 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
 
       {compatibleStaffMembers.length > 0 ? (
         <label className="mt-4 grid gap-2">
-          <span className="text-xs font-medium text-neutral-300">Selecione um profissional</span>
+          <span className={labelClass}>Selecione um profissional</span>
           <select
             value={staffMemberId}
             onChange={(event) => setStaffMemberId(event.target.value)}
-            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-white/30"
+            className={inputClass}
           >
             {compatibleStaffMembers.map((member) => (
               <option key={member.id} value={member.id} style={{ backgroundColor: cardBg }}>
@@ -182,21 +189,21 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
       ) : null}
 
       <label className="mt-4 grid gap-2">
-        <span className="text-xs font-medium text-neutral-300">Selecione a data</span>
+        <span className={labelClass}>Selecione a data</span>
         <input
           type="date"
           value={date}
           min={minDate}
           max={maxDate}
           onChange={(event) => setDate(event.target.value)}
-          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-white/30"
+          className={inputClass}
         />
       </label>
 
       <div className="mt-4">
-        <p className="mb-2 text-xs font-medium text-neutral-300">Selecione um horário</p>
+        <p className={`mb-2 ${labelClass}`}>Selecione um horário</p>
         {loadingSlots ? (
-          <div className="flex items-center gap-2 text-sm text-neutral-400">
+          <div className={`flex items-center gap-2 text-sm ${lightMode ? "text-neutral-500" : "text-neutral-400"}`}>
             <Loader2 className="size-4 animate-spin" />
             A carregar horários...
           </div>
@@ -211,7 +218,9 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
                   "rounded-xl border px-3 py-2 text-sm transition",
                   selectedSlot === slot.iso
                     ? "font-semibold"
-                    : "border-white/15 text-white hover:border-white/30 hover:bg-white/5"
+                    : lightMode
+                      ? "border-black/15 hover:border-black/30 hover:bg-black/5"
+                      : "border-white/15 text-white hover:border-white/30 hover:bg-white/5"
                 )}
                 style={selectedSlot === slot.iso ? { backgroundColor: accentColor, borderColor: accentColor, color: "#111827" } : undefined}
               >
@@ -220,7 +229,7 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
             ))}
           </div>
         ) : (
-          <p className="text-sm text-neutral-400">
+          <p className={`text-sm ${lightMode ? "text-neutral-500" : "text-neutral-400"}`}>
             {date
               ? "Não há horários disponíveis para os filtros escolhidos."
               : "Escolhe data, serviço e profissional para ver horários."}
@@ -229,24 +238,24 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
       </div>
 
       <label className="mt-4 grid gap-2">
-        <span className="text-xs font-medium text-neutral-300">Nome completo</span>
+        <span className={labelClass}>Nome completo</span>
         <input
           type="text"
           placeholder="Digite o teu nome"
           value={customerName}
           onChange={(event) => setCustomerName(event.target.value)}
-          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-white/30"
+          className={`${inputClass} ${placeholderClass}`}
         />
       </label>
 
       <label className="mt-4 grid gap-2">
-        <span className="text-xs font-medium text-neutral-300">Telefone</span>
+        <span className={labelClass}>Telefone</span>
         <input
           type="tel"
           placeholder="Digite o teu telefone"
           value={customerPhone}
           onChange={(event) => setCustomerPhone(event.target.value)}
-          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-white/30"
+          className={`${inputClass} ${placeholderClass}`}
         />
       </label>
 
@@ -270,7 +279,7 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
         )}
       </button>
 
-      {message ? <p className="mt-3 text-sm text-emerald-300">{message}</p> : null}
+      {message ? <p className={`mt-3 text-sm ${lightMode ? "text-emerald-600" : "text-emerald-300"}`}>{message}</p> : null}
       {manageUrl ? (
         <Link
           href={manageUrl}
@@ -281,7 +290,7 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
           <ArrowRight className="size-4" />
         </Link>
       ) : null}
-      {error ? <p className="mt-3 text-sm text-red-400">{error}</p> : null}
+      {error ? <p className={`mt-3 text-sm ${lightMode ? "text-red-600" : "text-red-400"}`}>{error}</p> : null}
     </section>
   );
 }
