@@ -118,7 +118,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
     <main className="relative min-h-screen text-white" style={{ backgroundColor: primary }}>
       <style>{`
         .accent-hover:hover { color: ${accent} !important; border-color: ${accent} !important; }
-        .accent-bg-hover:hover { background-color: ${accent} !important; border-color: ${accent} !important; color: ${primary} !important; }
+        .accent-bg-hover:hover { background-color: ${accent} !important; border-color: ${accent} !important; color: #111827 !important; }
       `}</style>
       {/* TOP NAV — flutuante sobre o hero */}
       <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 py-5 sm:px-10">
@@ -144,7 +144,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           <a
             href="#booking"
             className="rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] transition hover:-translate-y-0.5"
-            style={{ backgroundColor: accent, color: primary }}
+            style={{ backgroundColor: accent, color: "#111827" }}
           >
             Agendar
           </a>
@@ -226,7 +226,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                 <a
                   href="#booking"
                   className="mt-3 inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-[0.2em] shadow-lg transition hover:-translate-y-0.5"
-                  style={{ backgroundColor: accent, color: primary, boxShadow: `0 10px 15px -3px ${accent}33` }}
+                  style={{ backgroundColor: accent, color: "#111827", boxShadow: `0 10px 15px -3px ${accent}33` }}
                 >
                   Agendar horário
                   <MoveRight className="size-4" />
@@ -299,7 +299,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 3. SERVIÇOS — WHITE section */}
       {servicesPreview.length ? (
-        <section id="servicos" className="py-16 sm:py-24" style={{ backgroundColor: servicosBg, color: primary }}>
+        <section id="servicos" className="py-16 sm:py-24" style={{ backgroundColor: servicosBg, color: "#111827" }}>
           <div className="mx-auto max-w-6xl px-5">
             <div className="mb-10 text-center sm:mb-14">
               <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>Serviços</p>
@@ -404,7 +404,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 5. UNIDADES — WHITE section */}
       {business.locations.length ? (
-        <section className="py-16 sm:py-24" style={{ backgroundColor: localizacaoBg, color: primary }}>
+        <section className="py-16 sm:py-24" style={{ backgroundColor: localizacaoBg, color: "#111827" }}>
           <div className="mx-auto max-w-6xl px-5">
             <div className="mb-10 text-center sm:mb-14">
               <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>
