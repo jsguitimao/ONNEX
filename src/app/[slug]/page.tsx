@@ -111,7 +111,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   const localizacaoBg = publicBusiness.localizacaoColor || "#ffffff";
   const reservaBg = publicBusiness.reservaColor || primary;
   const primaryRgb = hexToRgb(primary);
-  const cardBg = adjustHex(primary, 12);
+  const cardBg = adjustHex(reservaBg, 12);
   const footerBg = adjustHex(primary, -5);
 
   return (
@@ -471,7 +471,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
               </p>
             </div>
             <div className="rounded-[28px] border border-white/10 p-2 shadow-2xl shadow-black/50" style={{ backgroundColor: cardBg }}>
-              <PublicBookingFlow business={publicBusiness} />
+              <PublicBookingFlow business={publicBusiness} accentColor={accent} cardBg={cardBg} />
             </div>
           </div>
         </section>

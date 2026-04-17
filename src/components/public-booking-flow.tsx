@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   business: PublicBusinessPayload;
+  accentColor?: string;
+  cardBg?: string;
 };
 
 function toDateInputValue(date: Date) {
@@ -16,7 +18,7 @@ function toDateInputValue(date: Date) {
   return local.toISOString().slice(0, 10);
 }
 
-export function PublicBookingFlow({ business }: Props) {
+export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = "#0b1020" }: Props) {
   const [serviceId, setServiceId] = useState(business.services[0]?.id ?? "");
   const [staffMemberId, setStaffMemberId] = useState("");
   const [date, setDate] = useState("");
@@ -150,10 +152,10 @@ export function PublicBookingFlow({ business }: Props) {
         <select
           value={serviceId}
           onChange={(event) => setServiceId(event.target.value)}
-          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-amber-400/50"
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-white/30"
         >
           {business.services.map((service) => (
-            <option key={service.id} value={service.id} className="bg-[#0b1020] text-white">
+            <option key={service.id} value={service.id} style={{ backgroundColor: cardBg }}>
               {service.name}
               {business.showPrices ? ` — ${formatEuro(service.priceCents)}` : ""}
             </option>
@@ -167,10 +169,10 @@ export function PublicBookingFlow({ business }: Props) {
           <select
             value={staffMemberId}
             onChange={(event) => setStaffMemberId(event.target.value)}
-            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-amber-400/50"
+            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-white/30"
           >
             {compatibleStaffMembers.map((member) => (
-              <option key={member.id} value={member.id} className="bg-[#0b1020] text-white">
+              <option key={member.id} value={member.id} style={{ backgroundColor: cardBg }}>
                 {member.fullName}
                 {member.roleTitle ? ` — ${member.roleTitle}` : ""}
               </option>
@@ -187,7 +189,7 @@ export function PublicBookingFlow({ business }: Props) {
           min={minDate}
           max={maxDate}
           onChange={(event) => setDate(event.target.value)}
-          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-amber-400/50"
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-white/30"
         />
       </label>
 
@@ -208,9 +210,10 @@ export function PublicBookingFlow({ business }: Props) {
                 className={cn(
                   "rounded-xl border px-3 py-2 text-sm transition",
                   selectedSlot === slot.iso
-                    ? "border-amber-400 bg-amber-400 font-semibold text-[#0b1020]"
-                    : "border-white/15 text-white hover:border-amber-300/40 hover:bg-white/5"
+                    ? "font-semibold"
+                    : "border-white/15 text-white hover:border-white/30 hover:bg-white/5"
                 )}
+                style={selectedSlot === slot.iso ? { backgroundColor: accentColor, borderColor: accentColor, color: "#111827" } : undefined}
               >
                 {slot.label}
               </button>
@@ -232,7 +235,7 @@ export function PublicBookingFlow({ business }: Props) {
           placeholder="Digite o teu nome"
           value={customerName}
           onChange={(event) => setCustomerName(event.target.value)}
-          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-white/30"
         />
       </label>
 
@@ -243,7 +246,7 @@ export function PublicBookingFlow({ business }: Props) {
           placeholder="Digite o teu telefone"
           value={customerPhone}
           onChange={(event) => setCustomerPhone(event.target.value)}
-          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-amber-400/50"
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-white/30"
         />
       </label>
 
@@ -252,9 +255,10 @@ export function PublicBookingFlow({ business }: Props) {
         onClick={handleBooking}
         disabled={!selectedService || !selectedSlot || !customerName || !staffMemberId || submitting}
         className={cn(
-          "mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-semibold text-[#0b1020] transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50",
+          "mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
           submitting && "opacity-80"
         )}
+        style={{ backgroundColor: accentColor, color: "#111827" }}
       >
         {submitting ? (
           <>
@@ -270,7 +274,8 @@ export function PublicBookingFlow({ business }: Props) {
       {manageUrl ? (
         <Link
           href={manageUrl}
-          className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-amber-300 transition hover:text-amber-200"
+          className="mt-3 inline-flex items-center gap-2 text-sm font-semibold transition"
+          style={{ color: accentColor }}
         >
           Gerir esta reserva
           <ArrowRight className="size-4" />
