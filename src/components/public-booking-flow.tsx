@@ -255,7 +255,7 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
         onClick={handleBooking}
         disabled={!selectedService || !selectedSlot || !customerName || !staffMemberId || submitting}
         className={cn(
-          "mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+          "mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-75",
           submitting && "opacity-80"
         )}
         style={{ backgroundColor: accentColor, color: "#111827" }}
