@@ -105,11 +105,11 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   const teamImages = publicBusiness.teamImages;
   const accent = publicBusiness.accentColor || "#F59E0B";
   const primary = publicBusiness.primaryColor || "#0b1020";
-  const sobreAccent = publicBusiness.sobreColor || accent;
-  const servicosAccent = publicBusiness.servicosColor || accent;
-  const equipaAccent = publicBusiness.equipaColor || accent;
-  const localizacaoAccent = publicBusiness.localizacaoColor || accent;
-  const reservaAccent = publicBusiness.reservaColor || accent;
+  const sobreBg = publicBusiness.sobreColor || primary;
+  const servicosBg = publicBusiness.servicosColor || "#ffffff";
+  const equipaBg = publicBusiness.equipaColor || primary;
+  const localizacaoBg = publicBusiness.localizacaoColor || "#ffffff";
+  const reservaBg = publicBusiness.reservaColor || primary;
   const primaryRgb = hexToRgb(primary);
   const cardBg = adjustHex(primary, 12);
   const footerBg = adjustHex(primary, -5);
@@ -239,8 +239,8 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 2. SOBRE — navy, colagem + texto */}
       {business.description ? (
-        <section id="sobre" className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-24">
-          <div className="grid gap-12 sm:grid-cols-2 sm:items-center sm:gap-16">
+        <section id="sobre" className="py-16 sm:py-24" style={{ backgroundColor: sobreBg }}>
+          <div className="mx-auto max-w-6xl px-5 grid gap-12 sm:grid-cols-2 sm:items-center sm:gap-16">
             {/* Colagem fotográfica */}
             <div className="relative h-[420px] sm:h-[520px]">
               {aboutImages.length > 0 ? (
@@ -254,17 +254,17 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     style={{
                       backgroundImage: `url(${aboutImages[1] ?? aboutImages[0]})`,
                       filter: aboutImages.length < 2 ? "grayscale(0.35) brightness(0.85)" : undefined,
-                      ["--tw-ring-color" as never]: primary,
+                      ["--tw-ring-color" as never]: sobreBg,
                     }}
                   />
                   <div
                     className="pointer-events-none absolute -left-6 top-20 size-32 rounded-full blur-3xl"
-                    style={{ backgroundColor: `${sobreAccent}1A` }}
+                    style={{ backgroundColor: `${accent}1A` }}
                     aria-hidden
                   />
                   <div
                     className="pointer-events-none absolute bottom-16 right-8 size-24 rounded-full blur-2xl"
-                    style={{ backgroundColor: `${sobreAccent}33` }}
+                    style={{ backgroundColor: `${accent}33` }}
                     aria-hidden
                   />
                 </>
@@ -275,7 +275,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
             {/* Texto */}
             <div className="space-y-6">
-              <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: sobreAccent }}>Sobre</p>
+              <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>Sobre</p>
               <h2 className="font-serif text-4xl leading-tight sm:text-5xl">
                 O ofício, a paixão.
               </h2>
@@ -284,7 +284,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
               </p>
               {location?.city || location?.addressLine1 ? (
                 <div className="border-t border-white/10 pt-5">
-                  <p className="text-[10px] uppercase tracking-[0.4em]" style={{ color: sobreAccent }}>
+                  <p className="text-[10px] uppercase tracking-[0.4em]" style={{ color: accent }}>
                     Onde
                   </p>
                   <p className="mt-2 text-sm text-neutral-200">
@@ -299,10 +299,10 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 3. SERVIÇOS — WHITE section */}
       {servicesPreview.length ? (
-        <section id="servicos" className="bg-white py-16 sm:py-24" style={{ color: primary }}>
+        <section id="servicos" className="py-16 sm:py-24" style={{ backgroundColor: servicosBg, color: primary }}>
           <div className="mx-auto max-w-6xl px-5">
             <div className="mb-10 text-center sm:mb-14">
-              <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: servicosAccent }}>Serviços</p>
+              <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>Serviços</p>
               <h2 className="mt-3 font-serif text-4xl sm:text-5xl">O que oferecemos</h2>
               <p className="mx-auto mt-4 max-w-lg text-sm text-neutral-600">
                 Cortes desenhados à tua medida. Escolhe o serviço e vem ter connosco.
@@ -335,7 +335,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     {publicBusiness.showPrices ? (
                       <span
                         className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold"
-                        style={{ backgroundColor: primary, color: servicosAccent }}
+                        style={{ backgroundColor: primary, color: accent }}
                       >
                         {formatEuro(service.priceCents)}
                       </span>
@@ -350,7 +350,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 4. EQUIPA — navy, "Equipa" vertical + cards */}
       {publicBusiness.showTeam && business.staffMembers.length ? (
-        <section id="equipa" className="relative overflow-hidden py-16 sm:py-24">
+        <section id="equipa" className="relative overflow-hidden py-16 sm:py-24" style={{ backgroundColor: equipaBg }}>
           <div className="relative mx-auto flex max-w-6xl items-start gap-10 px-5">
             {/* Vertical label */}
             <p
@@ -363,7 +363,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
             <div className="flex-1">
               <div className="mb-10 sm:mb-12">
-                <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: equipaAccent }}>
+                <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>
                   Equipa
                 </p>
                 <h2 className="mt-3 font-serif text-4xl sm:text-5xl">Os barbeiros</h2>
@@ -373,7 +373,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                   <div
                     key={member.id}
                     className="overflow-hidden rounded-2xl bg-white/5 ring-1 ring-white/10 transition hover:-translate-y-1"
-                    style={{ ["--tw-ring-hover" as string]: `${equipaAccent}66` }}
+                    style={{ ["--tw-ring-hover" as string]: `${accent}66` }}
                   >
                     {teamImages.length > 0 ? (
                       <div
@@ -387,7 +387,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                       </div>
                     )}
                     <div className="p-5 text-center">
-                      <p className="font-semibold" style={{ color: equipaAccent }}>{member.fullName}</p>
+                      <p className="font-semibold" style={{ color: accent }}>{member.fullName}</p>
                       {member.roleTitle ? (
                         <p className="mt-0.5 text-xs uppercase tracking-widest text-neutral-400">
                           {member.roleTitle}
@@ -404,10 +404,10 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 5. UNIDADES — WHITE section */}
       {business.locations.length ? (
-        <section className="bg-white py-16 sm:py-24" style={{ color: primary }}>
+        <section className="py-16 sm:py-24" style={{ backgroundColor: localizacaoBg, color: primary }}>
           <div className="mx-auto max-w-6xl px-5">
             <div className="mb-10 text-center sm:mb-14">
-              <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: localizacaoAccent }}>
+              <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>
                 Localização
               </p>
               <h2 className="mt-3 font-serif text-4xl sm:text-5xl">Onde estamos</h2>
@@ -446,7 +446,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                         {loc.addressLine1 ?? loc.city ?? "Morada"}
                       </p>
                       {loc.addressLine1 && loc.city ? (
-                        <p className="mt-0.5 text-[11px] uppercase tracking-[0.3em]" style={{ color: localizacaoAccent }}>
+                        <p className="mt-0.5 text-[11px] uppercase tracking-[0.3em]" style={{ color: accent }}>
                           {loc.city}
                         </p>
                       ) : null}
@@ -461,10 +461,10 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 6. BOOKING — navy card com flow existente */}
       {publicBusiness.onlineBooking ? (
-        <section id="booking" className="py-16 sm:py-24">
+        <section id="booking" className="py-16 sm:py-24" style={{ backgroundColor: reservaBg }}>
           <div className="mx-auto max-w-[680px] px-5">
             <div className="mb-10 text-center">
-              <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: reservaAccent }}>Reserva</p>
+              <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>Reserva</p>
               <h2 className="mt-3 font-serif text-4xl sm:text-5xl">Agendar horário</h2>
               <p className="mx-auto mt-4 max-w-md text-sm text-neutral-400">
                 Escolhe serviço, barbeiro e horário. Confirmação imediata.

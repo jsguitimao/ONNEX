@@ -143,8 +143,41 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                 images={form.teamImages}
                 onChange={(images) => updateField("teamImages", images)}
               />
-              <div className="mt-2 space-y-3">
-                <p className="text-xs font-medium text-neutral-400">Cor de destaque por secção</p>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-white">
+              <Palette className="size-4 text-amber-300" />
+              Cores e identidade
+            </div>
+            <div className="grid gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Cor principal (fundo escuro)">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      className="h-11 w-14 cursor-pointer rounded-lg border border-white/15 bg-white/5"
+                      value={form.primaryColor}
+                      onChange={(e) => updateField("primaryColor", e.target.value)}
+                    />
+                    <DarkInput value={form.primaryColor} onChange={(e) => updateField("primaryColor", e.target.value)} />
+                  </div>
+                </Field>
+                <Field label="Cor de destaque (botões e textos)">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      className="h-11 w-14 cursor-pointer rounded-lg border border-white/15 bg-white/5"
+                      value={form.accentColor}
+                      onChange={(e) => updateField("accentColor", e.target.value)}
+                    />
+                    <DarkInput value={form.accentColor} onChange={(e) => updateField("accentColor", e.target.value)} />
+                  </div>
+                </Field>
+              </div>
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-neutral-400">Cor de fundo por secção</p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {([
                     ["sobreColor", "Sobre"],
@@ -157,7 +190,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                       <input
                         type="color"
                         className="h-8 w-10 cursor-pointer rounded border border-white/15 bg-white/5"
-                        value={form[field] || form.accentColor}
+                        value={form[field] || form.primaryColor}
                         onChange={(e) => updateField(field, e.target.value)}
                       />
                       <span className="text-xs text-neutral-300">{label}</span>
@@ -170,8 +203,8 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
 
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
-              <Palette className="size-4 text-amber-300" />
-              Marca e comunicação
+              <Store className="size-4 text-amber-300" />
+              Comunicação
             </div>
             <div className="grid gap-4">
               <Field label="Headline">
@@ -189,30 +222,6 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                   onChange={(e) => updateField("welcomeMessage", e.target.value)}
                 />
               </Field>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Cor principal">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      className="h-11 w-14 cursor-pointer rounded-lg border border-white/15 bg-white/5"
-                      value={form.primaryColor}
-                      onChange={(e) => updateField("primaryColor", e.target.value)}
-                    />
-                    <DarkInput value={form.primaryColor} onChange={(e) => updateField("primaryColor", e.target.value)} />
-                  </div>
-                </Field>
-                <Field label="Cor de destaque">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      className="h-11 w-14 cursor-pointer rounded-lg border border-white/15 bg-white/5"
-                      value={form.accentColor}
-                      onChange={(e) => updateField("accentColor", e.target.value)}
-                    />
-                    <DarkInput value={form.accentColor} onChange={(e) => updateField("accentColor", e.target.value)} />
-                  </div>
-                </Field>
-              </div>
             </div>
           </section>
 
