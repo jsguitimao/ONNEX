@@ -84,6 +84,9 @@ model BookingPage {
   aboutImageUrl     String?
   servicesImageUrl  String?
   teamImageUrl      String?
+  aboutImages       Json?
+  servicesImages    Json?
+  teamImages        Json?
   showTeam          Boolean  @default(true)
   showPrices        Boolean  @default(true)
   showDurations     Boolean  @default(true)

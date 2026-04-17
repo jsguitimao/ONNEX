@@ -110,9 +110,9 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               Imagens por secção do site
             </div>
             <p className="-mt-2 text-xs text-neutral-400">
-              Cola o URL de uma foto para cada secção. Se ficar vazio, a imagem de capa é usada como fallback.
+              Carrega ou cola URLs de fotos. Se ficar vazio, a imagem de capa é usada como fallback.
             </p>
-            <div className="grid gap-4">
+            <div className="grid gap-6">
               <ImageField
                 label="Logo"
                 value={form.logoUrl}
@@ -128,20 +128,20 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                 value={form.heroImageUrl}
                 onChange={(value) => updateField("heroImageUrl", value)}
               />
-              <ImageField
-                label="Foto da secção Sobre"
-                value={form.aboutImageUrl}
-                onChange={(value) => updateField("aboutImageUrl", value)}
+              <MultiImageField
+                label="Fotos da secção Sobre"
+                images={form.aboutImages}
+                onChange={(images) => updateField("aboutImages", images)}
               />
-              <ImageField
-                label="Foto da secção Serviços"
-                value={form.servicesImageUrl}
-                onChange={(value) => updateField("servicesImageUrl", value)}
+              <MultiImageField
+                label="Fotos da secção Serviços"
+                images={form.servicesImages}
+                onChange={(images) => updateField("servicesImages", images)}
               />
-              <ImageField
-                label="Foto da secção Equipa"
-                value={form.teamImageUrl}
-                onChange={(value) => updateField("teamImageUrl", value)}
+              <MultiImageField
+                label="Fotos da secção Equipa"
+                images={form.teamImages}
+                onChange={(images) => updateField("teamImages", images)}
               />
             </div>
           </section>
@@ -459,6 +459,113 @@ function ImageField({
           </button>
         </div>
       ) : null}
+      {error ? <p className="text-xs text-red-300">{error}</p> : null}
+    </div>
+  );
+}
+
+function MultiImageField({
+  label,
+  images,
+  onChange,
+  max = 6,
+}: {
+  label: string;
+  images: string[];
+  onChange: (images: string[]) => void;
+  max?: number;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    setError("");
+
+    try {
+      const uploaded: string[] = [];
+      for (const file of Array.from(files).slice(0, max - images.length)) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = (await response.json()) as { url?: string; error?: string };
+
+        if (!response.ok || !data.url) {
+          throw new Error(data.error ?? "Erro ao carregar ficheiro.");
+        }
+        uploaded.push(data.url);
+      }
+
+      onChange([...images, ...uploaded]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeImage = (index: number) => {
+    onChange(images.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="grid gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-neutral-300">{label}</span>
+        <span className="text-[10px] text-neutral-500">{images.length}/{max}</span>
+      </div>
+
+      {images.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {images.map((url, idx) => (
+            <div key={url} className="group relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt={`${label} ${idx + 1}`}
+                className="h-20 w-20 rounded-xl border border-white/10 object-cover"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+              <button
+                type="button"
+                onClick={() => removeImage(idx)}
+                className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition group-hover:opacity-100"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {images.length < max ? (
+        <div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-white/20 bg-white/5 px-4 py-2.5 text-xs font-medium text-neutral-300 transition hover:border-amber-300/40 hover:bg-amber-300/5 hover:text-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+            {uploading ? "A carregar..." : "Adicionar foto"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            multiple
+            className="hidden"
+            onChange={handleUpload}
+          />
+        </div>
+      ) : null}
+
       {error ? <p className="text-xs text-red-300">{error}</p> : null}
     </div>
   );

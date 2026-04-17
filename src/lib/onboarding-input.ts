@@ -104,9 +104,27 @@ export const onboardingSchema = z.object({
   logoUrl: optionalUrlSchema,
   coverImageUrl: optionalUrlSchema,
   heroImageUrl: optionalUrlSchema,
-  aboutImageUrl: optionalUrlSchema,
-  servicesImageUrl: optionalUrlSchema,
-  teamImageUrl: optionalUrlSchema,
+  aboutImages: z.preprocess(
+    (val) => {
+      if (!Array.isArray(val)) return [];
+      return val.map((v) => normalizeOptionalUrlInput(v)).filter((v) => typeof v === "string" && v.length > 0);
+    },
+    z.array(z.string().url("Cada URL de imagem deve ser valido.")).max(6),
+  ),
+  servicesImages: z.preprocess(
+    (val) => {
+      if (!Array.isArray(val)) return [];
+      return val.map((v) => normalizeOptionalUrlInput(v)).filter((v) => typeof v === "string" && v.length > 0);
+    },
+    z.array(z.string().url("Cada URL de imagem deve ser valido.")).max(6),
+  ),
+  teamImages: z.preprocess(
+    (val) => {
+      if (!Array.isArray(val)) return [];
+      return val.map((v) => normalizeOptionalUrlInput(v)).filter((v) => typeof v === "string" && v.length > 0);
+    },
+    z.array(z.string().url("Cada URL de imagem deve ser valido.")).max(6),
+  ),
   onlineBooking: z.boolean(),
   showTeam: z.boolean(),
   showPrices: z.boolean(),
@@ -135,8 +153,14 @@ export function normalizeOnboardingDraft(input: OnboardingDraft): OnboardingDraf
     logoUrl: ensureString(normalizeOptionalUrlInput(input.logoUrl)),
     coverImageUrl: ensureString(normalizeOptionalUrlInput(input.coverImageUrl)),
     heroImageUrl: ensureString(normalizeOptionalUrlInput(input.heroImageUrl)),
-    aboutImageUrl: ensureString(normalizeOptionalUrlInput(input.aboutImageUrl)),
-    servicesImageUrl: ensureString(normalizeOptionalUrlInput(input.servicesImageUrl)),
-    teamImageUrl: ensureString(normalizeOptionalUrlInput(input.teamImageUrl)),
+    aboutImages: input.aboutImages
+      .map((url) => ensureString(normalizeOptionalUrlInput(url)))
+      .filter((url) => url.length > 0),
+    servicesImages: input.servicesImages
+      .map((url) => ensureString(normalizeOptionalUrlInput(url)))
+      .filter((url) => url.length > 0),
+    teamImages: input.teamImages
+      .map((url) => ensureString(normalizeOptionalUrlInput(url)))
+      .filter((url) => url.length > 0),
   };
 }

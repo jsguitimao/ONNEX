@@ -232,9 +232,12 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
     logoUrl: business.logoUrl,
     coverImageUrl: business.coverImageUrl,
     heroImageUrl: business.bookingPage?.heroImageUrl ?? null,
-    aboutImageUrl: business.bookingPage?.aboutImageUrl ?? null,
-    servicesImageUrl: business.bookingPage?.servicesImageUrl ?? null,
-    teamImageUrl: business.bookingPage?.teamImageUrl ?? null,
+    aboutImages: (business.bookingPage?.aboutImages as string[] | null) ??
+      (business.bookingPage?.aboutImageUrl ? [business.bookingPage.aboutImageUrl] : []),
+    servicesImages: (business.bookingPage?.servicesImages as string[] | null) ??
+      (business.bookingPage?.servicesImageUrl ? [business.bookingPage.servicesImageUrl] : []),
+    teamImages: (business.bookingPage?.teamImages as string[] | null) ??
+      (business.bookingPage?.teamImageUrl ? [business.bookingPage.teamImageUrl] : []),
     headline: business.bookingPage?.headline ?? null,
     subheadline: business.bookingPage?.subheadline ?? null,
     welcomeMessage: business.bookingPage?.welcomeMessage ?? null,
