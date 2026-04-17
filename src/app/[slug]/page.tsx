@@ -6,6 +6,19 @@ import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
 import { getAppUrl } from "@/lib/app-config";
 import { formatEuro } from "@/lib/demo-data";
 
+function hexToRgb(hex: string) {
+  const n = parseInt(hex.slice(1), 16);
+  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
+function adjustHex(hex: string, amount: number) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, Math.max(0, ((n >> 16) & 255) + amount));
+  const g = Math.min(255, Math.max(0, ((n >> 8) & 255) + amount));
+  const b = Math.min(255, Math.max(0, (n & 255) + amount));
+  return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
+}
+
 export const dynamic = "force-dynamic";
 
 type PublicPageProps = {
@@ -92,25 +105,32 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   const teamImages = publicBusiness.teamImages;
   const accent = publicBusiness.accentColor || "#F59E0B";
   const primary = publicBusiness.primaryColor || "#0b1020";
+  const primaryRgb = hexToRgb(primary);
+  const cardBg = adjustHex(primary, 12);
+  const footerBg = adjustHex(primary, -5);
 
   return (
-    <main className="relative min-h-screen bg-[#0b1020] text-white">
+    <main className="relative min-h-screen text-white" style={{ backgroundColor: primary }}>
+      <style>{`
+        .accent-hover:hover { color: ${accent} !important; border-color: ${accent} !important; }
+        .accent-bg-hover:hover { background-color: ${accent} !important; border-color: ${accent} !important; color: ${primary} !important; }
+      `}</style>
       {/* TOP NAV — flutuante sobre o hero */}
       <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 py-5 sm:px-10">
         <p className="font-serif text-xl tracking-tight">{business.name}</p>
         <div className="hidden items-center gap-7 text-[11px] uppercase tracking-[0.25em] text-white/80 sm:flex">
           {business.description ? (
-            <a href="#sobre" className="transition hover:text-amber-300">
+            <a href="#sobre" className="accent-hover transition">
               Sobre
             </a>
           ) : null}
           {servicesPreview.length ? (
-            <a href="#servicos" className="transition hover:text-amber-300">
+            <a href="#servicos" className="accent-hover transition">
               Serviços
             </a>
           ) : null}
           {publicBusiness.showTeam && business.staffMembers.length ? (
-            <a href="#equipa" className="transition hover:text-amber-300">
+            <a href="#equipa" className="accent-hover transition">
               Equipa
             </a>
           ) : null}
@@ -132,14 +152,15 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
       <section className="relative">
         <div className="relative h-[90vh] w-full sm:h-screen">
           <div
-            className="absolute inset-0 bg-[#0b1020] bg-cover bg-center"
-            style={
-              heroImage ? { backgroundImage: `url(${heroImage})` } : undefined
-            }
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundColor: primary,
+              ...(heroImage ? { backgroundImage: `url(${heroImage})` } : {}),
+            }}
             aria-hidden
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0b1020]/60 via-transparent to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-b from-transparent via-[#0b1020]/85 to-[#0b1020]" />
+          <div className="pointer-events-none absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(${primaryRgb}, 0.6), transparent, transparent)` }} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%]" style={{ background: `linear-gradient(to bottom, transparent, rgba(${primaryRgb}, 0.85), ${primary})` }} />
 
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center px-5 pb-12 text-center sm:pb-20">
             <div className="flex w-full max-w-[640px] flex-col items-center gap-6">
@@ -162,7 +183,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     target="_blank"
                     rel="noreferrer"
                     aria-label="WhatsApp"
-                    className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm transition hover:border-amber-300 hover:bg-amber-300 hover:text-[#0b1020]"
+                    className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm accent-bg-hover transition"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.4A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.3-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.5-2.6-1.2-4.4-3.8-4.5-4-.1-.2-1-1.3-1-2.5 0-1.2.6-1.8.9-2.1.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.7.8 1.8.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.2-.1.5.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l.8-1c.2-.3.5-.2.7-.1l1.7.8c.3.2.5.3.5.5.1.2.1.9-.1 1.6z" />
@@ -172,7 +193,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                 <a
                   href="#"
                   aria-label="Instagram"
-                  className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm transition hover:border-amber-300 hover:bg-amber-300 hover:text-[#0b1020]"
+                  className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm accent-bg-hover transition"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -186,7 +207,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     target="_blank"
                     rel="noreferrer"
                     aria-label="Website"
-                    className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm transition hover:border-amber-300 hover:bg-amber-300 hover:text-[#0b1020]"
+                    className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm accent-bg-hover transition"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <circle cx="12" cy="12" r="9" />
@@ -224,10 +245,11 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     style={{ backgroundImage: `url(${aboutImages[0]})` }}
                   />
                   <div
-                    className="absolute bottom-0 left-0 h-64 w-44 rounded-3xl bg-cover bg-center shadow-2xl shadow-black/60 ring-4 ring-[#0b1020] sm:h-72 sm:w-56"
+                    className="absolute bottom-0 left-0 h-64 w-44 rounded-3xl bg-cover bg-center shadow-2xl shadow-black/60 ring-4 sm:h-72 sm:w-56"
                     style={{
                       backgroundImage: `url(${aboutImages[1] ?? aboutImages[0]})`,
                       filter: aboutImages.length < 2 ? "grayscale(0.35) brightness(0.85)" : undefined,
+                      ["--tw-ring-color" as never]: primary,
                     }}
                   />
                   <div
@@ -272,7 +294,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 3. SERVIÇOS — WHITE section */}
       {servicesPreview.length ? (
-        <section id="servicos" className="bg-white py-16 text-[#0b1020] sm:py-24">
+        <section id="servicos" className="bg-white py-16 sm:py-24" style={{ color: primary }}>
           <div className="mx-auto max-w-6xl px-5">
             <div className="mb-10 text-center sm:mb-14">
               <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>Serviços</p>
@@ -377,7 +399,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 5. UNIDADES — WHITE section */}
       {business.locations.length ? (
-        <section className="bg-white py-16 text-[#0b1020] sm:py-24">
+        <section className="bg-white py-16 sm:py-24" style={{ color: primary }}>
           <div className="mx-auto max-w-6xl px-5">
             <div className="mb-10 text-center sm:mb-14">
               <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>
@@ -412,9 +434,9 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                         allowFullScreen
                       />
                     ) : (
-                      <div className="aspect-[4/3] w-full bg-[#0b1020]" />
+                      <div className="aspect-[4/3] w-full" style={{ backgroundColor: primary }} />
                     )}
-                    <div className="absolute bottom-4 left-1/2 w-[85%] -translate-x-1/2 rounded-2xl bg-[#0b1020] px-5 py-3 text-center shadow-xl">
+                    <div className="absolute bottom-4 left-1/2 w-[85%] -translate-x-1/2 rounded-2xl px-5 py-3 text-center shadow-xl" style={{ backgroundColor: primary }}>
                       <p className="text-sm font-medium text-white">
                         {loc.addressLine1 ?? loc.city ?? "Morada"}
                       </p>
@@ -443,7 +465,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                 Escolhe serviço, barbeiro e horário. Confirmação imediata.
               </p>
             </div>
-            <div className="rounded-[28px] border border-white/10 bg-[#141a2d] p-2 shadow-2xl shadow-black/50">
+            <div className="rounded-[28px] border border-white/10 p-2 shadow-2xl shadow-black/50" style={{ backgroundColor: cardBg }}>
               <PublicBookingFlow business={publicBusiness} />
             </div>
           </div>
@@ -451,7 +473,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
       ) : null}
 
       {/* 7. FOOTER */}
-      <footer className="border-t border-white/10 bg-[#080c18] py-12">
+      <footer className="border-t border-white/10 py-12" style={{ backgroundColor: footerBg }}>
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-5 text-center">
           <p className="font-serif text-3xl">{business.name}</p>
           <div className="flex items-center gap-3">
@@ -461,7 +483,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                 target="_blank"
                 rel="noreferrer"
                 aria-label="WhatsApp"
-                className="flex size-9 items-center justify-center rounded-full border border-white/15 text-neutral-400 transition hover:border-amber-300 hover:text-amber-300"
+                className="flex size-9 items-center justify-center rounded-full border border-white/15 text-neutral-400 accent-hover transition"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.4A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.3-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.5-2.6-1.2-4.4-3.8-4.5-4-.1-.2-1-1.3-1-2.5 0-1.2.6-1.8.9-2.1.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.7.8 1.8.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.2-.1.5.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l.8-1c.2-.3.5-.2.7-.1l1.7.8c.3.2.5.3.5.5.1.2.1.9-.1 1.6z" />
@@ -471,7 +493,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
             <a
               href="#"
               aria-label="Instagram"
-              className="flex size-9 items-center justify-center rounded-full border border-white/15 text-neutral-400 transition hover:border-amber-300 hover:text-amber-300"
+              className="flex size-9 items-center justify-center rounded-full border border-white/15 text-neutral-400 accent-hover transition"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -483,7 +505,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           {business.contactEmail ? (
             <a
               href={`mailto:${business.contactEmail}`}
-              className="text-xs text-neutral-500 transition hover:text-amber-300"
+              className="text-xs text-neutral-500 accent-hover transition"
             >
               {business.contactEmail}
             </a>
