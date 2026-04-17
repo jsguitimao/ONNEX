@@ -112,7 +112,8 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   const reservaBg = publicBusiness.reservaColor || primary;
   const primaryRgb = hexToRgb(primary);
   const cardBg = adjustHex(reservaBg, 12);
-  const footerBg = adjustHex(primary, -5);
+  const darkBadge = "#111827";
+  const footerBg = "#0a0f1e";
 
   return (
     <main className="relative min-h-screen text-white" style={{ backgroundColor: primary }}>
@@ -317,7 +318,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                   <div
                     className="aspect-[4/3] w-full bg-cover bg-center"
                     style={{
-                      backgroundColor: primary,
+                      backgroundColor: darkBadge,
                       ...(servicesImages[idx % servicesImages.length]
                         ? { backgroundImage: `url(${servicesImages[idx % servicesImages.length]})` }
                         : {}),
@@ -335,7 +336,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     {publicBusiness.showPrices ? (
                       <span
                         className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold"
-                        style={{ backgroundColor: primary, color: accent }}
+                        style={{ backgroundColor: darkBadge, color: accent }}
                       >
                         {formatEuro(service.priceCents)}
                       </span>
@@ -439,9 +440,9 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                         allowFullScreen
                       />
                     ) : (
-                      <div className="aspect-[4/3] w-full" style={{ backgroundColor: primary }} />
+                      <div className="aspect-[4/3] w-full" style={{ backgroundColor: darkBadge }} />
                     )}
-                    <div className="absolute bottom-4 left-1/2 w-[85%] -translate-x-1/2 rounded-2xl px-5 py-3 text-center shadow-xl" style={{ backgroundColor: primary }}>
+                    <div className="absolute bottom-4 left-1/2 w-[85%] -translate-x-1/2 rounded-2xl px-5 py-3 text-center shadow-xl" style={{ backgroundColor: darkBadge }}>
                       <p className="text-sm font-medium text-white">
                         {loc.addressLine1 ?? loc.city ?? "Morada"}
                       </p>
