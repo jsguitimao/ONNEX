@@ -85,6 +85,11 @@ const hexColorSchema = z.preprocess(
   z.string().regex(/^#([0-9A-F]{6})$/, "Use uma cor hexadecimal valida, como #111827."),
 );
 
+const optionalHexColorSchema = z.preprocess(
+  normalizeHexColorInput,
+  z.string().regex(/^#([0-9A-F]{6})$/, "Use uma cor hexadecimal valida, como #111827.").or(z.literal("")),
+);
+
 export const onboardingSchema = z.object({
   businessName: z.preprocess(normalizeString, z.string().min(2).max(100)),
   slug: z.preprocess(
@@ -125,11 +130,11 @@ export const onboardingSchema = z.object({
     },
     z.array(z.string().url("Cada URL de imagem deve ser valido.")).max(6),
   ),
-  sobreColor: hexColorSchema,
-  servicosColor: hexColorSchema,
-  equipaColor: hexColorSchema,
-  localizacaoColor: hexColorSchema,
-  reservaColor: hexColorSchema,
+  sobreColor: optionalHexColorSchema,
+  servicosColor: optionalHexColorSchema,
+  equipaColor: optionalHexColorSchema,
+  localizacaoColor: optionalHexColorSchema,
+  reservaColor: optionalHexColorSchema,
   onlineBooking: z.boolean(),
   showTeam: z.boolean(),
   showPrices: z.boolean(),
