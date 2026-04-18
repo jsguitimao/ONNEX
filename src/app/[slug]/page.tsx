@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MoveRight } from "lucide-react";
 import { PublicBookingFlow } from "@/components/public-booking-flow";
+import { PublicCarousel } from "@/components/public-carousel";
 import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
 import { getAppUrl } from "@/lib/app-config";
 import { formatEuro } from "@/lib/demo-data";
@@ -101,7 +102,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
   const location = business.locations[0];
   const phoneDigits = (business.contactPhone ?? "").replace(/\D/g, "");
-  const servicesPreview = publicBusiness.services.slice(0, 3);
+  const servicesPreview = publicBusiness.services;
   const fallbackImage = business.coverImageUrl ?? business.logoUrl;
   const heroImage = publicBusiness.heroImageUrl ?? fallbackImage;
   const aboutImages = publicBusiness.aboutImages.length > 0
@@ -319,11 +320,11 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                 Cortes desenhados à tua medida. Escolhe o serviço e vem ter connosco.
               </p>
             </div>
-            <div className="grid gap-5 sm:grid-cols-3 sm:gap-6">
+            <PublicCarousel accentColor={accent}>
               {servicesPreview.map((service, idx) => (
                 <div
                   key={service.id}
-                  className={`group overflow-hidden rounded-2xl transition hover:-translate-y-1 hover:shadow-2xl ${servicosLight ? "bg-white shadow-xl shadow-black/5 ring-1 ring-black/5" : "bg-white/5 shadow-xl shadow-black/30 ring-1 ring-white/10"}`}
+                  className={`h-full overflow-hidden rounded-2xl transition hover:-translate-y-1 hover:shadow-2xl ${servicosLight ? "bg-white shadow-xl shadow-black/5 ring-1 ring-black/5" : "bg-white/5 shadow-xl shadow-black/30 ring-1 ring-white/10"}`}
                 >
                   <div
                     className="aspect-[4/3] w-full bg-cover bg-center"
@@ -354,7 +355,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                   </div>
                 </div>
               ))}
-            </div>
+            </PublicCarousel>
           </div>
         </section>
       ) : null}
@@ -379,12 +380,11 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                 </p>
                 <h2 className="mt-3 font-serif text-4xl sm:text-5xl">Os barbeiros</h2>
               </div>
-              <div className="grid gap-5 sm:grid-cols-3 sm:gap-6">
-                {business.staffMembers.slice(0, 3).map((member, idx) => (
+              <PublicCarousel accentColor={accent}>
+                {business.staffMembers.map((member, idx) => (
                   <div
                     key={member.id}
-                    className="overflow-hidden rounded-2xl bg-white/5 ring-1 ring-white/10 transition hover:-translate-y-1"
-                    style={{ ["--tw-ring-hover" as string]: `${accent}66` }}
+                    className="h-full overflow-hidden rounded-2xl bg-white/5 ring-1 ring-white/10 transition hover:-translate-y-1"
                   >
                     {teamImages.length > 0 ? (
                       <div
@@ -407,7 +407,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     </div>
                   </div>
                 ))}
-              </div>
+              </PublicCarousel>
             </div>
           </div>
         </section>
