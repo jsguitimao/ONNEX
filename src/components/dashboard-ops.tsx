@@ -279,18 +279,6 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                       }
                       placeholder="Nome do serviço"
                     />
-                    <textarea
-                      className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                      maxLength={280}
-                      value={draft.description}
-                      onChange={(event) =>
-                        setServiceDrafts((current) => ({
-                          ...current,
-                          [service.id]: { ...draft, description: event.target.value },
-                        }))
-                      }
-                      placeholder="Descrição curta para a página pública"
-                    />
                     <div className="grid gap-3 md:grid-cols-2">
                       <Input
                         type="number"
@@ -379,15 +367,6 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                   value={newService.name}
                   onChange={(event) => setNewService((current) => ({ ...current, name: event.target.value }))}
                   placeholder="Ex: Corte + barba"
-                />
-                <textarea
-                  className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  value={newService.description}
-                  onChange={(event) =>
-                    setNewService((current) => ({ ...current, description: event.target.value }))
-                  }
-                  placeholder="Descrição do serviço"
-                  maxLength={280}
                 />
                 <div className="grid gap-3 md:grid-cols-2">
                   <Input
@@ -483,19 +462,6 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                       }
                       placeholder="Função"
                     />
-                    <textarea
-                      className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                      value={draft.bio}
-                      onChange={(event) =>
-                        setStaffDrafts((current) => ({
-                          ...current,
-                          [member.id]: { ...draft, bio: event.target.value },
-                        }))
-                      }
-                      placeholder="Bio curta ou especialidades"
-                      maxLength={240}
-                    />
-
                     <div className="grid gap-2">
                       <p className="text-sm font-medium">Serviços que este profissional executa</p>
                       <div className="grid gap-2">
@@ -611,14 +577,6 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                   onChange={(event) => setNewStaff((current) => ({ ...current, roleTitle: event.target.value }))}
                   placeholder="Função"
                 />
-                <textarea
-                  className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  value={newStaff.bio}
-                  onChange={(event) => setNewStaff((current) => ({ ...current, bio: event.target.value }))}
-                  placeholder="Bio ou especialidades"
-                  maxLength={240}
-                />
-
                 <div className="grid gap-2">
                   <p className="text-sm font-medium">Serviços atendidos</p>
                   <div className="grid gap-2">
