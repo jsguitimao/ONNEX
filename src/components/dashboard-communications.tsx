@@ -46,7 +46,7 @@ const kindLabels: Record<CommunicationSnapshot["notifications"][number]["kind"],
   BOOKING_CANCELLED: "Reserva cancelada",
   BOOKING_CANCELLED_INTERNAL: "Aviso interno de cancelamento",
   BOOKING_RESCHEDULED: "Reserva remarcada",
-  BOOKING_REMINDER: "Lembrete automatico",
+  BOOKING_REMINDER: "Lembrete automático",
 };
 
 const statusLabels: Record<CommunicationSnapshot["notifications"][number]["status"], string> = {
@@ -70,9 +70,9 @@ const runStatusLabels: Record<
   NonNullable<CommunicationSnapshot["reminderEngine"]["latestRun"]>["status"],
   string
 > = {
-  SUCCESS: "Saudavel",
+  SUCCESS: "Saudável",
   FAILED: "Falhou",
-  UNAUTHORIZED: "Nao autorizado",
+  UNAUTHORIZED: "Não autorizado",
   MISCONFIGURED: "Por configurar",
 };
 
@@ -114,7 +114,7 @@ function ChannelState({
 }
 
 function buildReminderSummary(result: ReminderRunResult) {
-  return `Varredura concluida: ${result.scanned} reservas analisadas, ${result.sent} envios, ${result.skipped} ignorados e ${result.failed} falhas.`;
+  return `Varredura concluída: ${result.scanned} reservas analisadas, ${result.sent} envios, ${result.skipped} ignorados e ${result.failed} falhas.`;
 }
 
 function buildRetrySummary(result: RetryResult) {
@@ -123,11 +123,11 @@ function buildRetrySummary(result: RetryResult) {
   }
 
   if (result.status === "duplicate") {
-    return "Esta comunicacao ja tinha um envio confirmado para o mesmo destinatario.";
+    return "Esta comunicação já tinha um envio confirmado para o mesmo destinatário.";
   }
 
   if (result.status === "skipped") {
-    return "A repetição foi ignorada porque ainda faltam dados ou configuração do canal.";
+    return "A repetição foi ignorada porque ainda faltam dados ou a configuração do canal.";
   }
 
   if (result.status === "failed") {
@@ -233,9 +233,9 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
       <CardHeader className="gap-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <CardTitle className="font-heading text-2xl">Comunicacao e lembretes</CardTitle>
+            <CardTitle className="font-heading text-2xl">Comunicação e lembretes</CardTitle>
             <CardDescription>
-              Estado dos canais e historico recente de confirmacoes, cancelamentos, remarcacoes e lembretes.
+              Estado dos canais e histórico recente de confirmações, cancelamentos, remarcações e lembretes.
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -278,7 +278,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
           <div className="rounded-3xl border border-border/70 bg-background/80 p-4">
             <div className="mb-3 flex items-center gap-2">
               <ShieldCheck className="size-4 text-primary" />
-              <p className="font-medium">Saude do agendador</p>
+              <p className="font-medium">Saúde do agendador</p>
             </div>
 
             {initialSnapshot.reminderEngine.latestRun ? (
@@ -290,7 +290,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
                   <Badge variant="outline">{initialSnapshot.reminderEngine.latestRun.source}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Ultima execucao:{" "}
+                  Última execução:{" "}
                   {new Date(initialSnapshot.reminderEngine.latestRun.createdAt).toLocaleString("pt-PT", {
                     day: "2-digit",
                     month: "2-digit",
@@ -312,7 +312,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-                Ainda nao ha execucoes registadas do motor de lembretes.
+                Ainda não há execuções registadas do motor de lembretes.
               </div>
             )}
           </div>
@@ -320,12 +320,12 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
           <div className="rounded-3xl border border-border/70 bg-background/80 p-4">
             <div className="mb-3 flex items-center gap-2">
               <RefreshCw className="size-4 text-primary" />
-              <p className="font-medium">Ultimas execucoes do motor</p>
+              <p className="font-medium">Últimas execuções do motor</p>
             </div>
 
             {initialSnapshot.reminderEngine.runs.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-                Ainda nao ha historico do agendador.
+                Ainda não há histórico do agendador.
               </div>
             ) : (
               <div className="grid gap-3">
@@ -364,7 +364,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Clock3 className="size-4 text-primary" />
-              <p className="font-medium">Ultimos envios</p>
+              <p className="font-medium">Últimos envios</p>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -378,7 +378,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
                 variant={notificationFilter === "ATTENTION" ? "default" : "outline"}
                 onClick={() => setNotificationFilter("ATTENTION")}
               >
-                Pedem acao
+                Pedem ação
               </Button>
               <Button
                 variant={notificationFilter === "FAILED" ? "default" : "outline"}
@@ -419,7 +419,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
 
           {filteredNotifications.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/80 bg-background/70 px-4 py-6 text-sm text-muted-foreground">
-              Nao ha registos para este filtro. Ajusta os filtros acima ou cria novas reservas para gerar historico.
+              Não há registos para este filtro. Ajusta os filtros acima ou cria novas reservas para gerar histórico.
             </div>
           ) : (
             <div className="grid gap-3">
@@ -448,7 +448,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
                           })}
                         </p>
                       </div>
-                      <p className="text-sm text-muted-foreground">Destinatario: {notification.recipientMasked}</p>
+                      <p className="text-sm text-muted-foreground">Destinatário: {notification.recipientMasked}</p>
                       {notification.errorMessage ? (
                         <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                           <span className="inline-flex items-center gap-2">
@@ -479,7 +479,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
                               hour: "2-digit",
                               minute: "2-digit",
                             })}`
-                          : "Ainda sem confirmacao de envio"}
+                          : "Ainda sem confirmação de envio"}
                       </span>
                       {canRetry ? (
                         <Button

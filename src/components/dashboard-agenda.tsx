@@ -761,7 +761,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
                               },
                             }))
                           }
-                          placeholder="Observacoes internas para a equipa..."
+                          placeholder="Observações internas para a equipa..."
                         />
                       </label>
                     </div>
