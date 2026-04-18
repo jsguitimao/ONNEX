@@ -3,9 +3,12 @@
 import { useState } from "react";
 import {
   CalendarDays,
+  ExternalLink,
   Mail,
+  Menu,
   Settings2,
   Users,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +22,10 @@ const tabs: { id: Tab; label: string; icon: typeof CalendarDays }[] = [
 ];
 
 type DashboardTabsProps = {
+  businessName: string;
+  slug: string;
+  stats: { label: string; value: string; color: string }[];
+  userButton: React.ReactNode;
   children: {
     agenda: React.ReactNode;
     comunicacao: React.ReactNode;
@@ -27,31 +34,121 @@ type DashboardTabsProps = {
   };
 };
 
-export function DashboardTabs({ children }: DashboardTabsProps) {
+export function DashboardTabs({
+  businessName,
+  slug,
+  stats,
+  userButton,
+  children,
+}: DashboardTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>("agenda");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div>
-      <div className="mb-6 flex gap-1 rounded-2xl border border-border/70 bg-muted/30 p-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
-              activeTab === tab.id
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <tab.icon className="size-4" />
-            <span className="hidden sm:inline">{tab.label}</span>
-          </button>
-        ))}
-      </div>
+    <div className="flex min-h-screen">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <div>{children[activeTab]}</div>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[oklch(0.2_0.02_250)] text-white transition-transform lg:static lg:translate-x-0",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-white/15 font-heading text-sm font-bold">
+            {businessName.charAt(0)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{businessName}</p>
+            <p className="truncate text-xs text-white/50">/{slug}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="rounded-lg p-1 text-white/50 hover:text-white lg:hidden"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 px-3 py-4">
+          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+            Menu
+          </p>
+          <div className="grid gap-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSidebarOpen(false);
+                }}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                  activeTab === tab.id
+                    ? "bg-white/15 text-white"
+                    : "text-white/60 hover:bg-white/8 hover:text-white"
+                )}
+              >
+                <tab.icon className="size-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        <div className="border-t border-white/10 px-5 py-4">
+          <a
+            href={`/${slug}`}
+            className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs text-white/50 transition hover:text-white"
+          >
+            <ExternalLink className="size-3.5" />
+            Ver página pública
+          </a>
+        </div>
+      </aside>
+
+      <div className="flex flex-1 flex-col">
+        <header className="flex items-center justify-between border-b border-border/50 px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-lg border border-border/70 p-2 text-muted-foreground hover:text-foreground lg:hidden"
+            >
+              <Menu className="size-4" />
+            </button>
+            <h1 className="font-heading text-lg font-semibold">
+              {tabs.find((t) => t.id === activeTab)?.label}
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            {userButton}
+          </div>
+        </header>
+
+        <div className="grid grid-cols-2 gap-3 px-4 py-4 sm:grid-cols-4 sm:px-6">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className={cn("rounded-xl px-4 py-3", stat.color)}
+            >
+              <p className="text-xs font-medium opacity-80">{stat.label}</p>
+              <p className="mt-1 font-heading text-xl font-bold">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex-1 px-4 pb-8 sm:px-6">
+          {children[activeTab]}
+        </div>
+      </div>
     </div>
   );
 }
