@@ -299,6 +299,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                     />
                     <textarea
                       className="min-h-24 rounded-2xl border border-input bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      maxLength={280}
                       value={draft.description}
                       onChange={(event) =>
                         setServiceDrafts((current) => ({
@@ -352,7 +353,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                     </label>
                     <div className="flex justify-end">
                       <Button
-                        disabled={loading}
+                        disabled={loading || draft.name.trim().length < 2}
                         onClick={() =>
                           void submit(`/api/dashboard/services/${service.id}`, "PATCH", {
                             name: draft.name,
@@ -390,6 +391,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                     setNewService((current) => ({ ...current, description: event.target.value }))
                   }
                   placeholder="Descrição do serviço"
+                  maxLength={280}
                 />
                 <div className="grid gap-3 md:grid-cols-2">
                   <Input
@@ -416,7 +418,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                 </div>
                 <div className="flex justify-end">
                   <Button
-                    disabled={loading}
+                    disabled={loading || newService.name.trim().length < 2}
                     onClick={async () => {
                       await submit("/api/dashboard/services", "POST", {
                         name: newService.name,
@@ -500,6 +502,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                         }))
                       }
                       placeholder="Bio curta ou especialidades"
+                      maxLength={240}
                     />
 
                     <div className="grid gap-2">
@@ -565,7 +568,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
 
                     <div className="flex justify-end">
                       <Button
-                        disabled={loading}
+                        disabled={loading || draft.fullName.trim().length < 2 || draft.serviceIds.length === 0 || draft.availability.length === 0}
                         onClick={() =>
                           void submit(`/api/dashboard/team/${member.id}`, "PATCH", {
                             fullName: draft.fullName,
@@ -608,6 +611,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                   value={newStaff.bio}
                   onChange={(event) => setNewStaff((current) => ({ ...current, bio: event.target.value }))}
                   placeholder="Bio ou especialidades"
+                  maxLength={240}
                 />
 
                 <div className="grid gap-2">
@@ -651,7 +655,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
 
                 <div className="flex justify-end">
                   <Button
-                    disabled={loading}
+                    disabled={loading || newStaff.fullName.trim().length < 2 || newStaff.serviceIds.length === 0 || newStaff.availability.length === 0}
                     onClick={async () => {
                       await submit("/api/dashboard/team", "POST", {
                         fullName: newStaff.fullName,

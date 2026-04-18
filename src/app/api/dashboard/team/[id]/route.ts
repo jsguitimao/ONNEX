@@ -7,6 +7,8 @@ const availabilitySchema = z.object({
   dayOfWeek: z.number().int().min(0).max(6),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
+}).refine((slot) => slot.startTime < slot.endTime, {
+  message: "A hora de início deve ser anterior à hora de fim.",
 });
 
 const teamSchema = z.object({

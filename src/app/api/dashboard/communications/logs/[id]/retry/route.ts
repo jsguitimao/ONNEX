@@ -16,7 +16,7 @@ export async function POST(_: Request, { params }: RouteProps) {
     const message = error instanceof Error ? error.message : "ERRO";
     const status = message === "NOTIFICATION_NOT_FOUND" ? 404 : 500;
     const mapped =
-      status === 404 ? "Registo de comunicacao nao encontrado." : "Nao foi possivel repetir a entrega.";
+      status === 404 ? "Registo de comunicação não encontrado." : "Não foi possível repetir a entrega.";
 
     captureException("dashboard_communications.retry_failed", error, { notificationId: id });
 

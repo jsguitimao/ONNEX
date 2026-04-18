@@ -29,7 +29,7 @@ export async function POST() {
     });
     captureException("dashboard_communications.run_reminders_failed", error);
     return NextResponse.json(
-      { error: "Nao foi possivel executar a varredura de lembretes." },
+      { error: "Não foi possível executar a varredura de lembretes." },
       { status: 500 }
     );
   }

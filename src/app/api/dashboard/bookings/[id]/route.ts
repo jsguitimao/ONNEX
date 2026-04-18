@@ -46,7 +46,9 @@ export async function PATCH(req: Request, { params }: RouteProps) {
                   ? { status: 400, error: "Esta reserva não pode ser remarcada no painel." }
                   : message === "PROFISSIONAL_INCOMPATIVEL"
                     ? { status: 400, error: "O profissional atual não executa este serviço." }
-                    : { status: 500, error: "Não foi possível atualizar a reserva." };
+                    : message === "TRANSICAO_INVALIDA"
+                      ? { status: 400, error: "Esta transição de estado não é permitida." }
+                      : { status: 500, error: "Não foi possível atualizar a reserva." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }

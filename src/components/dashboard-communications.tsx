@@ -104,7 +104,7 @@ function ChannelState({
         <div>
           <p className="font-medium">{label}</p>
           <p className="text-sm text-muted-foreground">
-            {configured ? "Configurado e pronto a enviar" : "Ainda precisa de configuracao"}
+            {configured ? "Configurado e pronto a enviar" : "Ainda precisa de configuração"}
           </p>
         </div>
       </div>
@@ -127,14 +127,14 @@ function buildRetrySummary(result: RetryResult) {
   }
 
   if (result.status === "skipped") {
-    return "A repeticao foi ignorada porque ainda faltam dados ou configuracao do canal.";
+    return "A repetição foi ignorada porque ainda faltam dados ou configuração do canal.";
   }
 
   if (result.status === "failed") {
     return result.reason ?? "A entrega voltou a falhar.";
   }
 
-  return result.error ?? "Nao foi possivel repetir a entrega.";
+  return result.error ?? "Não foi possível repetir a entrega.";
 }
 
 export function DashboardCommunications({ initialSnapshot }: DashboardCommunicationsProps) {
@@ -180,7 +180,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
       const payload = (await response.json()) as Partial<ReminderRunResult> & { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel executar a varredura de lembretes.");
+        throw new Error(payload.error ?? "Não foi possível executar a varredura de lembretes.");
       }
 
       setFeedback(
@@ -210,7 +210,7 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
       const payload = (await response.json()) as RetryResult;
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Nao foi possivel repetir a entrega.");
+        throw new Error(payload.error ?? "Não foi possível repetir a entrega.");
       }
 
       const summary = buildRetrySummary(payload);

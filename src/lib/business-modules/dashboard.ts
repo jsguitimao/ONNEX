@@ -392,6 +392,19 @@ export async function createManualBooking(input: {
   }
 
   const endsAt = new Date(startsAt.getTime() + service.durationMinutes * 60_000);
+
+  const staffAvailabilities = await db.weeklyAvailability.findMany({
+    where: { staffMemberId: staffMember.id },
+  });
+  const bookingDay = startsAt.getDay();
+  const bookingTime = `${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}`;
+  const endTime = `${String(endsAt.getHours()).padStart(2, "0")}:${String(endsAt.getMinutes()).padStart(2, "0")}`;
+  const hasAvailability = staffAvailabilities.some(
+    (slot) => slot.dayOfWeek === bookingDay && slot.startTime <= bookingTime && slot.endTime >= endTime
+  );
+  if (!hasAvailability) {
+    throw new Error("FORA_DA_DISPONIBILIDADE");
+  }
   const customerInput = sanitizeBookingCustomerInput({
     fullName: input.customerName,
     email: input.customerEmail,
@@ -500,6 +513,14 @@ export async function deleteScheduleBlock(id: string) {
   });
 }
 
+const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ["CONFIRMED", "CANCELLED"],
+  CONFIRMED: ["COMPLETED", "CANCELLED", "NO_SHOW"],
+  COMPLETED: [],
+  CANCELLED: [],
+  NO_SHOW: [],
+};
+
 export async function updateBookingStatus(
   id: string,
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW"
@@ -511,6 +532,11 @@ export async function updateBookingStatus(
 
   if (!booking) {
     throw new Error("BOOKING_NOT_FOUND");
+  }
+
+  const allowed = VALID_STATUS_TRANSITIONS[booking.status] ?? [];
+  if (!allowed.includes(status)) {
+    throw new Error("TRANSICAO_INVALIDA");
   }
 
   const updated = await db.booking.update({
@@ -563,6 +589,14 @@ export async function updateDashboardBooking(
   }
 
   const nextStatus = input.status ?? booking.status;
+
+  if (input.status && input.status !== booking.status) {
+    const allowed = VALID_STATUS_TRANSITIONS[booking.status] ?? [];
+    if (!allowed.includes(input.status)) {
+      throw new Error("TRANSICAO_INVALIDA");
+    }
+  }
+
   let startsAt = booking.startsAt;
   let endsAt = booking.endsAt;
 

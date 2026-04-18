@@ -63,9 +63,11 @@ export async function POST(req: Request) {
               ? { status: 400, error: "Este profissional não executa o serviço escolhido." }
               : message === "HORARIO_BLOQUEADO"
                 ? { status: 409, error: "Este horário está bloqueado na agenda." }
-                : message === "DATA_INVALIDA"
-                  ? { status: 400, error: "Escolhe uma data válida para a reserva." }
-                  : { status: 500, error: "Erro ao criar reserva manual." };
+                : message === "FORA_DA_DISPONIBILIDADE"
+                  ? { status: 400, error: "O profissional não tem disponibilidade neste dia/horário." }
+                  : message === "DATA_INVALIDA"
+                    ? { status: 400, error: "Escolhe uma data válida para a reserva." }
+                    : { status: 500, error: "Erro ao criar reserva manual." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }

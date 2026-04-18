@@ -521,19 +521,21 @@ export async function replaceStaffAvailability(
   staffMemberId: string,
   availability: Array<{ dayOfWeek: number; startTime: string; endTime: string }>
 ) {
-  await db.weeklyAvailability.deleteMany({
-    where: { staffMemberId },
-  });
-
-  if (availability.length > 0) {
-    await db.weeklyAvailability.createMany({
-      data: availability.map((slot) => ({
-        staffMemberId,
-        dayOfWeek: slot.dayOfWeek,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-      })),
+  await db.$transaction(async (tx) => {
+    await tx.weeklyAvailability.deleteMany({
+      where: { staffMemberId },
     });
-  }
+
+    if (availability.length > 0) {
+      await tx.weeklyAvailability.createMany({
+        data: availability.map((slot) => ({
+          staffMemberId,
+          dayOfWeek: slot.dayOfWeek,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        })),
+      });
+    }
+  });
 }
 
