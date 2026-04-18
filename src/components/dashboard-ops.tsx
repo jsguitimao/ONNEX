@@ -7,7 +7,6 @@ import type { AvailabilityInput, ManagementSnapshot } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 const weekdays = [
@@ -221,46 +220,34 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
 
   return (
     <div className="grid gap-6">
-      <Card className="border-primary/15 bg-gradient-to-br from-background via-background to-primary/5">
-        <CardHeader className="gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <CardTitle className="font-heading text-2xl">Mesa de operação</CardTitle>
-            <CardDescription>
-              Serviços, equipa e disponibilidade já editáveis. É aqui que o produto começa a
-              deixar de parecer demo.
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{snapshot.services.length} serviços</Badge>
-            <Badge variant="secondary">{snapshot.staffMembers.length} profissionais</Badge>
-            <Badge variant="secondary">/{snapshot.slug}</Badge>
-          </div>
-        </CardHeader>
-        {(feedback || error) && (
-          <CardContent className="pt-0">
-            {feedback ? (
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
-                {feedback}
-              </div>
-            ) : null}
-            {error ? (
-              <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {error}
-              </div>
-            ) : null}
-          </CardContent>
-        )}
-      </Card>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-heading text-xl font-semibold">Gestão do negócio</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Serviços, equipa e disponibilidade semanal.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="secondary">{snapshot.services.length} serviços</Badge>
+          <Badge variant="secondary">{snapshot.staffMembers.length} profissionais</Badge>
+        </div>
+      </div>
+
+      {feedback ? (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
+          {feedback}
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="border-border/70">
-          <CardHeader>
-            <CardTitle className="font-heading text-xl">Serviços</CardTitle>
-            <CardDescription>
-              Mantém a oferta atualizada e controla o que aparece na página pública.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
+        <div>
+          <h3 className="mb-4 font-heading text-base font-semibold">Serviços</h3>
+          <div className="grid gap-4">
             {snapshot.services.map((service) => {
               const draft = serviceDrafts[service.id] ?? makeServiceDraft(service);
 
@@ -444,17 +431,12 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border-border/70">
-          <CardHeader>
-            <CardTitle className="font-heading text-xl">Equipa e agenda base</CardTitle>
-            <CardDescription>
-              Define quem executa cada serviço e em que janelas semanais pode receber reservas.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
+        <div>
+          <h3 className="mb-4 font-heading text-base font-semibold">Equipa e disponibilidade</h3>
+          <div className="grid gap-4">
             {snapshot.staffMembers.map((member) => {
               const draft = staffDrafts[member.id] ?? makeStaffDraft(member);
 
@@ -696,8 +678,8 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

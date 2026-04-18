@@ -17,7 +17,6 @@ import {
 import type { CommunicationSnapshot } from "@/lib/business";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type DashboardCommunicationsProps = {
   initialSnapshot: CommunicationSnapshot;
@@ -229,30 +228,25 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
   }
 
   return (
-    <Card className="mt-6 border-border/70">
-      <CardHeader className="gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <CardTitle className="font-heading text-2xl">Comunicação e lembretes</CardTitle>
-            <CardDescription>
-              Estado dos canais e histórico recente de confirmações, cancelamentos, remarcações e lembretes.
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{initialSnapshot.totals.sentLast24h} enviados em 24h</Badge>
-            <Badge variant={initialSnapshot.totals.failedLast24h > 0 ? "destructive" : "outline"}>
-              {initialSnapshot.totals.failedLast24h} falhas
-            </Badge>
-            <Badge variant="outline">{initialSnapshot.totals.skippedLast24h} ignorados</Badge>
-            <Button variant="outline" onClick={() => void runReminderSweep()} disabled={isRefreshing}>
-              {isRefreshing ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-              Executar lembretes agora
-            </Button>
-          </div>
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-heading text-xl font-semibold">Comunicação e lembretes</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Canais, histórico de envios e motor de lembretes automáticos.
+          </p>
         </div>
-      </CardHeader>
-
-      <CardContent className="grid gap-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">{initialSnapshot.totals.sentLast24h} em 24h</Badge>
+          <Badge variant={initialSnapshot.totals.failedLast24h > 0 ? "destructive" : "outline"}>
+            {initialSnapshot.totals.failedLast24h} falhas
+          </Badge>
+          <Button size="sm" variant="outline" onClick={() => void runReminderSweep()} disabled={isRefreshing}>
+            {isRefreshing ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+            Executar lembretes
+          </Button>
+        </div>
+      </div>
         {feedback ? (
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
             {feedback}
@@ -502,7 +496,6 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
             </div>
           )}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

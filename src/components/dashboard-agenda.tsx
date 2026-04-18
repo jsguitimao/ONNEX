@@ -22,7 +22,6 @@ import { formatEuro } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 type DashboardAgendaProps = {
@@ -323,31 +322,28 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
   }
 
   return (
-    <Card className="mt-6 border-border/70">
-      <CardHeader className="gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <CardTitle className="font-heading text-2xl">Agenda operacional</CardTitle>
-            <CardDescription>
-              Vista diária e semanal para confirmar presenças, concluir atendimentos e equilibrar a
-              operação da barbearia.
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setShowManualForm((current) => !current)}>
-              <Plus className="size-4" />
-              Reserva manual
-            </Button>
-            <Button variant="outline" onClick={() => setShowBlockForm((current) => !current)}>
-              <ShieldBan className="size-4" />
-              Bloqueio
-            </Button>
-            <Button variant="outline" onClick={() => void refreshAgendaView()} disabled={loading}>
-              {loading ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-              Atualizar
-            </Button>
-          </div>
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-heading text-xl font-semibold">Agenda operacional</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Vista diária e semanal com ações rápidas de gestão.
+          </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setShowManualForm((current) => !current)}>
+            <Plus className="size-4" />
+            <span className="hidden sm:inline">Reserva manual</span>
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setShowBlockForm((current) => !current)}>
+            <ShieldBan className="size-4" />
+            <span className="hidden sm:inline">Bloqueio</span>
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => void refreshAgendaView()} disabled={loading}>
+            {loading ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+          </Button>
+        </div>
+      </div>
 
         {showManualForm ? (
           <div className="rounded-[1.75rem] border border-primary/20 bg-primary/5 p-4">
@@ -583,45 +579,41 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             })}
           </div>
         </div>
-      </CardHeader>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-xl border border-border/70 px-4 py-3">
+            <p className="text-xs text-muted-foreground">Hoje</p>
+            <p className="font-heading text-2xl font-semibold">{summary.total}</p>
+          </div>
+          <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3">
+            <p className="text-xs text-sky-600">Confirmadas</p>
+            <p className="font-heading text-2xl font-semibold text-sky-700">{summary.confirmed}</p>
+          </div>
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+            <p className="text-xs text-amber-600">Pendentes</p>
+            <p className="font-heading text-2xl font-semibold text-amber-700">{summary.pending}</p>
+          </div>
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+            <p className="text-xs text-emerald-600">Concluídas</p>
+            <p className="font-heading text-2xl font-semibold text-emerald-700">{summary.completed}</p>
+          </div>
+        </div>
 
-      <CardContent className="grid gap-6">
-        <div className="grid gap-3 md:grid-cols-4">
-          <div className="rounded-3xl border border-border/70 bg-muted/20 p-4">
-            <p className="text-sm text-muted-foreground">Reservas do dia</p>
-            <p className="mt-2 font-heading text-3xl font-semibold">{summary.total}</p>
+        <div className="grid grid-cols-2 gap-3 rounded-xl border border-border/70 px-4 py-3 sm:grid-cols-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Semana</p>
+            <p className="font-heading text-lg font-semibold">{weekSummary.total}</p>
           </div>
-          <div className="rounded-3xl border border-sky-500/20 bg-sky-500/5 p-4">
-            <p className="text-sm text-sky-700">Confirmadas</p>
-            <p className="mt-2 font-heading text-3xl font-semibold text-sky-700">{summary.confirmed}</p>
+          <div>
+            <p className="text-xs text-muted-foreground">Confirmadas</p>
+            <p className="font-heading text-lg font-semibold">{weekSummary.confirmed}</p>
           </div>
-          <div className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-4">
-            <p className="text-sm text-amber-700">Pendentes</p>
-            <p className="mt-2 font-heading text-3xl font-semibold text-amber-700">{summary.pending}</p>
+          <div>
+            <p className="text-xs text-muted-foreground">Pendentes</p>
+            <p className="font-heading text-lg font-semibold">{weekSummary.pending}</p>
           </div>
-          <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-            <p className="text-sm text-emerald-700">Concluídas</p>
-            <p className="mt-2 font-heading text-3xl font-semibold text-emerald-700">{summary.completed}</p>
-          </div>
-          <div className="rounded-3xl border border-primary/20 bg-primary/5 p-4 md:col-span-4">
-            <div className="grid gap-3 md:grid-cols-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Semana atual</p>
-                <p className="mt-2 font-heading text-2xl font-semibold">{weekSummary.total}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Confirmadas</p>
-                <p className="mt-2 font-heading text-2xl font-semibold">{weekSummary.confirmed}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Pendentes</p>
-                <p className="mt-2 font-heading text-2xl font-semibold">{weekSummary.pending}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Receita prevista</p>
-                <p className="mt-2 font-heading text-2xl font-semibold">{formatEuro(weekSummary.revenue)}</p>
-              </div>
-            </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Receita prevista</p>
+            <p className="font-heading text-lg font-semibold">{formatEuro(weekSummary.revenue)}</p>
           </div>
         </div>
 
@@ -817,8 +809,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             ))
           )}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 

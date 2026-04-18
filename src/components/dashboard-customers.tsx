@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { LoaderCircle, Mail, MessageSquareText, Phone, Save, Search, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { CustomerSnapshot } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
@@ -96,30 +95,28 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
   }
 
   return (
-    <Card className="mt-6 border-border/70">
-      <CardHeader className="gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <CardTitle className="font-heading text-2xl">Clientes e CRM</CardTitle>
-            <CardDescription>
-              Mantém notas internas, opt-in de comunicação e histórico resumido para cada cliente.
-            </CardDescription>
-          </div>
-          <Badge variant="secondary">{snapshot.customers.length} clientes</Badge>
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-heading text-xl font-semibold">Clientes e CRM</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Notas, histórico e preferências de cada cliente.
+          </p>
         </div>
+        <Badge variant="secondary">{snapshot.customers.length} clientes</Badge>
+      </div>
 
-        <div className="relative max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Pesquisar por nome, email, telefone ou último serviço"
-          />
-        </div>
-      </CardHeader>
+      <div className="relative max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="pl-9"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Pesquisar por nome, email ou telefone"
+        />
+      </div>
 
-      <CardContent className="grid gap-4">
+      <div className="grid gap-4">
         {feedback ? (
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
             {feedback}
@@ -266,7 +263,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
             );
           })
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

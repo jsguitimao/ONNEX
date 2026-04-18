@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { CalendarRange, Euro, LayoutDashboard, Sparkles, Users } from "lucide-react";
+import { Euro, ExternalLink, Sparkles, Users } from "lucide-react";
 import { AuthUserButton } from "@/components/auth-user-button";
 import { DashboardAgenda } from "@/components/dashboard-agenda";
 import { DashboardCommunications } from "@/components/dashboard-communications";
 import { DashboardCustomers } from "@/components/dashboard-customers";
 import { DashboardOps } from "@/components/dashboard-ops";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardTabs } from "@/components/dashboard-tabs";
 import {
   getBookingAgendaView,
   getCommunicationSnapshot,
@@ -18,27 +16,6 @@ import {
 import { formatEuro } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
-
-const panels = [
-  {
-    title: "Agenda com visão diária e lista de marcações",
-    description:
-      "O painel agora cobre agenda, filtros, mudança de estado, reservas manuais e bloqueios de horário.",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Gestão de serviços, equipa e disponibilidade",
-    description:
-      "A base já suporta serviços por negócio, profissionais, localizações e disponibilidade semanal reutilizável na página pública.",
-    icon: Users,
-  },
-  {
-    title: "Clientes, notas e histórico de marcações",
-    description:
-      "A camada de CRM consolida histórico, preferências, observações internas e recorrência por cliente.",
-    icon: CalendarRange,
-  },
-];
 
 export default async function DashboardPreviewPage() {
   const [snapshot, management, agendaView, customers, communications] = await Promise.all([
@@ -52,103 +29,68 @@ export default async function DashboardPreviewPage() {
   const stats = [
     { label: "Serviços ativos", value: snapshot.servicesCount.toString(), icon: Sparkles },
     { label: "Profissionais", value: snapshot.staffCount.toString(), icon: Users },
-    { label: "Receita de referência", value: formatEuro(snapshot.monthlyRevenueCents), icon: Euro },
+    { label: "Receita mensal", value: formatEuro(snapshot.monthlyRevenueCents), icon: Euro },
   ];
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-12">
-      <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
-        <div className="max-w-2xl">
-          <Badge variant="secondary" className="mb-4">
-            Painel operacional
-          </Badge>
-          <h1 className="font-heading text-4xl font-semibold tracking-tight">{snapshot.businessName}</h1>
-          <p className="mt-3 text-muted-foreground">
-            Esta área já está desenhada para o fluxo autenticado do negócio. Agora também permite gerir
-            serviços, equipa, disponibilidade, comunicação e regras principais da agenda.
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Cidade principal: {snapshot.city} · Página pública: /{snapshot.slug}
-          </p>
+    <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-heading text-lg font-bold">
+            {snapshot.businessName.charAt(0)}
+          </div>
+          <div>
+            <h1 className="font-heading text-xl font-semibold tracking-tight">
+              {snapshot.businessName}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {snapshot.city} · /{snapshot.slug}
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/onboarding" className={buttonVariants()}>
-            Ir para onboarding
+          <Link
+            href={`/${snapshot.slug}`}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border/70 bg-background px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
+          >
+            <ExternalLink className="size-3.5" />
+            Ver página pública
           </Link>
           <AuthUserButton />
         </div>
-      </div>
+      </header>
 
-      <div className="mb-6 grid gap-4 md:grid-cols-3">
+      <div className="mb-8 grid gap-3 sm:grid-cols-3">
         {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <stat.icon className="size-5" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="font-heading text-2xl font-semibold">{stat.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-3">
-        {panels.map((panel) => (
-          <Card key={panel.title}>
-            <CardHeader>
-              <div className="mb-3 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <panel.icon className="size-5" />
-              </div>
-              <CardTitle className="font-heading text-xl">{panel.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm leading-7 text-muted-foreground">
-              {panel.description}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="font-heading text-2xl">Reservas recentes</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          {snapshot.recentBookings.map((booking) => (
-            <div key={booking.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4">
-              <div>
-                <p className="font-medium">{booking.customerName}</p>
-                <p className="text-sm text-muted-foreground">
-                  {booking.serviceName} · {booking.staffName}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium">
-                  {new Date(booking.startsAt).toLocaleDateString("pt-PT")} ·{" "}
-                  {new Date(booking.startsAt).toLocaleTimeString("pt-PT", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-                <p className="text-sm text-muted-foreground">{booking.status}</p>
-              </div>
+          <div
+            key={stat.label}
+            className="flex items-center gap-4 rounded-2xl border border-border/70 bg-background px-5 py-4"
+          >
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <stat.icon className="size-4" />
             </div>
-          ))}
-        </CardContent>
-      </Card>
+            <div>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="font-heading text-lg font-semibold">{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
 
-      <DashboardAgenda initialSnapshot={agendaView.agenda} initialWeekSnapshot={agendaView.week} />
-
-      <DashboardCommunications initialSnapshot={communications} />
-
-      <DashboardCustomers initialSnapshot={customers} />
-
-      <section className="mt-6">
-        <DashboardOps initialSnapshot={management} />
-      </section>
+      <DashboardTabs>
+        {{
+          agenda: (
+            <DashboardAgenda
+              initialSnapshot={agendaView.agenda}
+              initialWeekSnapshot={agendaView.week}
+            />
+          ),
+          comunicacao: <DashboardCommunications initialSnapshot={communications} />,
+          clientes: <DashboardCustomers initialSnapshot={customers} />,
+          gestao: <DashboardOps initialSnapshot={management} />,
+        }}
+      </DashboardTabs>
     </main>
   );
 }
