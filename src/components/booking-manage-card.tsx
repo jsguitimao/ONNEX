@@ -25,7 +25,7 @@ function toDateInputValue(date: Date) {
 
 export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
   const [booking, setBooking] = useState(initialBooking);
-  const [loadingAction, setLoadingAction] = useState<"confirm" | "cancel" | "reschedule" | null>(null);
+  const [loadingAction, setLoadingAction] = useState<"confirm" | "cancel" | "reschedule" | "reconfirm" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState(toDateInputValue(new Date(initialBooking.startsAt)));
   const [slots, setSlots] = useState<BookingSlot[]>([]);
@@ -261,6 +261,41 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
       ) : null}
 
       <div className="mt-5 flex flex-wrap gap-3">
+        {booking.canReconfirm ? (
+          <Button
+            disabled={loadingAction !== null}
+            className="bg-emerald-600 text-white hover:bg-emerald-700"
+            onClick={async () => {
+              setLoadingAction("reconfirm");
+              setError(null);
+              try {
+                const response = await fetch(`/api/public/booking/${booking.publicToken}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "reconfirm" }),
+                });
+                const payload = (await response.json()) as PublicBookingDetails & { error?: string };
+                if (!response.ok) throw new Error(payload.error ?? "Não foi possível confirmar presença.");
+                setBooking(payload);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Erro inesperado.");
+              } finally {
+                setLoadingAction(null);
+              }
+            }}
+          >
+            {loadingAction === "reconfirm" ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+            Confirmar presença
+          </Button>
+        ) : null}
+
+        {booking.customerConfirmedAt && ["PENDING", "CONFIRMED"].includes(booking.status) ? (
+          <p className="flex items-center gap-2 text-sm text-emerald-600">
+            <CheckCircle2 className="size-4" />
+            Presença confirmada
+          </p>
+        ) : null}
+
         {booking.canConfirm ? (
           <Button disabled={loadingAction !== null} onClick={() => void handleAction("confirm")}>
             {loadingAction === "confirm" ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}

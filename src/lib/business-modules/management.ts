@@ -9,6 +9,7 @@ export async function getManagementSnapshot(): Promise<ManagementSnapshot> {
     businessId: business.id,
     businessName: business.name,
     slug: business.slug,
+    autoAcceptBookings: business.autoAcceptBookings,
     services: business.services.map((service) => ({
       id: service.id,
       name: service.name,
@@ -33,6 +34,15 @@ export async function getManagementSnapshot(): Promise<ManagementSnapshot> {
         })),
     })),
   };
+}
+
+export async function updateAutoAcceptBookings(enabled: boolean) {
+  const business = await getCurrentBusiness();
+
+  return db.business.update({
+    where: { id: business.id },
+    data: { autoAcceptBookings: enabled },
+  });
 }
 
 export async function createService(input: {

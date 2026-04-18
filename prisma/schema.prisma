@@ -43,6 +43,7 @@ model Business {
   bookingWindowDays Int                 @default(30)
   slotIntervalMinutes Int               @default(30)
   cancellationWindowHours Int           @default(2)
+  autoAcceptBookings Boolean            @default(false)
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
@@ -249,6 +250,7 @@ model Booking {
   customerEmail    String?
   customerPhone    String?
   internalNotes    String?
+  customerConfirmedAt DateTime?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -335,6 +337,8 @@ enum NotificationKind {
   BOOKING_CANCELLED_INTERNAL
   BOOKING_RESCHEDULED
   BOOKING_REMINDER
+  BOOKING_CONFIRMATION_REQUEST
+  BOOKING_ADVANCEMENT
 }
 
 enum NotificationStatus {

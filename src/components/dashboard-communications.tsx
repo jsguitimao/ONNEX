@@ -46,6 +46,8 @@ const kindLabels: Record<CommunicationSnapshot["notifications"][number]["kind"],
   BOOKING_CANCELLED_INTERNAL: "Aviso interno",
   BOOKING_RESCHEDULED: "Remarcada",
   BOOKING_REMINDER: "Lembrete",
+  BOOKING_CONFIRMATION_REQUEST: "Pedido confirmação",
+  BOOKING_ADVANCEMENT: "Adiantamento",
 };
 
 const statusLabels: Record<CommunicationSnapshot["notifications"][number]["status"], string> = {

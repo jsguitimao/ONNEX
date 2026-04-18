@@ -8,7 +8,7 @@ import { validatePublicMutationOrigin } from "@/lib/request-origin";
 
 const actionSchema = z
   .object({
-    action: z.enum(["confirm", "cancel", "reschedule"]),
+    action: z.enum(["confirm", "cancel", "reschedule", "reconfirm"]),
     startsAt: z.string().datetime().optional(),
   })
   .superRefine((value, ctx) => {
@@ -64,7 +64,7 @@ export async function GET(req: Request, { params }: RouteProps) {
 
 export async function PATCH(req: Request, { params }: RouteProps) {
   const { token } = await params;
-  let action: "confirm" | "cancel" | "reschedule" | undefined;
+  let action: "confirm" | "cancel" | "reschedule" | "reconfirm" | undefined;
   const rateLimit = await checkRequestRateLimit(req, {
     namespace: "public-booking-write",
     limit: 12,
@@ -102,7 +102,10 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     const booking =
       result.data.action === "reschedule"
         ? await reschedulePublicBookingByToken(token, result.data.startsAt!)
-        : await updatePublicBookingByToken(token, result.data.action);
+        : await updatePublicBookingByToken(
+            token,
+            result.data.action as "confirm" | "cancel" | "reconfirm"
+          );
 
     if (!booking) {
       return NextResponse.json(

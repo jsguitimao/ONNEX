@@ -244,6 +244,52 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
         </div>
       ) : null}
 
+      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background px-5 py-4">
+        <div>
+          <p className="text-sm font-semibold">Modo de aceitação de reservas</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {snapshot.autoAcceptBookings
+              ? "Automático — reservas aceites automaticamente, recebe SMS de aviso"
+              : "Manual — cada reserva precisa de confirmação no painel"}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={async () => {
+            const next = !snapshot.autoAcceptBookings;
+            setLoading(true);
+            setError(null);
+            setFeedback(null);
+            try {
+              const response = await fetch("/api/dashboard/settings", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ autoAcceptBookings: next }),
+              });
+              if (!response.ok) throw new Error("Erro ao guardar definição.");
+              await refreshSnapshot();
+              setFeedback(next ? "Modo automático ativado." : "Modo manual ativado.");
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Erro inesperado.");
+            } finally {
+              setLoading(false);
+            }
+          }}
+          className={cn(
+            "relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors disabled:opacity-50",
+            snapshot.autoAcceptBookings ? "bg-emerald-500" : "bg-muted"
+          )}
+        >
+          <span
+            className={cn(
+              "pointer-events-none block size-5 rounded-full bg-white shadow-sm transition-transform",
+              snapshot.autoAcceptBookings ? "translate-x-5" : "translate-x-0.5"
+            )}
+          />
+        </button>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <div>
           <h3 className="mb-4 font-heading text-base font-semibold">Serviços</h3>

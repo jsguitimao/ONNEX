@@ -155,6 +155,7 @@ function buildPublicBookingDetails(booking: {
   customerName: string;
   customerEmail: string | null;
   customerPhone: string | null;
+  customerConfirmedAt: Date | null;
   service: { id: string; name: string };
   staffMember: { id: string; fullName: string } | null;
   business: {
@@ -192,6 +193,11 @@ function buildPublicBookingDetails(booking: {
     canConfirm: booking.status === "PENDING" && new Date() < booking.startsAt,
     canCancel: canManageTime,
     canReschedule: canManageTime && Boolean(booking.staffMember?.id),
+    canReconfirm:
+      ["PENDING", "CONFIRMED"].includes(booking.status) &&
+      !booking.customerConfirmedAt &&
+      new Date() < booking.startsAt,
+    customerConfirmedAt: booking.customerConfirmedAt,
     cancellationWindowHours: policy.cancellationWindowHours,
     cancellationDeadline,
     bookingLeadTimeHours: policy.bookingLeadTimeHours,
@@ -394,7 +400,7 @@ export async function createPublicBooking(input: {
         serviceId: service.id,
         staffMemberId: staffMember.id,
         customerId: customer.id,
-        status: "PENDING",
+        status: business.autoAcceptBookings ? "CONFIRMED" : "PENDING",
         source: "ONLINE",
         paymentStatus: "UNPAID",
         publicToken,
@@ -412,7 +418,11 @@ export async function createPublicBooking(input: {
     });
   });
 
-  await sendBookingNotification(booking.id, "BOOKING_CREATED");
+  if (business.autoAcceptBookings) {
+    await sendBookingNotification(booking.id, "BOOKING_CONFIRMED");
+  } else {
+    await sendBookingNotification(booking.id, "BOOKING_CREATED");
+  }
 
   return booking;
 }
@@ -436,7 +446,7 @@ export async function getPublicBookingByToken(token: string): Promise<PublicBook
 
 export async function updatePublicBookingByToken(
   token: string,
-  action: "confirm" | "cancel"
+  action: "confirm" | "cancel" | "reconfirm"
 ): Promise<PublicBookingDetails | null> {
   const booking = await db.booking.findUnique({
     where: { publicToken: token },
@@ -450,6 +460,31 @@ export async function updatePublicBookingByToken(
   if (!booking) return null;
   if (isPublicBookingTokenExpired(booking)) {
     throw new Error("BOOKING_TOKEN_EXPIRED");
+  }
+
+  if (action === "reconfirm") {
+    if (!["PENDING", "CONFIRMED"].includes(booking.status)) {
+      throw new Error("BOOKING_ACTION_NOT_ALLOWED");
+    }
+
+    const updated = await db.booking.update({
+      where: { id: booking.id },
+      data: {
+        status: "CONFIRMED",
+        customerConfirmedAt: new Date(),
+      },
+      include: {
+        business: true,
+        service: true,
+        staffMember: true,
+      },
+    });
+
+    if (booking.status === "PENDING") {
+      await sendBookingNotification(updated.id, "BOOKING_CONFIRMED");
+    }
+
+    return buildPublicBookingDetails(updated);
   }
 
   if (action === "confirm" && booking.status !== "PENDING") {
@@ -467,6 +502,7 @@ export async function updatePublicBookingByToken(
     where: { id: booking.id },
     data: {
       status: action === "confirm" ? "CONFIRMED" : "CANCELLED",
+      customerConfirmedAt: action === "confirm" ? new Date() : undefined,
       publicToken: createPublicBookingToken(),
     },
     include: {

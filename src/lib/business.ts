@@ -43,6 +43,7 @@ export {
   deleteService,
   deleteStaffMember,
   getManagementSnapshot,
+  updateAutoAcceptBookings,
   updateService,
   updateStaffMember,
 } from "@/lib/business-modules/management";

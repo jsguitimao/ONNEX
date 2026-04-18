@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { authorizeCronRequest } from "@/lib/cron-auth";
-import { logReminderRunExecution, sendUpcomingBookingReminders } from "@/lib/notifications";
+import {
+  autoCancelUnconfirmedBookings,
+  logReminderRunExecution,
+  sendConfirmationRequests,
+  sendUpcomingBookingReminders,
+} from "@/lib/notifications";
 import { captureException, logWarning } from "@/lib/observability";
 
 async function handleCronReminderRequest(req: Request) {
@@ -38,29 +43,41 @@ async function handleCronReminderRequest(req: Request) {
   }
 
   try {
-    const { searchParams } = new URL(req.url);
-    const reminderStartMinutes = Number(searchParams.get("start") ?? 25);
-    const reminderEndMinutes = Number(searchParams.get("end") ?? 35);
+    const [confirmationResult, cancelResult, reminderResult] = await Promise.all([
+      sendConfirmationRequests(),
+      autoCancelUnconfirmedBookings(),
+      sendUpcomingBookingReminders(),
+    ]);
 
-    const result = await sendUpcomingBookingReminders({
-      reminderStartMinutes,
-      reminderEndMinutes,
-    });
+    const totalSent = confirmationResult.sent + reminderResult.sent;
+    const totalFailed = confirmationResult.failed + reminderResult.failed;
+    const totalScanned = confirmationResult.scanned + cancelResult.scanned + reminderResult.scanned;
+    const totalSkipped = confirmationResult.skipped + reminderResult.skipped;
 
     await logReminderRunExecution({
       source: "CRON",
       status: "SUCCESS",
       authorizationSource: authorization.source,
       userAgent,
-      reminderStartMinutes,
-      reminderEndMinutes,
-      scanned: result.scanned,
-      sent: result.sent,
-      skipped: result.skipped,
-      failed: result.failed,
+      scanned: totalScanned,
+      sent: totalSent,
+      skipped: totalSkipped,
+      failed: totalFailed,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      confirmations: confirmationResult,
+      cancellations: cancelResult,
+      reminders: reminderResult,
+      totals: {
+        scanned: totalScanned,
+        sent: totalSent,
+        skipped: totalSkipped,
+        failed: totalFailed,
+        cancelled: cancelResult.cancelled,
+        advancementsSent: cancelResult.advancementsSent,
+      },
+    });
   } catch (error) {
     await logReminderRunExecution({
       source: "CRON",

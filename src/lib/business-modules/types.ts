@@ -100,6 +100,8 @@ export type PublicBookingDetails = {
   canConfirm: boolean;
   canCancel: boolean;
   canReschedule: boolean;
+  canReconfirm: boolean;
+  customerConfirmedAt: Date | null;
   cancellationWindowHours: number;
   cancellationDeadline: Date;
   bookingLeadTimeHours: number;
@@ -130,6 +132,7 @@ export type ManagementSnapshot = {
   businessId: string;
   businessName: string;
   slug: string;
+  autoAcceptBookings: boolean;
   services: Array<{
     id: string;
     name: string;
@@ -262,7 +265,9 @@ export type CommunicationSnapshot = {
       | "BOOKING_CANCELLED"
       | "BOOKING_CANCELLED_INTERNAL"
       | "BOOKING_RESCHEDULED"
-      | "BOOKING_REMINDER";
+      | "BOOKING_REMINDER"
+      | "BOOKING_CONFIRMATION_REQUEST"
+      | "BOOKING_ADVANCEMENT";
     recipientMasked: string;
     errorMessage: string | null;
     booking: {

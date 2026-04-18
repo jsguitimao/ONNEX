@@ -10,7 +10,9 @@ type NotificationKind =
   | "BOOKING_CANCELLED"
   | "BOOKING_CANCELLED_INTERNAL"
   | "BOOKING_RESCHEDULED"
-  | "BOOKING_REMINDER";
+  | "BOOKING_REMINDER"
+  | "BOOKING_CONFIRMATION_REQUEST"
+  | "BOOKING_ADVANCEMENT";
 
 type NotificationChannel = "EMAIL" | "SMS";
 type ReminderRunSource = "CRON" | "DASHBOARD";
@@ -337,6 +339,67 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
           footer: contactLines,
         }),
       };
+    case "BOOKING_CONFIRMATION_REQUEST":
+      return {
+        subject: `Confirma a tua presença em ${booking.business.name}`,
+        preview: `Faltam 40 minutos para ${booking.service.name}. Confirma a tua presença.`,
+        html: buildEmailShell({
+          preview: `Faltam 40 minutos para ${booking.service.name}. Confirma a tua presença.`,
+          eyebrow: "Confirmação necessária",
+          title: "Confirma a tua presença",
+          body: [
+            `Olá ${booking.customerName}, faltam cerca de <strong>40 minutos</strong> para a tua reserva de <strong>${booking.service.name}</strong>.`,
+            `<strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
+            "<strong>Tens 10 minutos para confirmar.</strong> Sem confirmação, a reserva será cancelada automaticamente.",
+          ],
+          ctaLabel: "Confirmar presença",
+          ctaUrl: manageUrl,
+          muted: `Barbearia: ${booking.business.name}`,
+          footer: contactLines,
+        }),
+        text: buildTextTemplate({
+          title: "Confirma a tua presença",
+          body: [
+            `Olá ${booking.customerName}, faltam cerca de 40 minutos para a tua reserva de ${booking.service.name}.`,
+            `Quando: ${when}`,
+            `Profissional: ${professional}`,
+            "Tens 10 minutos para confirmar. Sem confirmação, a reserva será cancelada automaticamente.",
+          ],
+          ctaLabel: "Confirmar presença",
+          ctaUrl: manageUrl,
+          footer: contactLines,
+        }),
+      };
+    case "BOOKING_ADVANCEMENT":
+      return {
+        subject: `Disponibilidade antecipada em ${booking.business.name}`,
+        preview: `Pode adiantar a sua reserva de ${booking.service.name}.`,
+        html: buildEmailShell({
+          preview: `Pode adiantar a sua reserva de ${booking.service.name}.`,
+          eyebrow: "Disponibilidade",
+          title: "Pode antecipar o seu horário",
+          body: [
+            `Olá ${booking.customerName}, houve uma disponibilidade antes do seu horário.`,
+            `A sua reserva de <strong>${booking.service.name}</strong> está marcada para ${when} com ${professional}.`,
+            "Se quiser, pode entrar em contacto para adiantar o seu horário.",
+          ],
+          ctaLabel: "Ver reserva",
+          ctaUrl: manageUrl,
+          muted: `Barbearia: ${booking.business.name}`,
+          footer: contactLines,
+        }),
+        text: buildTextTemplate({
+          title: "Pode antecipar o seu horário",
+          body: [
+            `Olá ${booking.customerName}, houve uma disponibilidade antes do seu horário.`,
+            `A sua reserva de ${booking.service.name} está marcada para ${when} com ${professional}.`,
+            "Se quiser, pode entrar em contacto para adiantar.",
+          ],
+          ctaLabel: "Ver reserva",
+          ctaUrl: manageUrl,
+          footer: contactLines,
+        }),
+      };
   }
 }
 
@@ -358,6 +421,10 @@ function buildSmsMessage(kind: NotificationKind, booking: BookingNotificationPay
       return `Reserva remarcada em ${booking.business.name}: novo horário ${when} com ${professional}. ${manageUrl}`;
     case "BOOKING_REMINDER":
       return `Lembrete: faltam cerca de 30 minutos para ${booking.service.name} em ${booking.business.name}. ${manageUrl}`;
+    case "BOOKING_CONFIRMATION_REQUEST":
+      return `${booking.business.name}: Confirma a tua presença para ${booking.service.name} a ${when}. Tens 10 min ou será cancelada. Confirmar: ${manageUrl}`;
+    case "BOOKING_ADVANCEMENT":
+      return `${booking.business.name}: Houve uma disponibilidade! Podes adiantar a tua reserva de ${booking.service.name} a ${when}. Ver: ${manageUrl}`;
   }
 }
 
@@ -863,4 +930,88 @@ export async function sendUpcomingBookingReminders(input?: {
     reminderStartMinutes,
     reminderEndMinutes,
   };
+}
+
+export async function sendConfirmationRequests() {
+  const windowStart = addMinutes(new Date(), 38);
+  const windowEnd = addMinutes(new Date(), 42);
+
+  const bookings = await db.booking.findMany({
+    where: {
+      startsAt: { gte: windowStart, lte: windowEnd },
+      status: { in: ["PENDING", "CONFIRMED"] },
+      customerConfirmedAt: null,
+      OR: [{ customerEmail: { not: null } }, { customerPhone: { not: null } }],
+    },
+    select: { id: true },
+  });
+
+  const results = await Promise.all(
+    bookings.map((booking) => sendBookingNotification(booking.id, "BOOKING_CONFIRMATION_REQUEST"))
+  );
+
+  return {
+    scanned: bookings.length,
+    sent: results.filter((r) => r.status === "sent").length,
+    skipped: results.filter((r) => r.status === "skipped" || r.status === "duplicate").length,
+    failed: results.filter((r) => r.status === "failed").length,
+  };
+}
+
+export async function autoCancelUnconfirmedBookings() {
+  const windowStart = addMinutes(new Date(), 28);
+  const windowEnd = addMinutes(new Date(), 32);
+
+  const bookings = await db.booking.findMany({
+    where: {
+      startsAt: { gte: windowStart, lte: windowEnd },
+      status: { in: ["PENDING", "CONFIRMED"] },
+      customerConfirmedAt: null,
+      notifications: {
+        some: {
+          kind: "BOOKING_CONFIRMATION_REQUEST",
+          status: "SENT",
+        },
+      },
+    },
+    select: { id: true, staffMemberId: true, startsAt: true, businessId: true },
+  });
+
+  let cancelled = 0;
+  let advancementsSent = 0;
+
+  for (const booking of bookings) {
+    await db.booking.update({
+      where: { id: booking.id },
+      data: { status: "CANCELLED" },
+    });
+
+    await Promise.all([
+      sendBookingNotification(booking.id, "BOOKING_CANCELLED"),
+      sendRepresentativeBookingNotification(booking.id, "BOOKING_CANCELLED_INTERNAL"),
+    ]);
+
+    cancelled++;
+
+    if (booking.staffMemberId) {
+      const nextBooking = await db.booking.findFirst({
+        where: {
+          staffMemberId: booking.staffMemberId,
+          businessId: booking.businessId,
+          startsAt: { gt: booking.startsAt },
+          status: { in: ["PENDING", "CONFIRMED"] },
+          id: { not: booking.id },
+        },
+        orderBy: { startsAt: "asc" },
+        select: { id: true },
+      });
+
+      if (nextBooking) {
+        await sendBookingNotification(nextBooking.id, "BOOKING_ADVANCEMENT");
+        advancementsSent++;
+      }
+    }
+  }
+
+  return { scanned: bookings.length, cancelled, advancementsSent };
 }

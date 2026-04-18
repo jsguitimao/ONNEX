@@ -1,26 +1,42 @@
 import { NextResponse } from "next/server";
-import { logReminderRunExecution, sendUpcomingBookingReminders } from "@/lib/notifications";
+import {
+  autoCancelUnconfirmedBookings,
+  logReminderRunExecution,
+  sendConfirmationRequests,
+  sendUpcomingBookingReminders,
+} from "@/lib/notifications";
 import { captureException } from "@/lib/observability";
 
 export async function POST() {
   try {
-    const result = await sendUpcomingBookingReminders({
-      reminderStartMinutes: 25,
-      reminderEndMinutes: 35,
-    });
+    const [confirmationResult, cancelResult, reminderResult] = await Promise.all([
+      sendConfirmationRequests(),
+      autoCancelUnconfirmedBookings(),
+      sendUpcomingBookingReminders(),
+    ]);
+
+    const totalSent = confirmationResult.sent + reminderResult.sent;
+    const totalFailed = confirmationResult.failed + reminderResult.failed;
+    const totalScanned = confirmationResult.scanned + cancelResult.scanned + reminderResult.scanned;
+    const totalSkipped = confirmationResult.skipped + reminderResult.skipped;
 
     await logReminderRunExecution({
       source: "DASHBOARD",
       status: "SUCCESS",
-      reminderStartMinutes: result.reminderStartMinutes,
-      reminderEndMinutes: result.reminderEndMinutes,
-      scanned: result.scanned,
-      sent: result.sent,
-      skipped: result.skipped,
-      failed: result.failed,
+      scanned: totalScanned,
+      sent: totalSent,
+      skipped: totalSkipped,
+      failed: totalFailed,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      scanned: totalScanned,
+      sent: totalSent,
+      skipped: totalSkipped,
+      failed: totalFailed,
+      cancelled: cancelResult.cancelled,
+      advancementsSent: cancelResult.advancementsSent,
+    });
   } catch (error) {
     await logReminderRunExecution({
       source: "DASHBOARD",
