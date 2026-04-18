@@ -88,6 +88,33 @@ export async function updateService(
   });
 }
 
+export async function deleteService(id: string) {
+  const business = await getCurrentBusiness();
+  const service = await db.service.findFirst({
+    where: { id, businessId: business.id },
+  });
+
+  if (!service) {
+    throw new Error("SERVICE_NOT_FOUND");
+  }
+
+  const activeBookings = await db.booking.count({
+    where: {
+      serviceId: id,
+      status: { in: ["PENDING", "CONFIRMED"] },
+    },
+  });
+
+  if (activeBookings > 0) {
+    throw new Error("SERVICE_HAS_ACTIVE_BOOKINGS");
+  }
+
+  await db.$transaction([
+    db.staffService.deleteMany({ where: { serviceId: id } }),
+    db.service.delete({ where: { id } }),
+  ]);
+}
+
 export async function createStaffMember(input: {
   fullName: string;
   roleTitle?: string;
@@ -144,31 +171,64 @@ export async function updateStaffMember(
     throw new Error("STAFF_NOT_FOUND");
   }
 
-  const staffMember = await db.staffMember.update({
-    where: { id },
-    data: {
-      fullName: input.fullName,
-      roleTitle: input.roleTitle || null,
-      bio: input.bio || null,
-      isActive: input.isActive,
-    },
-  });
-
-  await db.staffService.deleteMany({
-    where: { staffMemberId: id },
-  });
-
-  if (input.serviceIds.length > 0) {
-    await db.staffService.createMany({
-      data: input.serviceIds.map((serviceId) => ({
-        staffMemberId: id,
-        serviceId,
-      })),
-      skipDuplicates: true,
+  const staffMember = await db.$transaction(async (tx) => {
+    const updated = await tx.staffMember.update({
+      where: { id },
+      data: {
+        fullName: input.fullName,
+        roleTitle: input.roleTitle || null,
+        bio: input.bio || null,
+        isActive: input.isActive,
+      },
     });
-  }
+
+    await tx.staffService.deleteMany({
+      where: { staffMemberId: id },
+    });
+
+    if (input.serviceIds.length > 0) {
+      await tx.staffService.createMany({
+        data: input.serviceIds.map((serviceId) => ({
+          staffMemberId: id,
+          serviceId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    return updated;
+  });
 
   await replaceStaffAvailability(id, input.availability);
 
   return staffMember;
+}
+
+export async function deleteStaffMember(id: string) {
+  const business = await getCurrentBusiness();
+  const member = await db.staffMember.findFirst({
+    where: { id, businessId: business.id },
+  });
+
+  if (!member) {
+    throw new Error("STAFF_NOT_FOUND");
+  }
+
+  const activeBookings = await db.booking.count({
+    where: {
+      staffMemberId: id,
+      status: { in: ["PENDING", "CONFIRMED"] },
+    },
+  });
+
+  if (activeBookings > 0) {
+    throw new Error("STAFF_HAS_ACTIVE_BOOKINGS");
+  }
+
+  await db.$transaction([
+    db.weeklyAvailability.deleteMany({ where: { staffMemberId: id } }),
+    db.staffService.deleteMany({ where: { staffMemberId: id } }),
+    db.scheduleBlock.deleteMany({ where: { staffMemberId: id } }),
+    db.staffMember.delete({ where: { id } }),
+  ]);
 }

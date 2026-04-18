@@ -487,6 +487,20 @@ export async function createScheduleBlock(input: {
     }
   }
 
+  const conflictingBookings = await db.booking.count({
+    where: {
+      businessId: business.id,
+      status: { in: ["PENDING", "CONFIRMED"] },
+      startsAt: { lt: endsAt },
+      endsAt: { gt: startsAt },
+      ...(input.staffMemberId ? { staffMemberId: input.staffMemberId } : {}),
+    },
+  });
+
+  if (conflictingBookings > 0) {
+    throw new Error("BLOQUEIO_CONFLITO_RESERVAS");
+  }
+
   return db.scheduleBlock.create({
     data: {
       businessId: business.id,

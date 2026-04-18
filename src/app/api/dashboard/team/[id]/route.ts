@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { updateStaffMember } from "@/lib/business";
+import { deleteStaffMember, updateStaffMember } from "@/lib/business";
 import { readJsonBody } from "@/lib/request-body";
 
 const availabilitySchema = z.object({
@@ -42,5 +42,24 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     const status = message === "INVALID_JSON_BODY" ? 400 : 500;
     const mapped = status === 400 ? "Corpo JSON inválido." : "Não foi possível atualizar o profissional.";
     return NextResponse.json({ error: mapped }, { status });
+  }
+}
+
+export async function DELETE(_: Request, { params }: RouteProps) {
+  const { id } = await params;
+
+  try {
+    await deleteStaffMember(id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "ERRO";
+    const mapped =
+      message === "STAFF_NOT_FOUND"
+        ? { status: 404, error: "Profissional não encontrado." }
+        : message === "STAFF_HAS_ACTIVE_BOOKINGS"
+          ? { status: 409, error: "Este profissional tem reservas ativas e não pode ser eliminado." }
+          : { status: 500, error: "Não foi possível eliminar o profissional." };
+
+    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }
 }

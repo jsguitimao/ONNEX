@@ -36,7 +36,9 @@ export async function POST(req: Request) {
           ? { status: 400, error: "Define um intervalo de bloqueio válido." }
           : message === "STAFF_NOT_FOUND"
             ? { status: 404, error: "Profissional não encontrado." }
-            : { status: 500, error: "Erro ao criar bloqueio." };
+            : message === "BLOQUEIO_CONFLITO_RESERVAS"
+              ? { status: 409, error: "Existem reservas ativas neste período. Cancela-as antes de bloquear." }
+              : { status: 500, error: "Erro ao criar bloqueio." };
 
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }

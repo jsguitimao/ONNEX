@@ -40,6 +40,8 @@ export {
 export {
   createService,
   createStaffMember,
+  deleteService,
+  deleteStaffMember,
   getManagementSnapshot,
   updateService,
   updateStaffMember,

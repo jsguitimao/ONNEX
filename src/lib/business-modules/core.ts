@@ -11,14 +11,7 @@ const DEMO_OWNER = {
   lastName: "Owner",
 };
 
-const DEFAULT_AVAILABILITY = [
-  { dayOfWeek: 1, startTime: "09:00", endTime: "18:00" },
-  { dayOfWeek: 2, startTime: "09:00", endTime: "18:00" },
-  { dayOfWeek: 3, startTime: "09:00", endTime: "18:00" },
-  { dayOfWeek: 4, startTime: "09:00", endTime: "18:00" },
-  { dayOfWeek: 5, startTime: "09:00", endTime: "19:00" },
-  { dayOfWeek: 6, startTime: "10:00", endTime: "16:00" },
-];
+import { DEFAULT_AVAILABILITY } from "./types";
 
 const currentBusinessInclude = {
   bookingPage: true,

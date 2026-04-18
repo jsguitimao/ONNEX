@@ -1,7 +1,8 @@
 ﻿"use client";
 
 import { startTransition, useState } from "react";
-import { Check, LoaderCircle, Plus, Save, UserRound } from "lucide-react";
+import { Check, LoaderCircle, Plus, Save, Trash2, UserRound } from "lucide-react";
+import { DEFAULT_AVAILABILITY } from "@/lib/business-modules/types";
 import type { AvailabilityInput, ManagementSnapshot } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -49,14 +50,7 @@ function parseEurosToCents(value: string) {
 }
 
 function defaultAvailability(): AvailabilityInput[] {
-  return [
-    { dayOfWeek: 1, startTime: "09:00", endTime: "18:00" },
-    { dayOfWeek: 2, startTime: "09:00", endTime: "18:00" },
-    { dayOfWeek: 3, startTime: "09:00", endTime: "18:00" },
-    { dayOfWeek: 4, startTime: "09:00", endTime: "18:00" },
-    { dayOfWeek: 5, startTime: "09:00", endTime: "19:00" },
-    { dayOfWeek: 6, startTime: "10:00", endTime: "16:00" },
-  ];
+  return DEFAULT_AVAILABILITY.map((slot) => ({ ...slot }));
 }
 
 function makeServiceDraft(service?: ManagementSnapshot["services"][number]): ServiceDraft {
@@ -195,7 +189,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
     );
   }
 
-  async function submit(url: string, method: "POST" | "PATCH", body: unknown, successMessage: string) {
+  async function submit(url: string, method: "POST" | "PATCH" | "DELETE", body: unknown, successMessage: string) {
     setLoading(true);
     setError(null);
     setFeedback(null);
@@ -203,13 +197,14 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
     try {
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        ...(method !== "DELETE"
+          ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+          : {}),
       });
       const payload = await response.json();
 
       if (!response.ok) {
-      throw new Error(payload.error ?? "Não foi possível guardar as alterações.");
+        throw new Error(payload.error ?? "Não foi possível guardar as alterações.");
       }
 
       await refreshSnapshot();
@@ -351,7 +346,21 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                       />
                       Mostrar este serviço na página pública
                     </label>
-                    <div className="flex justify-end">
+                    <div className="flex justify-between">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={loading}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => {
+                          if (confirm("Tens a certeza que queres eliminar este serviço?")) {
+                            void submit(`/api/dashboard/services/${service.id}`, "DELETE", null, "Serviço eliminado.");
+                          }
+                        }}
+                      >
+                        <Trash2 className="size-4" />
+                        Eliminar
+                      </Button>
                       <Button
                         disabled={loading || draft.name.trim().length < 2}
                         onClick={() =>
@@ -566,7 +575,21 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                       Profissional disponível para novas reservas
                     </label>
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-between">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={loading}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => {
+                          if (confirm("Tens a certeza que queres eliminar este profissional?")) {
+                            void submit(`/api/dashboard/team/${member.id}`, "DELETE", null, "Profissional eliminado.");
+                          }
+                        }}
+                      >
+                        <Trash2 className="size-4" />
+                        Eliminar
+                      </Button>
                       <Button
                         disabled={loading || draft.fullName.trim().length < 2 || draft.serviceIds.length === 0 || draft.availability.length === 0}
                         onClick={() =>
