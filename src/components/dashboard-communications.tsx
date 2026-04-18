@@ -11,12 +11,12 @@ import {
   RefreshCw,
   RotateCcw,
   ShieldCheck,
-  Siren,
   Smartphone,
 } from "lucide-react";
 import type { CommunicationSnapshot } from "@/lib/business";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type DashboardCommunicationsProps = {
   initialSnapshot: CommunicationSnapshot;
@@ -41,11 +41,11 @@ type ChannelFilter = "ALL" | "EMAIL" | "SMS";
 
 const kindLabels: Record<CommunicationSnapshot["notifications"][number]["kind"], string> = {
   BOOKING_CREATED: "Reserva criada",
-  BOOKING_CONFIRMED: "Reserva confirmada",
-  BOOKING_CANCELLED: "Reserva cancelada",
-  BOOKING_CANCELLED_INTERNAL: "Aviso interno de cancelamento",
-  BOOKING_RESCHEDULED: "Reserva remarcada",
-  BOOKING_REMINDER: "Lembrete automático",
+  BOOKING_CONFIRMED: "Confirmada",
+  BOOKING_CANCELLED: "Cancelada",
+  BOOKING_CANCELLED_INTERNAL: "Aviso interno",
+  BOOKING_RESCHEDULED: "Remarcada",
+  BOOKING_REMINDER: "Lembrete",
 };
 
 const statusLabels: Record<CommunicationSnapshot["notifications"][number]["status"], string> = {
@@ -55,14 +55,11 @@ const statusLabels: Record<CommunicationSnapshot["notifications"][number]["statu
   SKIPPED: "Ignorado",
 };
 
-const statusVariants: Record<
-  CommunicationSnapshot["notifications"][number]["status"],
-  "secondary" | "destructive" | "outline"
-> = {
-  PENDING: "outline",
-  SENT: "secondary",
-  FAILED: "destructive",
-  SKIPPED: "outline",
+const statusColors: Record<CommunicationSnapshot["notifications"][number]["status"], string> = {
+  PENDING: "bg-amber-500/15 text-amber-700",
+  SENT: "bg-emerald-500/15 text-emerald-700",
+  FAILED: "bg-red-500/15 text-red-700",
+  SKIPPED: "bg-zinc-500/15 text-zinc-600",
 };
 
 const runStatusLabels: Record<
@@ -75,65 +72,103 @@ const runStatusLabels: Record<
   MISCONFIGURED: "Por configurar",
 };
 
-const runStatusVariants: Record<
+const runStatusColors: Record<
   NonNullable<CommunicationSnapshot["reminderEngine"]["latestRun"]>["status"],
-  "secondary" | "destructive" | "outline"
+  string
 > = {
-  SUCCESS: "secondary",
-  FAILED: "destructive",
-  UNAUTHORIZED: "destructive",
-  MISCONFIGURED: "outline",
+  SUCCESS: "bg-emerald-500/15 text-emerald-700",
+  FAILED: "bg-red-500/15 text-red-700",
+  UNAUTHORIZED: "bg-red-500/15 text-red-700",
+  MISCONFIGURED: "bg-amber-500/15 text-amber-700",
 };
-
-function ChannelState({
-  label,
-  configured,
-  icon: Icon,
-}: {
-  label: string;
-  configured: boolean;
-  icon: typeof Mail;
-}) {
-  return (
-    <div className="rounded-3xl border border-border/70 bg-background/80 p-4">
-      <div className="mb-3 flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Icon className="size-5" />
-        </div>
-        <div>
-          <p className="font-medium">{label}</p>
-          <p className="text-sm text-muted-foreground">
-            {configured ? "Configurado e pronto a enviar" : "Ainda precisa de configuração"}
-          </p>
-        </div>
-      </div>
-      <Badge variant={configured ? "secondary" : "outline"}>{configured ? "Ativo" : "Pendente"}</Badge>
-    </div>
-  );
-}
 
 function buildReminderSummary(result: ReminderRunResult) {
   return `Varredura concluída: ${result.scanned} reservas analisadas, ${result.sent} envios, ${result.skipped} ignorados e ${result.failed} falhas.`;
 }
 
 function buildRetrySummary(result: RetryResult) {
-  if (result.status === "sent") {
-    return "Entrega repetida com sucesso.";
-  }
-
-  if (result.status === "duplicate") {
-    return "Esta comunicação já tinha um envio confirmado para o mesmo destinatário.";
-  }
-
-  if (result.status === "skipped") {
-    return "A repetição foi ignorada porque ainda faltam dados ou a configuração do canal.";
-  }
-
-  if (result.status === "failed") {
-    return result.reason ?? "A entrega voltou a falhar.";
-  }
-
+  if (result.status === "sent") return "Entrega repetida com sucesso.";
+  if (result.status === "duplicate") return "Esta comunicação já tinha um envio confirmado.";
+  if (result.status === "skipped") return "Repetição ignorada — faltam dados ou configuração.";
+  if (result.status === "failed") return result.reason ?? "A entrega voltou a falhar.";
   return result.error ?? "Não foi possível repetir a entrega.";
+}
+
+function ActivityChart({ notifications }: { notifications: CommunicationSnapshot["notifications"] }) {
+  const days = useMemo(() => {
+    const now = new Date();
+    const result: { label: string; sent: number; failed: number; other: number }[] = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dayKey = d.toISOString().slice(0, 10);
+      const dayLabel = d.toLocaleDateString("pt-PT", { weekday: "short" }).replace(".", "");
+
+      let sent = 0;
+      let failed = 0;
+      let other = 0;
+
+      for (const n of notifications) {
+        const nDay = new Date(n.createdAt).toISOString().slice(0, 10);
+        if (nDay === dayKey) {
+          if (n.status === "SENT") sent++;
+          else if (n.status === "FAILED") failed++;
+          else other++;
+        }
+      }
+
+      result.push({ label: dayLabel, sent, failed, other });
+    }
+
+    return result;
+  }, [notifications]);
+
+  const maxVal = Math.max(1, ...days.map((d) => d.sent + d.failed + d.other));
+
+  return (
+    <div className="flex items-end gap-2 sm:gap-3">
+      {days.map((day) => {
+        const total = day.sent + day.failed + day.other;
+        const heightPct = Math.max(total > 0 ? 12 : 4, (total / maxVal) * 100);
+
+        return (
+          <div key={day.label} className="flex flex-1 flex-col items-center gap-1.5">
+            <div className="relative flex w-full flex-col items-center">
+              {total > 0 && (
+                <span className="mb-1 text-[10px] font-medium text-muted-foreground">
+                  {total}
+                </span>
+              )}
+              <div
+                className="w-full max-w-[32px] rounded-md transition-all"
+                style={{ height: `${heightPct}px` }}
+              >
+                {day.failed > 0 && (
+                  <div
+                    className="w-full rounded-t-md bg-red-400/70"
+                    style={{ height: `${(day.failed / total) * 100}%` }}
+                  />
+                )}
+                <div
+                  className={cn(
+                    "w-full",
+                    day.failed > 0 ? "" : "rounded-t-md",
+                    "rounded-b-md",
+                    total > 0 ? "bg-emerald-500/60" : "bg-muted/40"
+                  )}
+                  style={{
+                    height: total > 0 ? `${((day.sent + day.other) / total) * 100}%` : "100%",
+                  }}
+                />
+              </div>
+            </div>
+            <span className="text-[10px] capitalize text-muted-foreground">{day.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export function DashboardCommunications({ initialSnapshot }: DashboardCommunicationsProps) {
@@ -227,275 +262,288 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
     }
   }
 
+  const engineRun = initialSnapshot.reminderEngine.latestRun;
+  const totalNotifications = initialSnapshot.notifications.length;
+  const sentCount = initialSnapshot.notifications.filter((n) => n.status === "SENT").length;
+  const failedCount = initialSnapshot.notifications.filter((n) => n.status === "FAILED").length;
+
   return (
     <div className="grid gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="font-heading text-xl font-semibold">Comunicação e lembretes</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Canais, histórico de envios e motor de lembretes automáticos.
+      {feedback && (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
+          {feedback}
+        </div>
+      )}
+      {error && (
+        <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {/* Stats row */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl bg-emerald-500/10 px-4 py-3">
+          <p className="text-xs font-medium text-emerald-700/70">Enviados (24h)</p>
+          <p className="mt-1 font-heading text-2xl font-bold text-emerald-700">
+            {initialSnapshot.totals.sentLast24h}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{initialSnapshot.totals.sentLast24h} em 24h</Badge>
-          <Badge variant={initialSnapshot.totals.failedLast24h > 0 ? "destructive" : "outline"}>
-            {initialSnapshot.totals.failedLast24h} falhas
-          </Badge>
-          <Button size="sm" variant="outline" onClick={() => void runReminderSweep()} disabled={isRefreshing}>
+        <div className="rounded-xl bg-red-500/10 px-4 py-3">
+          <p className="text-xs font-medium text-red-700/70">Falhas (24h)</p>
+          <p className="mt-1 font-heading text-2xl font-bold text-red-700">
+            {initialSnapshot.totals.failedLast24h}
+          </p>
+        </div>
+        <div className="rounded-xl bg-sky-500/10 px-4 py-3">
+          <p className="text-xs font-medium text-sky-700/70">Total enviados</p>
+          <p className="mt-1 font-heading text-2xl font-bold text-sky-700">{sentCount}</p>
+        </div>
+        <div className="rounded-xl bg-amber-500/10 px-4 py-3">
+          <p className="text-xs font-medium text-amber-700/70">Total registos</p>
+          <p className="mt-1 font-heading text-2xl font-bold text-amber-700">{totalNotifications}</p>
+        </div>
+      </div>
+
+      {/* Activity chart + engine status */}
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-xl border border-border/60 bg-background p-5">
+          <h3 className="mb-4 text-sm font-semibold text-muted-foreground">
+            Atividade dos últimos 7 dias
+          </h3>
+          <ActivityChart notifications={initialSnapshot.notifications} />
+          <div className="mt-3 flex items-center gap-4 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block size-2 rounded-sm bg-emerald-500/60" /> Enviados
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block size-2 rounded-sm bg-red-400/70" /> Falhas
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-background p-5">
+          <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Motor de lembretes</h3>
+          {engineRun ? (
+            <div className="grid gap-3">
+              <div className="flex items-center gap-2">
+                <span className={cn("rounded-md px-2 py-0.5 text-xs font-medium", runStatusColors[engineRun.status])}>
+                  {runStatusLabels[engineRun.status]}
+                </span>
+                <span className="text-xs text-muted-foreground">{engineRun.source}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Última execução:{" "}
+                {new Date(engineRun.createdAt).toLocaleString("pt-PT", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-muted/40 px-2 py-2">
+                  <p className="font-heading text-lg font-bold">{engineRun.sent}</p>
+                  <p className="text-[10px] text-muted-foreground">Enviados</p>
+                </div>
+                <div className="rounded-lg bg-muted/40 px-2 py-2">
+                  <p className="font-heading text-lg font-bold">{engineRun.skipped}</p>
+                  <p className="text-[10px] text-muted-foreground">Ignorados</p>
+                </div>
+                <div className="rounded-lg bg-muted/40 px-2 py-2">
+                  <p className="font-heading text-lg font-bold">{engineRun.failed}</p>
+                  <p className="text-[10px] text-muted-foreground">Falhas</p>
+                </div>
+              </div>
+              {engineRun.errorMessage && (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {engineRun.errorMessage}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Nenhuma execução registada.</p>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-4 w-full"
+            onClick={() => void runReminderSweep()}
+            disabled={isRefreshing}
+          >
             {isRefreshing ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
             Executar lembretes
           </Button>
         </div>
       </div>
-        {feedback ? (
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
-            {feedback}
-          </div>
-        ) : null}
-        {error ? (
-          <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {error}
-          </div>
-        ) : null}
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <ChannelState label="Email transacional" configured={initialSnapshot.channels.emailConfigured} icon={Mail} />
-          <ChannelState label="SMS transacional" configured={initialSnapshot.channels.smsConfigured} icon={Smartphone} />
-          <ChannelState
-            label="Endpoint de lembretes"
-            configured={initialSnapshot.channels.cronSecretConfigured}
-            icon={ShieldCheck}
-          />
+      {/* Channel status - compact row */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Email", configured: initialSnapshot.channels.emailConfigured, Icon: Mail },
+          { label: "SMS", configured: initialSnapshot.channels.smsConfigured, Icon: Smartphone },
+          { label: "Endpoint", configured: initialSnapshot.channels.cronSecretConfigured, Icon: ShieldCheck },
+        ].map((ch) => (
+          <div
+            key={ch.label}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border px-4 py-3",
+              ch.configured
+                ? "border-emerald-500/20 bg-emerald-500/5"
+                : "border-border/60 bg-muted/20"
+            )}
+          >
+            <ch.Icon className={cn("size-4", ch.configured ? "text-emerald-600" : "text-muted-foreground")} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">{ch.label}</p>
+            </div>
+            <span
+              className={cn(
+                "rounded-md px-2 py-0.5 text-[10px] font-semibold",
+                ch.configured ? "bg-emerald-500/15 text-emerald-700" : "bg-muted/40 text-muted-foreground"
+              )}
+            >
+              {ch.configured ? "Ativo" : "Pendente"}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Notification log */}
+      <div>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Clock3 className="size-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold">Histórico de envios</h3>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                ["ALL", "Todos"],
+                ["ATTENTION", "Ação"],
+                ["FAILED", "Falhas"],
+                ["REMINDERS", "Lembretes"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setNotificationFilter(key)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition",
+                  notificationFilter === key
+                    ? "bg-foreground text-background"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="rounded-3xl border border-border/70 bg-background/80 p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <ShieldCheck className="size-4 text-primary" />
-              <p className="font-medium">Saúde do agendador</p>
-            </div>
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          {(
+            [
+              ["ALL", "Todos"],
+              ["EMAIL", "Email"],
+              ["SMS", "SMS"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setChannelFilter(key)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium transition",
+                channelFilter === key
+                  ? "bg-foreground text-background"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+          <span className="ml-2 text-xs text-muted-foreground">
+            {filteredNotifications.length} registos
+          </span>
+        </div>
 
-            {initialSnapshot.reminderEngine.latestRun ? (
-              <div className="grid gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={runStatusVariants[initialSnapshot.reminderEngine.latestRun.status]}>
-                    {runStatusLabels[initialSnapshot.reminderEngine.latestRun.status]}
-                  </Badge>
-                  <Badge variant="outline">{initialSnapshot.reminderEngine.latestRun.source}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Última execução:{" "}
-                  {new Date(initialSnapshot.reminderEngine.latestRun.createdAt).toLocaleString("pt-PT", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Analisadas {initialSnapshot.reminderEngine.latestRun.scanned} reservas, com{" "}
-                  {initialSnapshot.reminderEngine.latestRun.sent} envios,{" "}
-                  {initialSnapshot.reminderEngine.latestRun.skipped} ignorados e{" "}
-                  {initialSnapshot.reminderEngine.latestRun.failed} falhas.
-                </p>
-                {initialSnapshot.reminderEngine.latestRun.errorMessage ? (
-                  <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    {initialSnapshot.reminderEngine.latestRun.errorMessage}
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-                Ainda não há execuções registadas do motor de lembretes.
-              </div>
-            )}
+        {filteredNotifications.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border/60 px-4 py-8 text-center text-sm text-muted-foreground">
+            Sem registos para este filtro.
           </div>
+        ) : (
+          <div className="grid gap-2">
+            {filteredNotifications.map((notification) => {
+              const canRetry = notification.status !== "SENT";
 
-          <div className="rounded-3xl border border-border/70 bg-background/80 p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <RefreshCw className="size-4 text-primary" />
-              <p className="font-medium">Últimas execuções do motor</p>
-            </div>
+              return (
+                <div
+                  key={notification.id}
+                  className="flex flex-wrap items-center gap-3 rounded-xl border border-border/50 bg-background px-4 py-3"
+                >
+                  <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold", statusColors[notification.status])}>
+                    {statusLabels[notification.status]}
+                  </span>
 
-            {initialSnapshot.reminderEngine.runs.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-                Ainda não há histórico do agendador.
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {initialSnapshot.reminderEngine.runs.map((run) => (
-                  <div
-                    key={run.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-muted/20 p-3"
-                  >
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={runStatusVariants[run.status]}>{runStatusLabels[run.status]}</Badge>
-                        <Badge variant="outline">{run.source}</Badge>
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {new Date(run.createdAt).toLocaleString("pt-PT", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{notification.booking.customerName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {kindLabels[notification.kind]} · {notification.booking.serviceName} ·{" "}
+                      {new Date(notification.booking.startsAt).toLocaleDateString("pt-PT")} ·{" "}
+                      {new Date(notification.booking.startsAt).toLocaleTimeString("pt-PT", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                    {notification.errorMessage && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
+                        <MessageSquareWarning className="size-3" />
+                        {notification.errorMessage}
                       </p>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground md:text-right">
-                      <p>{run.scanned} analisadas</p>
-                      <p>{run.sent} enviadas · {run.failed} falhas</p>
-                    </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
 
-        <div className="rounded-3xl border border-border/70 bg-muted/20 p-4">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Clock3 className="size-4 text-primary" />
-              <p className="font-medium">Últimos envios</p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={notificationFilter === "ALL" ? "default" : "outline"}
-                onClick={() => setNotificationFilter("ALL")}
-              >
-                Todos
-              </Button>
-              <Button
-                variant={notificationFilter === "ATTENTION" ? "default" : "outline"}
-                onClick={() => setNotificationFilter("ATTENTION")}
-              >
-                Pedem ação
-              </Button>
-              <Button
-                variant={notificationFilter === "FAILED" ? "default" : "outline"}
-                onClick={() => setNotificationFilter("FAILED")}
-              >
-                Falharam
-              </Button>
-              <Button
-                variant={notificationFilter === "REMINDERS" ? "default" : "outline"}
-                onClick={() => setNotificationFilter("REMINDERS")}
-              >
-                Lembretes
-              </Button>
-            </div>
-          </div>
-
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <Button
-              variant={channelFilter === "ALL" ? "default" : "outline"}
-              onClick={() => setChannelFilter("ALL")}
-            >
-              Todos os canais
-            </Button>
-            <Button
-              variant={channelFilter === "EMAIL" ? "default" : "outline"}
-              onClick={() => setChannelFilter("EMAIL")}
-            >
-              Email
-            </Button>
-            <Button
-              variant={channelFilter === "SMS" ? "default" : "outline"}
-              onClick={() => setChannelFilter("SMS")}
-            >
-              SMS
-            </Button>
-            <span className="text-sm text-muted-foreground">{filteredNotifications.length} registos no filtro atual</span>
-          </div>
-
-          {filteredNotifications.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/80 bg-background/70 px-4 py-6 text-sm text-muted-foreground">
-              Não há registos para este filtro. Ajusta os filtros acima ou cria novas reservas para gerar histórico.
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {filteredNotifications.map((notification) => {
-                const canRetry = notification.status !== "SENT";
-
-                return (
-                  <div
-                    key={notification.id}
-                    className="grid gap-3 rounded-2xl border border-border/70 bg-background/80 p-4 md:grid-cols-[1.2fr_0.8fr]"
-                  >
-                    <div className="grid gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={statusVariants[notification.status]}>{statusLabels[notification.status]}</Badge>
-                        <Badge variant="outline">{kindLabels[notification.kind]}</Badge>
-                        <Badge variant="outline">{notification.channel}</Badge>
-                      </div>
-                      <div>
-                        <p className="font-medium">{notification.booking.customerName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {notification.booking.serviceName} ·{" "}
-                          {new Date(notification.booking.startsAt).toLocaleDateString("pt-PT")} ·{" "}
-                          {new Date(notification.booking.startsAt).toLocaleTimeString("pt-PT", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">Destinatário: {notification.recipientMasked}</p>
-                      {notification.errorMessage ? (
-                        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                          <span className="inline-flex items-center gap-2">
-                            <MessageSquareWarning className="size-4" />
-                            {notification.errorMessage}
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="flex flex-col items-start gap-2 text-sm text-muted-foreground md:items-end md:text-right">
-                      <span className="inline-flex items-center gap-2">
-                        <Siren className="size-4" />
-                        Criado em{" "}
-                        {new Date(notification.createdAt).toLocaleString("pt-PT", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      <span className="inline-flex items-center gap-2">
-                        <CheckCircle2 className="size-4" />
-                        {notification.sentAt
-                          ? `Enviado em ${new Date(notification.sentAt).toLocaleString("pt-PT", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}`
-                          : "Ainda sem confirmação de envio"}
-                      </span>
-                      {canRetry ? (
-                        <Button
-                          variant="outline"
-                          disabled={retryingId === notification.id || isRefreshing}
-                          onClick={() => void retryNotification(notification.id)}
-                        >
-                          {retryingId === notification.id ? (
-                            <LoaderCircle className="size-4 animate-spin" />
-                          ) : (
-                            <RotateCcw className="size-4" />
-                          )}
-                          Repetir entrega
-                        </Button>
-                      ) : null}
-                    </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px]">
+                      {notification.channel}
+                    </Badge>
+                    <span>
+                      {new Date(notification.createdAt).toLocaleString("pt-PT", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    {notification.sentAt && (
+                      <CheckCircle2 className="size-3.5 text-emerald-600" />
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+
+                  {canRetry && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      disabled={retryingId === notification.id || isRefreshing}
+                      onClick={() => void retryNotification(notification.id)}
+                    >
+                      {retryingId === notification.id ? (
+                        <LoaderCircle className="size-3 animate-spin" />
+                      ) : (
+                        <RotateCcw className="size-3" />
+                      )}
+                      Repetir
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
