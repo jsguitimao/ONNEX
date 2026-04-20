@@ -147,6 +147,7 @@ export type ManagementSnapshot = {
     roleTitle: string | null;
     bio: string | null;
     isActive: boolean;
+    autoAcceptBookings: boolean;
     serviceIds: string[];
     availability: AvailabilityInput[];
   }>;

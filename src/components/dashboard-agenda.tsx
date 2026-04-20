@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { addDays, endOfWeek, format, isSameDay, parseISO, startOfWeek } from "date-fns";
+import { addDays, endOfWeek, format, isBefore, isSameDay, parseISO, startOfDay, startOfWeek } from "date-fns";
 import {
   CalendarDays,
   CheckCheck,
@@ -92,6 +92,8 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
   });
 
   const selectedDate = parseISO(`${date}T00:00:00`);
+  const today = startOfDay(new Date());
+  const todayStr = format(today, "yyyy-MM-dd");
   const didInitialLoad = useRef(false);
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
@@ -409,6 +411,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
               </select>
               <Input
                 type="datetime-local"
+                min={`${todayStr}T00:00`}
                 value={manualDraft.startsAt}
                 onChange={(event) => setManualDraft((current) => ({ ...current, startsAt: event.target.value }))}
                 className="md:col-span-2"
@@ -459,11 +462,13 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
               />
               <Input
                 type="datetime-local"
+                min={`${todayStr}T00:00`}
                 value={blockDraft.startsAt}
                 onChange={(event) => setBlockDraft((current) => ({ ...current, startsAt: event.target.value }))}
               />
               <Input
                 type="datetime-local"
+                min={`${todayStr}T00:00`}
                 value={blockDraft.endsAt}
                 onChange={(event) => setBlockDraft((current) => ({ ...current, endsAt: event.target.value }))}
               />
@@ -486,7 +491,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
             <span className="text-sm font-medium">Data</span>
             <div className="relative">
               <CalendarDays className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+              <Input className="pl-9" type="date" value={date} min={todayStr} onChange={(event) => setDate(event.target.value)} />
             </div>
           </label>
 
@@ -535,6 +540,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
               <Button
                 size="sm"
                 variant="outline"
+                disabled={isBefore(addDays(weekStart, -1), today)}
                 onClick={() => setDate(format(addDays(weekStart, -7), "yyyy-MM-dd"))}
               >
                 <ChevronLeft className="size-4" />
@@ -556,17 +562,21 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
               const dayKey = format(day, "yyyy-MM-dd");
               const bookings = weekBookings[dayKey] ?? [];
               const isSelected = isSameDay(day, selectedDate);
+              const isPast = isBefore(day, today);
 
               return (
                 <button
                   key={dayKey}
                   type="button"
+                  disabled={isPast}
                   onClick={() => setDate(dayKey)}
                   className={cn(
                     "rounded-2xl border p-3 text-left transition",
-                    isSelected
-                      ? "border-primary bg-primary/10"
-                      : "border-border/70 bg-background hover:border-primary/30"
+                    isPast
+                      ? "border-border/40 bg-muted/30 opacity-50 cursor-not-allowed"
+                      : isSelected
+                        ? "border-primary bg-primary/10"
+                        : "border-border/70 bg-background hover:border-primary/30"
                   )}
                 >
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -664,7 +674,25 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
               aparecer aqui com ações rápidas.
             </div>
           ) : (
-            snapshot.bookings.map((booking) => (
+            (() => {
+              const grouped = new Map<string, { name: string; bookings: typeof snapshot.bookings }>();
+              for (const booking of snapshot.bookings) {
+                const key = booking.staffMemberId ?? "_sem_profissional";
+                if (!grouped.has(key)) {
+                  grouped.set(key, { name: booking.staffName || "Sem profissional", bookings: [] });
+                }
+                grouped.get(key)!.bookings.push(booking);
+              }
+              return Array.from(grouped.entries()).map(([groupKey, group]) => (
+                <div key={groupKey} className="grid gap-3">
+                  {!staffMemberId && grouped.size > 1 ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2">
+                      <UserRound className="size-4 text-primary" />
+                      <p className="text-sm font-semibold text-primary">{group.name}</p>
+                      <Badge variant="secondary" className="ml-auto">{group.bookings.length}</Badge>
+                    </div>
+                  ) : null}
+                  {group.bookings.map((booking) => (
               <div
                 key={booking.id}
                 className="grid gap-4 rounded-3xl border border-border/70 bg-background/80 p-4 lg:grid-cols-[1fr_auto]"
@@ -806,7 +834,10 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
                   </Button>
                 </div>
               </div>
-            ))
+            ))}
+                </div>
+              ));
+            })()
           )}
         </div>
     </div>

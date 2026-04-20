@@ -400,7 +400,7 @@ export async function createPublicBooking(input: {
         serviceId: service.id,
         staffMemberId: staffMember.id,
         customerId: customer.id,
-        status: business.autoAcceptBookings ? "CONFIRMED" : "PENDING",
+        status: (staffMember.autoAcceptBookings || business.autoAcceptBookings) ? "CONFIRMED" : "PENDING",
         source: "ONLINE",
         paymentStatus: "UNPAID",
         publicToken,
@@ -418,7 +418,8 @@ export async function createPublicBooking(input: {
     });
   });
 
-  if (business.autoAcceptBookings) {
+  const autoAccept = booking.staffMember?.autoAcceptBookings || business.autoAcceptBookings;
+  if (autoAccept) {
     await sendBookingNotification(booking.id, "BOOKING_CONFIRMED");
   } else {
     await sendBookingNotification(booking.id, "BOOKING_CREATED");

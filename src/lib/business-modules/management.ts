@@ -24,6 +24,7 @@ export async function getManagementSnapshot(): Promise<ManagementSnapshot> {
       roleTitle: member.roleTitle,
       bio: member.bio,
       isActive: member.isActive,
+      autoAcceptBookings: member.autoAcceptBookings,
       serviceIds: member.services.map((assignment) => assignment.serviceId),
       availability: member.availabilities
         .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime))
@@ -168,6 +169,7 @@ export async function updateStaffMember(
     roleTitle?: string;
     bio?: string;
     isActive: boolean;
+    autoAcceptBookings?: boolean;
     serviceIds: string[];
     availability: AvailabilityInput[];
   }
@@ -189,6 +191,9 @@ export async function updateStaffMember(
         roleTitle: input.roleTitle || null,
         bio: input.bio || null,
         isActive: input.isActive,
+        ...(typeof input.autoAcceptBookings === "boolean"
+          ? { autoAcceptBookings: input.autoAcceptBookings }
+          : {}),
       },
     });
 

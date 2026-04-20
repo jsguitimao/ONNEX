@@ -32,6 +32,7 @@ type StaffDraft = {
   roleTitle: string;
   bio: string;
   isActive: boolean;
+  autoAcceptBookings: boolean;
   serviceIds: string[];
   availability: AvailabilityInput[];
 };
@@ -68,6 +69,7 @@ function makeStaffDraft(member?: ManagementSnapshot["staffMembers"][number]): St
     roleTitle: member?.roleTitle ?? "",
     bio: member?.bio ?? "",
     isActive: member?.isActive ?? true,
+    autoAcceptBookings: member?.autoAcceptBookings ?? false,
     serviceIds: member?.serviceIds ?? [],
     availability: member?.availability.length ? member.availability : defaultAvailability(),
   };
@@ -244,50 +246,11 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background px-5 py-4">
-        <div>
-          <p className="text-sm font-semibold">Modo de aceitação de reservas</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {snapshot.autoAcceptBookings
-              ? "Automático — reservas aceites automaticamente, recebe SMS de aviso"
-              : "Manual — cada reserva precisa de confirmação no painel"}
-          </p>
-        </div>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={async () => {
-            const next = !snapshot.autoAcceptBookings;
-            setLoading(true);
-            setError(null);
-            setFeedback(null);
-            try {
-              const response = await fetch("/api/dashboard/settings", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ autoAcceptBookings: next }),
-              });
-              if (!response.ok) throw new Error("Erro ao guardar definição.");
-              await refreshSnapshot();
-              setFeedback(next ? "Modo automático ativado." : "Modo manual ativado.");
-            } catch (err) {
-              setError(err instanceof Error ? err.message : "Erro inesperado.");
-            } finally {
-              setLoading(false);
-            }
-          }}
-          className={cn(
-            "relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors disabled:opacity-50",
-            snapshot.autoAcceptBookings ? "bg-emerald-500" : "bg-muted"
-          )}
-        >
-          <span
-            className={cn(
-              "pointer-events-none block size-5 rounded-full bg-white shadow-sm transition-transform",
-              snapshot.autoAcceptBookings ? "translate-x-5" : "translate-x-0.5"
-            )}
-          />
-        </button>
+      <div className="rounded-xl border border-border/60 bg-background px-5 py-4">
+        <p className="text-sm font-semibold">Modo de aceitação de reservas</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Cada profissional pode ter o seu próprio modo de aceitação. Configura individualmente na secção da equipa abaixo.
+        </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
@@ -569,6 +532,37 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                       Profissional disponível para novas reservas
                     </label>
 
+                    <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium">Aceitação automática</p>
+                        <p className="text-xs text-muted-foreground">
+                          {draft.autoAcceptBookings
+                            ? "Reservas aceites automaticamente"
+                            : "Reservas requerem confirmação manual"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setStaffDrafts((current) => ({
+                            ...current,
+                            [member.id]: { ...draft, autoAcceptBookings: !draft.autoAcceptBookings },
+                          }))
+                        }
+                        className={cn(
+                          "relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors",
+                          draft.autoAcceptBookings ? "bg-emerald-500" : "bg-muted"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "pointer-events-none block size-4 rounded-full bg-white shadow-sm transition-transform",
+                            draft.autoAcceptBookings ? "translate-x-4" : "translate-x-0.5"
+                          )}
+                        />
+                      </button>
+                    </div>
+
                     <div className="flex justify-between">
                       <Button
                         variant="ghost"
@@ -592,6 +586,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                             roleTitle: draft.roleTitle || undefined,
                             bio: draft.bio || undefined,
                             isActive: draft.isActive,
+                            autoAcceptBookings: draft.autoAcceptBookings,
                             serviceIds: draft.serviceIds,
                             availability: draft.availability,
                           }, "Profissional atualizado.")
