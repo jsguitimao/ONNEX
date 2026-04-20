@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types test/run.ts",
+    "test:vi": "vitest run",
+    "test:e2e": "playwright test",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "postinstall": "prisma generate"
@@ -33,6 +35,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -41,6 +44,7 @@
     "eslint-config-next": "16.2.3",
     "prisma": "^6.2.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.4"
   }
 }
