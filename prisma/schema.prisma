@@ -93,6 +93,8 @@ model BookingPage {
   equipaColor       String?
   localizacaoColor  String?
   reservaColor      String?
+  heroTagline       String?
+  textColor         String?
   showTeam          Boolean  @default(true)
   showPrices        Boolean  @default(true)
   showDurations     Boolean  @default(true)

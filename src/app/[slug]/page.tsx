@@ -114,6 +114,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   const teamImages = publicBusiness.teamImages;
   const accent = publicBusiness.accentColor || "#F59E0B";
   const primary = publicBusiness.primaryColor || "#0b1020";
+  const textColor = publicBusiness.textColor || "#FFFFFF";
   const sobreBg = publicBusiness.sobreColor || primary;
   const servicosBg = publicBusiness.servicosColor || "#ffffff";
   const equipaBg = publicBusiness.equipaColor || primary;
@@ -182,12 +183,12 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center px-5 pb-12 text-center sm:pb-20">
             <div className="flex w-full max-w-[640px] flex-col items-center gap-6">
               <p className="text-[10px] uppercase tracking-[0.5em] sm:text-xs" style={{ color: `${accent}E6` }}>
-                Barbearia {location?.city ? `· ${location.city}` : "Premium"}
+                {publicBusiness.heroTagline?.trim() || `Barbearia ${location?.city ? `· ${location.city}` : "Premium"}`}
               </p>
-              <h1 className="font-serif text-5xl leading-[0.95] tracking-tight sm:text-7xl">
+              <h1 className="font-serif text-5xl leading-[0.95] tracking-tight sm:text-7xl" style={{ color: textColor }}>
                 {business.name}
               </h1>
-              <p className="max-w-md text-sm leading-relaxed text-neutral-300 sm:text-base">
+              <p className="max-w-md text-sm leading-relaxed sm:text-base" style={{ color: `${textColor}CC` }}>
                 {business.bookingPage?.headline?.trim() ||
                   business.description?.trim() ||
                   "Estilo é um reflexo da tua atitude e personalidade."}

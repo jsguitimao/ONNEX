@@ -253,6 +253,8 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
     equipaColor: business.bookingPage?.equipaColor ?? null,
     localizacaoColor: business.bookingPage?.localizacaoColor ?? null,
     reservaColor: business.bookingPage?.reservaColor ?? null,
+    heroTagline: business.bookingPage?.heroTagline ?? null,
+    textColor: business.bookingPage?.textColor ?? null,
     showTeam: business.bookingPage?.showTeam ?? true,
     showPrices: business.bookingPage?.showPrices ?? true,
     showDurations: business.bookingPage?.showDurations ?? true,

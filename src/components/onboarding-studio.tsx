@@ -164,7 +164,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                     <DarkInput value={form.primaryColor} onChange={(e) => updateField("primaryColor", e.target.value)} />
                   </div>
                 </Field>
-                <Field label="Cor de destaque (botões e textos)">
+                <Field label="Cor de destaque (botões)">
                   <div className="flex items-center gap-3">
                     <input
                       type="color"
@@ -176,6 +176,21 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
                   </div>
                 </Field>
               </div>
+              <Field label="Cor dos textos (letras e números)">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    className="h-11 w-14 cursor-pointer rounded-lg border border-white/15 bg-white/5"
+                    value={form.textColor || "#FFFFFF"}
+                    onChange={(e) => updateField("textColor", e.target.value)}
+                  />
+                  <DarkInput
+                    value={form.textColor || "#FFFFFF"}
+                    onChange={(e) => updateField("textColor", e.target.value)}
+                    placeholder="#FFFFFF"
+                  />
+                </div>
+              </Field>
               <div className="space-y-3">
                 <p className="text-xs font-medium text-neutral-400">Cor de fundo por secção</p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -207,6 +222,13 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               Comunicação
             </div>
             <div className="grid gap-4">
+              <Field label="Tagline do hero (ex: Barbearia · Lisboa)">
+                <DarkInput
+                  value={form.heroTagline}
+                  onChange={(e) => updateField("heroTagline", e.target.value)}
+                  placeholder="Barbearia · Lisboa"
+                />
+              </Field>
               <Field label="Headline">
                 <DarkInput value={form.headline} onChange={(e) => updateField("headline", e.target.value)} />
               </Field>

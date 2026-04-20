@@ -22,6 +22,8 @@ export type OnboardingDraft = {
   equipaColor: string;
   localizacaoColor: string;
   reservaColor: string;
+  heroTagline: string;
+  textColor: string;
   onlineBooking: boolean;
   showTeam: boolean;
   showPrices: boolean;
@@ -57,6 +59,8 @@ export type PublicBusinessPayload = {
   equipaColor: string | null;
   localizacaoColor: string | null;
   reservaColor: string | null;
+  heroTagline: string | null;
+  textColor: string | null;
   onlineBooking: boolean;
   showTeam: boolean;
   showPrices: boolean;
