@@ -123,12 +123,14 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   const primaryRgb = hexToRgb(primary);
   const cardBg = adjustHex(reservaBg, 12);
   const darkBadge = "#111827";
+  const sobreLight = isLightColor(sobreBg);
   const servicosLight = isLightColor(servicosBg);
+  const equipaLight = isLightColor(equipaBg);
   const localizacaoLight = isLightColor(localizacaoBg);
   const reservaLight = isLightColor(reservaBg);
 
   return (
-    <main className="relative min-h-screen text-white" style={{ backgroundColor: primary }}>
+    <main className="relative min-h-screen" style={{ backgroundColor: primary, color: textColor }}>
       <style>{`
         .accent-hover:hover { color: ${accent} !important; border-color: ${accent} !important; }
         .accent-bg-hover:hover { background-color: ${accent} !important; border-color: ${accent} !important; color: #111827 !important; }
@@ -136,7 +138,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
       {/* TOP NAV — flutuante sobre o hero */}
       <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 py-5 sm:px-10">
         <p className="font-serif text-xl tracking-tight">{business.name}</p>
-        <div className="hidden items-center gap-7 text-[11px] uppercase tracking-[0.25em] text-white/80 sm:flex">
+        <div className="hidden items-center gap-7 text-[11px] uppercase tracking-[0.25em] sm:flex" style={{ color: `${textColor}CC` }}>
           {business.description ? (
             <a href="#sobre" className="accent-hover transition">
               Sobre
@@ -201,7 +203,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     target="_blank"
                     rel="noreferrer"
                     aria-label="WhatsApp"
-                    className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm accent-bg-hover transition"
+                    className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 backdrop-blur-sm accent-bg-hover transition"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.4A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.3-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.5-2.6-1.2-4.4-3.8-4.5-4-.1-.2-1-1.3-1-2.5 0-1.2.6-1.8.9-2.1.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.7.8 1.8.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.2-.1.5.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l.8-1c.2-.3.5-.2.7-.1l1.7.8c.3.2.5.3.5.5.1.2.1.9-.1 1.6z" />
@@ -211,7 +213,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                 <a
                   href="#"
                   aria-label="Instagram"
-                  className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm accent-bg-hover transition"
+                  className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 backdrop-blur-sm accent-bg-hover transition"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -225,7 +227,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     target="_blank"
                     rel="noreferrer"
                     aria-label="Website"
-                    className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 text-white backdrop-blur-sm accent-bg-hover transition"
+                    className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 backdrop-blur-sm accent-bg-hover transition"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <circle cx="12" cy="12" r="9" />
@@ -252,7 +254,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 2. SOBRE — navy, colagem + texto */}
       {business.description ? (
-        <section id="sobre" className="py-16 sm:py-24" style={{ backgroundColor: sobreBg }}>
+        <section id="sobre" className="py-16 sm:py-24" style={{ backgroundColor: sobreBg, color: sobreLight ? "#111827" : textColor }}>
           <div className="mx-auto max-w-6xl px-5 grid gap-12 sm:grid-cols-2 sm:items-center sm:gap-16">
             {/* Colagem fotográfica */}
             <div className="relative h-[420px] sm:h-[520px]">
@@ -292,7 +294,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
               <h2 className="font-serif text-4xl leading-tight sm:text-5xl">
                 O ofício, a paixão.
               </h2>
-              <p className="text-sm leading-relaxed text-neutral-300 sm:text-base">
+              <p className="text-sm leading-relaxed sm:text-base" style={{ opacity: 0.75 }}>
                 {business.description}
               </p>
               {location?.city || location?.addressLine1 ? (
@@ -300,7 +302,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                   <p className="text-[10px] uppercase tracking-[0.4em]" style={{ color: accent }}>
                     Onde
                   </p>
-                  <p className="mt-2 text-sm text-neutral-200">
+                  <p className="mt-2 text-sm" style={{ opacity: 0.85 }}>
                     {[location?.addressLine1, location?.city].filter(Boolean).join(" · ")}
                   </p>
                 </div>
@@ -363,7 +365,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 4. EQUIPA — navy, "Equipa" vertical + cards */}
       {publicBusiness.showTeam && business.staffMembers.length ? (
-        <section id="equipa" className="relative overflow-hidden py-16 sm:py-24" style={{ backgroundColor: equipaBg }}>
+        <section id="equipa" className="relative overflow-hidden py-16 sm:py-24" style={{ backgroundColor: equipaBg, color: equipaLight ? "#111827" : textColor }}>
           <div className="relative mx-auto flex max-w-6xl items-start gap-10 px-5">
             {/* Vertical label */}
             <p
@@ -401,7 +403,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     <div className="p-5 text-center">
                       <p className="font-semibold" style={{ color: accent }}>{member.fullName}</p>
                       {member.roleTitle ? (
-                        <p className="mt-0.5 text-xs uppercase tracking-widest text-neutral-400">
+                        <p className="mt-0.5 text-xs uppercase tracking-widest" style={{ opacity: 0.6 }}>
                           {member.roleTitle}
                         </p>
                       ) : null}
@@ -477,7 +479,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           <div className="mx-auto max-w-[680px] px-5">
             <div className="mb-10 text-center">
               <p className="text-[10px] uppercase tracking-[0.5em]" style={{ color: accent }}>Reserva</p>
-              <h2 className="mt-3 font-serif text-4xl sm:text-5xl" style={{ color: reservaLight ? "#111827" : "#ffffff" }}>Agendar horário</h2>
+              <h2 className="mt-3 font-serif text-4xl sm:text-5xl" style={{ color: reservaLight ? "#111827" : textColor }}>Agendar horário</h2>
               <p className={`mx-auto mt-4 max-w-md text-sm ${reservaLight ? "text-neutral-600" : "text-neutral-400"}`}>
                 Escolhe serviço, barbeiro e horário. Confirmação imediata.
               </p>
@@ -492,7 +494,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
       {/* 7. FOOTER */}
       <footer className={`border-t py-12 ${reservaLight ? "border-black/10" : "border-white/10"}`} style={{ backgroundColor: reservaBg }}>
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-5 text-center">
-          <p className={`font-serif text-3xl ${reservaLight ? "text-neutral-900" : "text-white"}`}>{business.name}</p>
+          <p className="font-serif text-3xl" style={{ color: reservaLight ? "#111827" : textColor }}>{business.name}</p>
           <div className="flex items-center gap-3">
             {phoneDigits ? (
               <a
