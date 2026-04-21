@@ -117,16 +117,6 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
             </p>
             <div className="grid gap-6">
               <ImageField
-                label="Logo"
-                value={form.logoUrl}
-                onChange={(value) => updateField("logoUrl", value)}
-              />
-              <ImageField
-                label="Imagem de capa (fallback geral)"
-                value={form.coverImageUrl}
-                onChange={(value) => updateField("coverImageUrl", value)}
-              />
-              <ImageField
                 label="Foto da secção Principal (hero)"
                 value={form.heroImageUrl}
                 onChange={(value) => updateField("heroImageUrl", value)}
