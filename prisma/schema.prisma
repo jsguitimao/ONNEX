@@ -30,6 +30,7 @@ model Business {
   contactEmail     String?
   contactPhone     String?
   websiteUrl       String?
+  instagramUrl     String?
   timezone         String               @default("Europe/Lisbon")
   locale           String               @default("pt-PT")
   status           BusinessStatus       @default(DRAFT)

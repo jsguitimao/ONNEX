@@ -5,6 +5,7 @@ export type OnboardingDraft = {
   phone: string;
   contactEmail: string;
   websiteUrl: string;
+  instagramUrl: string;
   description: string;
   headline: string;
   subheadline: string;
@@ -42,6 +43,7 @@ export type PublicBusinessPayload = {
   phone: string | null;
   contactEmail: string | null;
   websiteUrl: string | null;
+  instagramUrl: string | null;
   description: string | null;
   primaryColor: string | null;
   accentColor: string | null;

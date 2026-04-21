@@ -184,17 +184,19 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center px-5 pb-12 text-center sm:pb-20">
             <div className="flex w-full max-w-[640px] flex-col items-center gap-6">
+              {publicBusiness.heroTagline?.trim() ? (
               <p className="text-[10px] uppercase tracking-[0.5em] sm:text-xs" style={{ color: `${accent}E6` }}>
-                {publicBusiness.heroTagline?.trim() || `Barbearia ${location?.city ? `· ${location.city}` : "Premium"}`}
+                {publicBusiness.heroTagline.trim()}
               </p>
+            ) : null}
               <h1 className="font-serif text-5xl leading-[0.95] tracking-tight sm:text-7xl" style={{ color: textColor }}>
                 {business.name}
               </h1>
-              <p className="max-w-md text-sm leading-relaxed sm:text-base" style={{ color: `${textColor}CC` }}>
-                {business.bookingPage?.headline?.trim() ||
-                  business.description?.trim() ||
-                  "Estilo é um reflexo da tua atitude e personalidade."}
-              </p>
+              {(business.bookingPage?.headline?.trim() || business.description?.trim()) ? (
+                <p className="max-w-md text-sm leading-relaxed sm:text-base" style={{ color: `${textColor}CC` }}>
+                  {business.bookingPage?.headline?.trim() || business.description?.trim()}
+                </p>
+              ) : null}
 
               <div className="mt-2 flex items-center gap-3">
                 {phoneDigits ? (
@@ -210,28 +212,18 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                     </svg>
                   </a>
                 ) : null}
-                <a
-                  href="#"
-                  aria-label="Instagram"
-                  className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 backdrop-blur-sm accent-bg-hover transition"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <rect x="3" y="3" width="18" height="18" rx="5" />
-                    <circle cx="12" cy="12" r="4" />
-                    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
-                  </svg>
-                </a>
-                {business.websiteUrl ? (
+                {publicBusiness.instagramUrl ? (
                   <a
-                    href={business.websiteUrl}
+                    href={publicBusiness.instagramUrl}
                     target="_blank"
                     rel="noreferrer"
-                    aria-label="Website"
+                    aria-label="Instagram"
                     className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/5 backdrop-blur-sm accent-bg-hover transition"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
+                      <rect x="3" y="3" width="18" height="18" rx="5" />
+                      <circle cx="12" cy="12" r="4" />
+                      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
                     </svg>
                   </a>
                 ) : null}
@@ -509,17 +501,21 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
                 </svg>
               </a>
             ) : null}
-            <a
-              href="#"
-              aria-label="Instagram"
-              className={`flex size-9 items-center justify-center rounded-full border accent-hover transition ${reservaLight ? "border-black/15 text-neutral-500" : "border-white/15 text-neutral-400"}`}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <rect x="3" y="3" width="18" height="18" rx="5" />
-                <circle cx="12" cy="12" r="4" />
-                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
-              </svg>
-            </a>
+            {publicBusiness.instagramUrl ? (
+              <a
+                href={publicBusiness.instagramUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Instagram"
+                className={`flex size-9 items-center justify-center rounded-full border accent-hover transition ${reservaLight ? "border-black/15 text-neutral-500" : "border-white/15 text-neutral-400"}`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="3" y="3" width="18" height="18" rx="5" />
+                  <circle cx="12" cy="12" r="4" />
+                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
+                </svg>
+              </a>
+            ) : null}
           </div>
           {business.contactEmail ? (
             <a

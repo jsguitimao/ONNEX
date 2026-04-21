@@ -232,6 +232,7 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
     phone: business.contactPhone,
     contactEmail: business.contactEmail,
     websiteUrl: business.websiteUrl,
+    instagramUrl: business.instagramUrl,
     description: business.description,
     primaryColor: business.primaryColor,
     accentColor: business.accentColor,

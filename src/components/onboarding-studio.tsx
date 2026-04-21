@@ -95,6 +95,9 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               <Field label="Website">
                 <DarkInput value={form.websiteUrl} onChange={(e) => updateField("websiteUrl", e.target.value)} placeholder="https://..." />
               </Field>
+              <Field label="Instagram">
+                <DarkInput value={form.instagramUrl} onChange={(e) => updateField("instagramUrl", e.target.value)} placeholder="https://instagram.com/o-teu-perfil" />
+              </Field>
             </div>
             <Field label="Descrição curta do negócio">
               <DarkTextarea
@@ -222,15 +225,15 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               Comunicação
             </div>
             <div className="grid gap-4">
-              <Field label="Tagline do hero (ex: Barbearia · Lisboa)">
+              <Field label="Tagline do hero (opcional)">
                 <DarkInput
                   value={form.heroTagline}
                   onChange={(e) => updateField("heroTagline", e.target.value)}
-                  placeholder="Barbearia · Lisboa"
+                  placeholder="Ex: Barbearia · Lisboa"
                 />
               </Field>
-              <Field label="Headline">
-                <DarkInput value={form.headline} onChange={(e) => updateField("headline", e.target.value)} />
+              <Field label="Headline (opcional)">
+                <DarkInput value={form.headline} onChange={(e) => updateField("headline", e.target.value)} placeholder="Ex: Estilo é um reflexo da tua atitude" />
               </Field>
               <Field label="Subheadline">
                 <DarkTextarea
