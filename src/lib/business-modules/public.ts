@@ -256,6 +256,7 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
     reservaColor: business.bookingPage?.reservaColor ?? null,
     heroTagline: business.bookingPage?.heroTagline ?? null,
     textColor: business.bookingPage?.textColor ?? null,
+    theme: business.bookingPage?.theme === "light" ? "light" : "dark",
     showTeam: business.bookingPage?.showTeam ?? true,
     showPrices: business.bookingPage?.showPrices ?? true,
     showDurations: business.bookingPage?.showDurations ?? true,
@@ -275,6 +276,10 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
       fullName: member.fullName,
       roleTitle: member.roleTitle,
       bio: member.bio,
+      avatarUrl: member.avatarUrl ?? null,
+      portfolioImages: Array.isArray(member.portfolioImages)
+        ? (member.portfolioImages as unknown[]).filter((v): v is string => typeof v === "string")
+        : [],
       serviceIds: member.services.map((assignment) => assignment.serviceId),
     })),
   };

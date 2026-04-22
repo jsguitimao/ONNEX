@@ -142,70 +142,50 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <Palette className="size-4 text-amber-300" />
-              Cores e identidade
+              Aparência do site
             </div>
-            <div className="grid gap-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Cor principal (fundo escuro)">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      className="h-11 w-14 cursor-pointer rounded-lg border border-white/15 bg-white/5"
-                      value={form.primaryColor}
-                      onChange={(e) => updateField("primaryColor", e.target.value)}
-                    />
-                    <DarkInput value={form.primaryColor} onChange={(e) => updateField("primaryColor", e.target.value)} />
-                  </div>
-                </Field>
-                <Field label="Cor de destaque (botões)">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      className="h-11 w-14 cursor-pointer rounded-lg border border-white/15 bg-white/5"
-                      value={form.accentColor}
-                      onChange={(e) => updateField("accentColor", e.target.value)}
-                    />
-                    <DarkInput value={form.accentColor} onChange={(e) => updateField("accentColor", e.target.value)} />
-                  </div>
-                </Field>
-              </div>
-              <Field label="Cor dos textos (letras e números)">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    className="h-11 w-14 cursor-pointer rounded-lg border border-white/15 bg-white/5"
-                    value={form.textColor || "#FFFFFF"}
-                    onChange={(e) => updateField("textColor", e.target.value)}
-                  />
-                  <DarkInput
-                    value={form.textColor || "#FFFFFF"}
-                    onChange={(e) => updateField("textColor", e.target.value)}
-                    placeholder="#FFFFFF"
-                  />
-                </div>
-              </Field>
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-neutral-400">Cor de fundo por secção</p>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {([
-                    ["sobreColor", "Sobre"],
-                    ["servicosColor", "Serviços"],
-                    ["equipaColor", "Equipa"],
-                    ["localizacaoColor", "Localização"],
-                    ["reservaColor", "Reserva"],
-                  ] as const).map(([field, label]) => (
-                    <div key={field} className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        className="h-8 w-10 cursor-pointer rounded border border-white/15 bg-white/5"
-                        value={form[field] || form.primaryColor}
-                        onChange={(e) => updateField(field, e.target.value)}
+            <p className="-mt-2 text-xs text-neutral-400">
+              Escolhe o fundo da página pública. Um padrão único e clean — sem cores por secção.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {(["dark", "light"] as const).map((value) => {
+                const isActive = form.theme === value;
+                const label = value === "dark" ? "Escuro" : "Claro";
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => updateField("theme", value)}
+                    aria-pressed={isActive}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border p-4 text-left transition",
+                      isActive
+                        ? "border-amber-300 bg-amber-300/10"
+                        : "border-white/10 bg-white/5 hover:border-white/25"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex size-10 items-center justify-center rounded-lg border",
+                        value === "dark" ? "border-white/10 bg-[#0b1020]" : "border-neutral-300 bg-white"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "block size-4 rounded-full",
+                          value === "dark" ? "bg-white" : "bg-[#0b1020]"
+                        )}
                       />
-                      <span className="text-xs text-neutral-300">{label}</span>
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{label}</p>
+                      <p className="text-xs text-neutral-400">
+                        {value === "dark" ? "Fundo preto com letras brancas" : "Fundo branco com letras pretas"}
+                      </p>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
 

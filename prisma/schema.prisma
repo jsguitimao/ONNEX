@@ -96,6 +96,7 @@ model BookingPage {
   reservaColor      String?
   heroTagline       String?
   textColor         String?
+  theme             String?
   showTeam          Boolean  @default(true)
   showPrices        Boolean  @default(true)
   showDurations     Boolean  @default(true)
@@ -137,6 +138,7 @@ model StaffMember {
   roleTitle       String?
   bio             String?
   avatarUrl       String?
+  portfolioImages Json?
   email           String?
   phone           String?
   isActive            Boolean             @default(true)

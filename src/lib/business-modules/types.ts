@@ -25,6 +25,7 @@ export type OnboardingDraft = {
   reservaColor: string;
   heroTagline: string;
   textColor: string;
+  theme: "dark" | "light";
   onlineBooking: boolean;
   showTeam: boolean;
   showPrices: boolean;
@@ -63,6 +64,7 @@ export type PublicBusinessPayload = {
   reservaColor: string | null;
   heroTagline: string | null;
   textColor: string | null;
+  theme: "dark" | "light";
   onlineBooking: boolean;
   showTeam: boolean;
   showPrices: boolean;
@@ -83,6 +85,8 @@ export type PublicBusinessPayload = {
     fullName: string;
     roleTitle: string | null;
     bio: string | null;
+    avatarUrl: string | null;
+    portfolioImages: string[];
     serviceIds: string[];
   }>;
 };

@@ -138,6 +138,10 @@ export const onboardingSchema = z.object({
   reservaColor: optionalHexColorSchema,
   heroTagline: z.preprocess(normalizeOptionalString, z.string().max(100)),
   textColor: optionalHexColorSchema,
+  theme: z.preprocess(
+    (value) => (value === "light" || value === "dark" ? value : "dark"),
+    z.enum(["dark", "light"]),
+  ),
   onlineBooking: z.boolean(),
   showTeam: z.boolean(),
   showPrices: z.boolean(),
@@ -183,5 +187,6 @@ export function normalizeOnboardingDraft(input: OnboardingDraft): OnboardingDraf
     reservaColor: ensureString(normalizeHexColorInput(input.reservaColor)),
     heroTagline: ensureString(normalizeOptionalString(input.heroTagline)),
     textColor: ensureString(normalizeHexColorInput(input.textColor)),
+    theme: input.theme === "light" ? "light" : "dark",
   };
 }

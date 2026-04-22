@@ -9,9 +9,6 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   business: PublicBusinessPayload;
-  accentColor?: string;
-  cardBg?: string;
-  lightMode?: boolean;
 };
 
 function toDateInputValue(date: Date) {
@@ -19,7 +16,11 @@ function toDateInputValue(date: Date) {
   return local.toISOString().slice(0, 10);
 }
 
-export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = "#0b1020", lightMode = false }: Props) {
+const fieldClass =
+  "rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40";
+const labelClass = "text-xs font-medium text-muted-foreground";
+
+export function PublicBookingFlow({ business }: Props) {
   const [serviceId, setServiceId] = useState(business.services[0]?.id ?? "");
   const [staffMemberId, setStaffMemberId] = useState("");
   const [date, setDate] = useState("");
@@ -44,14 +45,14 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
   );
 
   const minDate = useMemo(() => {
-    const date = new Date(Date.now() + business.bookingLeadTimeHours * 60 * 60_000);
-    return toDateInputValue(date);
+    const target = new Date(Date.now() + business.bookingLeadTimeHours * 60 * 60_000);
+    return toDateInputValue(target);
   }, [business.bookingLeadTimeHours]);
 
   const maxDate = useMemo(() => {
-    const date = new Date();
-    date.setDate(date.getDate() + business.bookingWindowDays);
-    return toDateInputValue(date);
+    const target = new Date();
+    target.setDate(target.getDate() + business.bookingWindowDays);
+    return toDateInputValue(target);
   }, [business.bookingWindowDays]);
 
   useEffect(() => {
@@ -74,11 +75,7 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
     async function loadSlots() {
       setLoadingSlots(true);
       try {
-        const params = new URLSearchParams({
-          serviceId,
-          staffMemberId,
-          date,
-        });
+        const params = new URLSearchParams({ serviceId, staffMemberId, date });
         const response = await fetch(`/api/public/${business.slug}/availability?${params.toString()}`, {
           signal: controller.signal,
         });
@@ -146,23 +143,17 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
     }
   };
 
-  const labelClass = `text-xs font-medium ${lightMode ? "text-neutral-600" : "text-neutral-300"}`;
-  const inputClass = lightMode
-    ? "rounded-xl border border-black/15 bg-black/5 px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-black/30"
-    : "rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-white/30";
-  const placeholderClass = lightMode ? "placeholder:text-neutral-400" : "placeholder:text-neutral-500";
-
   return (
-    <section className={`rounded-[1.75rem] bg-transparent p-6 sm:p-8 ${lightMode ? "text-neutral-900" : "text-white"}`}>
+    <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-card-foreground sm:p-6">
       <label className="grid gap-2">
-        <span className={labelClass}>Selecione um serviço</span>
+        <span className={labelClass}>Serviço</span>
         <select
           value={serviceId}
           onChange={(event) => setServiceId(event.target.value)}
-          className={inputClass}
+          className={fieldClass}
         >
           {business.services.map((service) => (
-            <option key={service.id} value={service.id} style={{ backgroundColor: cardBg }}>
+            <option key={service.id} value={service.id}>
               {service.name}
               {business.showPrices ? ` — ${formatEuro(service.priceCents)}` : ""}
             </option>
@@ -171,15 +162,15 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
       </label>
 
       {compatibleStaffMembers.length > 0 ? (
-        <label className="mt-4 grid gap-2">
-          <span className={labelClass}>Selecione um profissional</span>
+        <label className="grid gap-2">
+          <span className={labelClass}>Profissional</span>
           <select
             value={staffMemberId}
             onChange={(event) => setStaffMemberId(event.target.value)}
-            className={inputClass}
+            className={fieldClass}
           >
             {compatibleStaffMembers.map((member) => (
-              <option key={member.id} value={member.id} style={{ backgroundColor: cardBg }}>
+              <option key={member.id} value={member.id}>
                 {member.fullName}
                 {member.roleTitle ? ` — ${member.roleTitle}` : ""}
               </option>
@@ -188,48 +179,48 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
         </label>
       ) : null}
 
-      <label className="mt-4 grid gap-2">
-        <span className={labelClass}>Selecione a data</span>
+      <label className="grid gap-2">
+        <span className={labelClass}>Data</span>
         <input
           type="date"
           value={date}
           min={minDate}
           max={maxDate}
           onChange={(event) => setDate(event.target.value)}
-          className={inputClass}
+          className={fieldClass}
         />
       </label>
 
-      <div className="mt-4">
-        <p className={`mb-2 ${labelClass}`}>Selecione um horário</p>
+      <div className="grid gap-2">
+        <span className={labelClass}>Horário</span>
         {loadingSlots ? (
-          <div className={`flex items-center gap-2 text-sm ${lightMode ? "text-neutral-500" : "text-neutral-400"}`}>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
             A carregar horários...
           </div>
         ) : slots.length > 0 ? (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {slots.map((slot) => (
-              <button
-                key={slot.iso}
-                type="button"
-                onClick={() => setSelectedSlot(slot.iso)}
-                className={cn(
-                  "rounded-xl border px-3 py-2 text-sm transition",
-                  selectedSlot === slot.iso
-                    ? "font-semibold"
-                    : lightMode
-                      ? "border-black/15 hover:border-black/30 hover:bg-black/5"
-                      : "border-white/15 text-white hover:border-white/30 hover:bg-white/5"
-                )}
-                style={selectedSlot === slot.iso ? { backgroundColor: accentColor, borderColor: accentColor, color: "#111827" } : undefined}
-              >
-                {slot.label}
-              </button>
-            ))}
+            {slots.map((slot) => {
+              const isActive = selectedSlot === slot.iso;
+              return (
+                <button
+                  key={slot.iso}
+                  type="button"
+                  onClick={() => setSelectedSlot(slot.iso)}
+                  className={cn(
+                    "rounded-xl border px-3 py-2 text-sm transition",
+                    isActive
+                      ? "border-primary bg-primary text-primary-foreground font-semibold"
+                      : "border-border text-foreground hover:border-ring hover:bg-accent"
+                  )}
+                >
+                  {slot.label}
+                </button>
+              );
+            })}
           </div>
         ) : (
-          <p className={`text-sm ${lightMode ? "text-neutral-500" : "text-neutral-400"}`}>
+          <p className="text-sm text-muted-foreground">
             {date
               ? "Não há horários disponíveis para os filtros escolhidos."
               : "Escolhe data, serviço e profissional para ver horários."}
@@ -237,25 +228,25 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
         )}
       </div>
 
-      <label className="mt-4 grid gap-2">
+      <label className="grid gap-2">
         <span className={labelClass}>Nome completo</span>
         <input
           type="text"
-          placeholder="Digite o teu nome"
+          placeholder="O teu nome"
           value={customerName}
           onChange={(event) => setCustomerName(event.target.value)}
-          className={`${inputClass} ${placeholderClass}`}
+          className={cn(fieldClass, "placeholder:text-muted-foreground")}
         />
       </label>
 
-      <label className="mt-4 grid gap-2">
+      <label className="grid gap-2">
         <span className={labelClass}>Telefone</span>
         <input
           type="tel"
-          placeholder="Digite o teu telefone"
+          placeholder="O teu telefone"
           value={customerPhone}
           onChange={(event) => setCustomerPhone(event.target.value)}
-          className={`${inputClass} ${placeholderClass}`}
+          className={cn(fieldClass, "placeholder:text-muted-foreground")}
         />
       </label>
 
@@ -264,10 +255,9 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
         onClick={handleBooking}
         disabled={!selectedService || !selectedSlot || !customerName || !staffMemberId || submitting}
         className={cn(
-          "mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-75",
-          submitting && "opacity-80"
+          "mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition",
+          "hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         )}
-        style={{ backgroundColor: accentColor, color: "#111827" }}
       >
         {submitting ? (
           <>
@@ -279,18 +269,14 @@ export function PublicBookingFlow({ business, accentColor = "#F59E0B", cardBg = 
         )}
       </button>
 
-      {message ? <p className={`mt-3 text-sm ${lightMode ? "text-emerald-600" : "text-emerald-300"}`}>{message}</p> : null}
+      {message ? <p className="text-sm text-foreground">{message}</p> : null}
       {manageUrl ? (
-        <Link
-          href={manageUrl}
-          className="mt-3 inline-flex items-center gap-2 text-sm font-semibold transition"
-          style={{ color: accentColor }}
-        >
+        <Link href={manageUrl} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
           Gerir esta reserva
           <ArrowRight className="size-4" />
         </Link>
       ) : null}
-      {error ? <p className={`mt-3 text-sm ${lightMode ? "text-red-600" : "text-red-400"}`}>{error}</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </section>
   );
 }
