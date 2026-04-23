@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import { startTransition, useState } from "react";
-import { Check, LoaderCircle, Plus, Save, Trash2, UserRound } from "lucide-react";
+import { startTransition, useRef, useState } from "react";
+import { Check, ImageIcon, Loader2, LoaderCircle, Plus, Save, Trash2, Upload, UserRound, X } from "lucide-react";
 import { DEFAULT_AVAILABILITY } from "@/lib/business-modules/types";
 import type { AvailabilityInput, ManagementSnapshot } from "@/lib/business";
 import { cn } from "@/lib/utils";
@@ -34,8 +34,11 @@ type StaffDraft = {
   isActive: boolean;
   autoAcceptBookings: boolean;
   serviceIds: string[];
+  portfolioImages: string[];
   availability: AvailabilityInput[];
 };
+
+const MAX_PORTFOLIO = 10;
 
 type DashboardOpsProps = {
   initialSnapshot: ManagementSnapshot;
@@ -71,8 +74,121 @@ function makeStaffDraft(member?: ManagementSnapshot["staffMembers"][number]): St
     isActive: member?.isActive ?? true,
     autoAcceptBookings: member?.autoAcceptBookings ?? false,
     serviceIds: member?.serviceIds ?? [],
+    portfolioImages: member?.portfolioImages ?? [],
     availability: member?.availability.length ? member.availability : defaultAvailability(),
   };
+}
+
+function PortfolioUploader({
+  images,
+  onChange,
+}: {
+  images: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const remaining = Math.max(0, MAX_PORTFOLIO - images.length);
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    setError("");
+
+    try {
+      const uploaded: string[] = [];
+      for (const file of Array.from(files).slice(0, remaining)) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = (await response.json()) as { url?: string; error?: string };
+
+        if (!response.ok || !data.url) {
+          throw new Error(data.error ?? "Erro ao carregar ficheiro.");
+        }
+        uploaded.push(data.url);
+      }
+
+      onChange([...images, ...uploaded]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="grid gap-3 rounded-2xl border border-border bg-background p-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <ImageIcon className="size-4 text-muted-foreground" />
+          Portfólio (últimos trabalhos)
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {images.length}/{MAX_PORTFOLIO}
+        </span>
+      </div>
+
+      {images.length > 0 ? (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {images.map((url, idx) => (
+            <div key={`${url}-${idx}`} className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt={`Trabalho ${idx + 1}`}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => onChange(images.filter((_, i) => i !== idx))}
+                aria-label="Remover foto"
+                className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-background/90 text-foreground opacity-0 shadow transition hover:bg-destructive hover:text-destructive-foreground group-hover:opacity-100"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Carrega fotos dos últimos cortes deste barbeiro. Aparecem no site público quando o cliente seleciona este profissional.
+        </p>
+      )}
+
+      {remaining > 0 ? (
+        <div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-border bg-background px-4 py-2.5 text-xs font-medium text-foreground transition hover:border-ring hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+            {uploading ? "A carregar..." : `Adicionar foto${remaining > 1 ? "s" : ""}`}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            multiple
+            className="hidden"
+            onChange={handleUpload}
+          />
+        </div>
+      ) : null}
+
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </div>
+  );
 }
 
 function AvailabilityEditor({
@@ -518,6 +634,16 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                       />
                     </div>
 
+                    <PortfolioUploader
+                      images={draft.portfolioImages}
+                      onChange={(next) =>
+                        setStaffDrafts((current) => ({
+                          ...current,
+                          [member.id]: { ...draft, portfolioImages: next },
+                        }))
+                      }
+                    />
+
                     <label className="flex items-center gap-2 text-sm text-muted-foreground">
                       <input
                         type="checkbox"
@@ -588,6 +714,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                             isActive: draft.isActive,
                             autoAcceptBookings: draft.autoAcceptBookings,
                             serviceIds: draft.serviceIds,
+                            portfolioImages: draft.portfolioImages,
                             availability: draft.availability,
                           }, "Profissional atualizado.")
                         }
@@ -657,6 +784,11 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                   />
                 </div>
 
+                <PortfolioUploader
+                  images={newStaff.portfolioImages}
+                  onChange={(next) => setNewStaff((current) => ({ ...current, portfolioImages: next }))}
+                />
+
                 <div className="flex justify-end">
                   <Button
                     disabled={loading || newStaff.fullName.trim().length < 2 || newStaff.serviceIds.length === 0 || newStaff.availability.length === 0}
@@ -666,6 +798,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                         roleTitle: newStaff.roleTitle || undefined,
                         bio: newStaff.bio || undefined,
                         serviceIds: newStaff.serviceIds,
+                        portfolioImages: newStaff.portfolioImages,
                         availability: newStaff.availability,
                       }, "Profissional criado.");
                       setNewStaff(makeStaffDraft());

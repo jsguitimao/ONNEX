@@ -16,6 +16,7 @@ const teamSchema = z.object({
   roleTitle: z.string().max(80).optional(),
   bio: z.string().max(240).optional(),
   serviceIds: z.array(z.string()).min(1),
+  portfolioImages: z.array(z.string().url()).max(10).optional(),
   availability: z.array(availabilitySchema).min(1),
 });
 

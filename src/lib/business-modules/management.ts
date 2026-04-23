@@ -26,6 +26,9 @@ export async function getManagementSnapshot(): Promise<ManagementSnapshot> {
       isActive: member.isActive,
       autoAcceptBookings: member.autoAcceptBookings,
       serviceIds: member.services.map((assignment) => assignment.serviceId),
+      portfolioImages: Array.isArray(member.portfolioImages)
+        ? (member.portfolioImages as unknown[]).filter((v): v is string => typeof v === "string")
+        : [],
       availability: member.availabilities
         .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime))
         .map((slot) => ({
@@ -131,6 +134,7 @@ export async function createStaffMember(input: {
   roleTitle?: string;
   bio?: string;
   serviceIds: string[];
+  portfolioImages?: string[];
   availability: AvailabilityInput[];
 }) {
   const business = await getCurrentBusiness();
@@ -143,6 +147,7 @@ export async function createStaffMember(input: {
       fullName: input.fullName,
       roleTitle: input.roleTitle || null,
       bio: input.bio || null,
+      portfolioImages: input.portfolioImages ?? [],
       displayOrder: business.staffMembers.length,
     },
   });
@@ -171,6 +176,7 @@ export async function updateStaffMember(
     isActive: boolean;
     autoAcceptBookings?: boolean;
     serviceIds: string[];
+    portfolioImages?: string[];
     availability: AvailabilityInput[];
   }
 ) {
@@ -193,6 +199,9 @@ export async function updateStaffMember(
         isActive: input.isActive,
         ...(typeof input.autoAcceptBookings === "boolean"
           ? { autoAcceptBookings: input.autoAcceptBookings }
+          : {}),
+        ...(Array.isArray(input.portfolioImages)
+          ? { portfolioImages: input.portfolioImages }
           : {}),
       },
     });

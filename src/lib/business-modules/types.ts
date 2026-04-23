@@ -159,6 +159,7 @@ export type ManagementSnapshot = {
     isActive: boolean;
     autoAcceptBookings: boolean;
     serviceIds: string[];
+    portfolioImages: string[];
     availability: AvailabilityInput[];
   }>;
 };
