@@ -1,5 +1,6 @@
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AuthUserButton } from "@/components/auth-user-button";
 import { OnboardingStudio } from "@/components/onboarding-studio";
 import { getBusinessForOnboarding } from "@/lib/business";
@@ -7,7 +8,15 @@ import { getBusinessForOnboarding } from "@/lib/business";
 export const dynamic = "force-dynamic";
 
 export default async function OnboardingPreviewPage() {
-  const initialData = await getBusinessForOnboarding();
+  let initialData;
+  try {
+    initialData = await getBusinessForOnboarding();
+  } catch (error) {
+    if (error instanceof Error && error.message === "AUTH_REQUIRED") {
+      redirect("/sign-in?redirect_url=/onboarding");
+    }
+    throw error;
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">

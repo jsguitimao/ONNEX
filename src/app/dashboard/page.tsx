@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { AuthUserButton } from "@/components/auth-user-button";
 import { DashboardAgenda } from "@/components/dashboard-agenda";
 import { DashboardCommunications } from "@/components/dashboard-communications";
@@ -16,13 +17,21 @@ import { formatEuro } from "@/lib/demo-data";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPreviewPage() {
-  const [snapshot, management, agendaView, customers, communications] = await Promise.all([
-    getDashboardSnapshot(),
-    getManagementSnapshot(),
-    getBookingAgendaView(),
-    getCustomersSnapshot(),
-    getCommunicationSnapshot(),
-  ]);
+  let snapshot, management, agendaView, customers, communications;
+  try {
+    [snapshot, management, agendaView, customers, communications] = await Promise.all([
+      getDashboardSnapshot(),
+      getManagementSnapshot(),
+      getBookingAgendaView(),
+      getCustomersSnapshot(),
+      getCommunicationSnapshot(),
+    ]);
+  } catch (error) {
+    if (error instanceof Error && error.message === "AUTH_REQUIRED") {
+      redirect("/sign-in?redirect_url=/dashboard");
+    }
+    throw error;
+  }
 
   const stats = [
     {
