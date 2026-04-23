@@ -15,6 +15,7 @@ const teamSchema = z.object({
   fullName: z.string().min(2).max(80),
   roleTitle: z.string().max(80).optional(),
   bio: z.string().max(240).optional(),
+  avatarUrl: z.string().url().or(z.literal("")).optional(),
   isActive: z.boolean(),
   autoAcceptBookings: z.boolean().optional(),
   serviceIds: z.array(z.string()).min(1),

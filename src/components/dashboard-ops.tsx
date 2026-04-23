@@ -31,6 +31,7 @@ type StaffDraft = {
   fullName: string;
   roleTitle: string;
   bio: string;
+  avatarUrl: string;
   isActive: boolean;
   autoAcceptBookings: boolean;
   serviceIds: string[];
@@ -71,12 +72,111 @@ function makeStaffDraft(member?: ManagementSnapshot["staffMembers"][number]): St
     fullName: member?.fullName ?? "",
     roleTitle: member?.roleTitle ?? "",
     bio: member?.bio ?? "",
+    avatarUrl: member?.avatarUrl ?? "",
     isActive: member?.isActive ?? true,
     autoAcceptBookings: member?.autoAcceptBookings ?? false,
     serviceIds: member?.serviceIds ?? [],
     portfolioImages: member?.portfolioImages ?? [],
     availability: member?.availability.length ? member.availability : defaultAvailability(),
   };
+}
+
+function AvatarUploader({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = (await response.json()) as { url?: string; error?: string };
+
+      if (!response.ok || !data.url) {
+        throw new Error(data.error ?? "Erro ao carregar ficheiro.");
+      }
+      onChange(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="grid gap-3 rounded-2xl border border-border bg-background p-3">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <UserRound className="size-4 text-muted-foreground" />
+        Foto do barbeiro
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="relative size-20 overflow-hidden rounded-xl border border-border bg-muted">
+          {value ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={value}
+              alt="Avatar"
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-2xl text-muted-foreground">
+              <UserRound className="size-8" />
+            </span>
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:border-ring hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+            {uploading ? "A carregar..." : value ? "Trocar foto" : "Carregar foto"}
+          </button>
+          {value ? (
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition hover:text-destructive"
+            >
+              <X className="size-3.5" />
+              Remover
+            </button>
+          ) : null}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            className="hidden"
+            onChange={handleUpload}
+          />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Esta foto aparece no grid de barbeiros da página pública.
+      </p>
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </div>
+  );
 }
 
 function PortfolioUploader({
@@ -634,6 +734,16 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                       />
                     </div>
 
+                    <AvatarUploader
+                      value={draft.avatarUrl}
+                      onChange={(next) =>
+                        setStaffDrafts((current) => ({
+                          ...current,
+                          [member.id]: { ...draft, avatarUrl: next },
+                        }))
+                      }
+                    />
+
                     <PortfolioUploader
                       images={draft.portfolioImages}
                       onChange={(next) =>
@@ -711,6 +821,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                             fullName: draft.fullName,
                             roleTitle: draft.roleTitle || undefined,
                             bio: draft.bio || undefined,
+                            avatarUrl: draft.avatarUrl,
                             isActive: draft.isActive,
                             autoAcceptBookings: draft.autoAcceptBookings,
                             serviceIds: draft.serviceIds,
@@ -784,6 +895,11 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                   />
                 </div>
 
+                <AvatarUploader
+                  value={newStaff.avatarUrl}
+                  onChange={(next) => setNewStaff((current) => ({ ...current, avatarUrl: next }))}
+                />
+
                 <PortfolioUploader
                   images={newStaff.portfolioImages}
                   onChange={(next) => setNewStaff((current) => ({ ...current, portfolioImages: next }))}
@@ -797,6 +913,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                         fullName: newStaff.fullName,
                         roleTitle: newStaff.roleTitle || undefined,
                         bio: newStaff.bio || undefined,
+                        avatarUrl: newStaff.avatarUrl || undefined,
                         serviceIds: newStaff.serviceIds,
                         portfolioImages: newStaff.portfolioImages,
                         availability: newStaff.availability,

@@ -23,6 +23,7 @@ export async function getManagementSnapshot(): Promise<ManagementSnapshot> {
       fullName: member.fullName,
       roleTitle: member.roleTitle,
       bio: member.bio,
+      avatarUrl: member.avatarUrl ?? null,
       isActive: member.isActive,
       autoAcceptBookings: member.autoAcceptBookings,
       serviceIds: member.services.map((assignment) => assignment.serviceId),
@@ -133,6 +134,7 @@ export async function createStaffMember(input: {
   fullName: string;
   roleTitle?: string;
   bio?: string;
+  avatarUrl?: string | null;
   serviceIds: string[];
   portfolioImages?: string[];
   availability: AvailabilityInput[];
@@ -147,6 +149,7 @@ export async function createStaffMember(input: {
       fullName: input.fullName,
       roleTitle: input.roleTitle || null,
       bio: input.bio || null,
+      avatarUrl: input.avatarUrl || null,
       portfolioImages: input.portfolioImages ?? [],
       displayOrder: business.staffMembers.length,
     },
@@ -173,6 +176,7 @@ export async function updateStaffMember(
     fullName: string;
     roleTitle?: string;
     bio?: string;
+    avatarUrl?: string | null;
     isActive: boolean;
     autoAcceptBookings?: boolean;
     serviceIds: string[];
@@ -197,6 +201,9 @@ export async function updateStaffMember(
         roleTitle: input.roleTitle || null,
         bio: input.bio || null,
         isActive: input.isActive,
+        ...(typeof input.avatarUrl !== "undefined"
+          ? { avatarUrl: input.avatarUrl || null }
+          : {}),
         ...(typeof input.autoAcceptBookings === "boolean"
           ? { autoAcceptBookings: input.autoAcceptBookings }
           : {}),

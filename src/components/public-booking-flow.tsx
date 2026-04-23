@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import type { BookingSlot, PublicBusinessPayload } from "@/lib/business";
 import { formatEuro } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
@@ -28,11 +28,14 @@ export function PublicBookingFlow({ business }: Props) {
   const [selectedSlot, setSelectedSlot] = useState("");
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [manageUrl, setManageUrl] = useState("");
+  const [success, setSuccess] = useState<{
+    serviceName: string;
+    startsAt: string;
+  } | null>(null);
 
   const selectedService = useMemo(
     () => business.services.find((service) => service.id === serviceId),
@@ -64,11 +67,16 @@ export function PublicBookingFlow({ business }: Props) {
   useEffect(() => {
     setSelectedSlot("");
     setSlots([]);
-    setMessage("");
     setError("");
-    setManageUrl("");
 
     if (!date || !serviceId || !staffMemberId) return;
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (new Date(`${date}T00:00:00`) < todayStart) {
+      setError("Escolhe uma data a partir de hoje.");
+      return;
+    }
 
     const controller = new AbortController();
 
@@ -85,7 +93,9 @@ export function PublicBookingFlow({ business }: Props) {
           throw new Error(data.error ?? "Não foi possível carregar horários.");
         }
 
-        setSlots(data.slots ?? []);
+        const now = Date.now();
+        const filtered = (data.slots ?? []).filter((slot) => new Date(slot.iso).getTime() > now);
+        setSlots(filtered);
       } catch (fetchError) {
         if ((fetchError as Error).name !== "AbortError") {
           setError(fetchError instanceof Error ? fetchError.message : "Erro ao carregar horários.");
@@ -100,10 +110,26 @@ export function PublicBookingFlow({ business }: Props) {
     return () => controller.abort();
   }, [business.slug, date, serviceId, staffMemberId]);
 
+  const resetForm = () => {
+    setSuccess(null);
+    setManageUrl("");
+    setError("");
+    setCustomerName("");
+    setCustomerPhone("");
+    setSelectedSlot("");
+    setDate("");
+    setSlots([]);
+  };
+
   const handleBooking = async () => {
     setSubmitting(true);
-    setMessage("");
     setError("");
+
+    if (!selectedSlot || new Date(selectedSlot).getTime() <= Date.now()) {
+      setError("Escolhe um horário válido a partir de agora.");
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const response = await fetch(`/api/public/${business.slug}/bookings`, {
@@ -129,12 +155,10 @@ export function PublicBookingFlow({ business }: Props) {
         throw new Error(data.error ?? "Não foi possível concluir a reserva.");
       }
 
-      setMessage(`Reserva criada para ${data.serviceName} em ${new Date(data.startsAt ?? "").toLocaleString("pt-PT")}.`);
-      setCustomerName("");
-      setCustomerPhone("");
-      setSelectedSlot("");
-      setDate("");
-      setSlots([]);
+      setSuccess({
+        serviceName: data.serviceName ?? "",
+        startsAt: data.startsAt ?? "",
+      });
       setManageUrl(data.manageUrl ?? "");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Erro ao criar reserva.");
@@ -142,6 +166,50 @@ export function PublicBookingFlow({ business }: Props) {
       setSubmitting(false);
     }
   };
+
+  if (success) {
+    const when = success.startsAt
+      ? new Date(success.startsAt).toLocaleString("pt-PT", {
+          dateStyle: "long",
+          timeStyle: "short",
+        })
+      : "";
+    return (
+      <section className="flex flex-col items-center gap-5 rounded-2xl border border-border bg-card p-6 text-center text-card-foreground sm:p-10">
+        <span className="flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <CheckCircle2 className="size-8" />
+        </span>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            Agendamento realizado com sucesso!
+          </h3>
+          {success.serviceName && when ? (
+            <p className="text-sm text-muted-foreground sm:text-base">
+              {success.serviceName} · {when}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+          {manageUrl ? (
+            <Link
+              href={manageUrl}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+            >
+              Gerir esta reserva
+              <ArrowRight className="size-4" />
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            onClick={resetForm}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground transition hover:border-ring hover:bg-accent"
+          >
+            Fazer nova reserva
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-card-foreground sm:p-6">
@@ -269,13 +337,6 @@ export function PublicBookingFlow({ business }: Props) {
         )}
       </button>
 
-      {message ? <p className="text-sm text-foreground">{message}</p> : null}
-      {manageUrl ? (
-        <Link href={manageUrl} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
-          Gerir esta reserva
-          <ArrowRight className="size-4" />
-        </Link>
-      ) : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </section>
   );
