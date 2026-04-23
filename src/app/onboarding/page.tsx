@@ -10,17 +10,17 @@ export default async function OnboardingPreviewPage() {
   const initialData = await getBusinessForOnboarding();
 
   return (
-    <main className="min-h-screen bg-[#0b1020] text-white">
+    <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto w-full max-w-7xl px-6 py-12">
         <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
           <div>
-            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-amber-300">
+            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
               Setup do negócio
             </span>
-            <h1 className="font-heading text-4xl font-semibold tracking-tight text-white">
+            <h1 className="text-4xl font-semibold tracking-tight">
               Primeiro contacto com o produto
             </h1>
-            <p className="mt-3 max-w-3xl text-neutral-300">
+            <p className="mt-3 max-w-3xl text-muted-foreground">
               O objetivo desta etapa é chegar rápido a uma página pública credível, com identidade,
               serviços e estrutura suficiente para começar a receber marcações.
             </p>
@@ -29,7 +29,7 @@ export default async function OnboardingPreviewPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:border-amber-300/40 hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition hover:border-ring hover:bg-accent"
             >
               Ver dashboard base
               <ArrowRight className="size-4" />
@@ -38,17 +38,17 @@ export default async function OnboardingPreviewPage() {
           </div>
         </div>
 
-        <div className="mb-8 flex flex-wrap gap-3 text-sm text-neutral-300">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
-            <CheckCircle2 className="size-4 text-amber-300" />
+        <div className="mb-8 flex flex-wrap gap-3 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2">
+            <CheckCircle2 className="size-4 text-foreground" />
             Slug público e branding
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
-            <CheckCircle2 className="size-4 text-amber-300" />
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2">
+            <CheckCircle2 className="size-4 text-foreground" />
             Equipa e serviços modelados
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
-            <CheckCircle2 className="size-4 text-amber-300" />
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2">
+            <CheckCircle2 className="size-4 text-foreground" />
             Preview vivo da página pública
           </span>
         </div>

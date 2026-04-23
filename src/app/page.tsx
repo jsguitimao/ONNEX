@@ -68,7 +68,7 @@ export default async function HomePage() {
               <Scissors className="size-5" />
             </div>
             <div>
-              <p className="font-heading text-lg font-semibold tracking-tight">BUKBARBEARIA.COM</p>
+              <p className="text-lg font-semibold tracking-tight">BUKBARBEARIA.COM</p>
               <p className="text-sm text-muted-foreground">software de agendamento para barbearias</p>
             </div>
           </Link>
@@ -100,7 +100,7 @@ export default async function HomePage() {
             <Badge variant="secondary" className="mb-6 rounded-full px-4 py-1.5">
               Marca nova, arquitetura limpa e foco total na operação da barbearia
             </Badge>
-            <h1 className="font-heading text-5xl font-semibold tracking-tight sm:text-6xl">
+            <h1 className="text-5xl font-semibold tracking-tight sm:text-6xl">
               BUKBARBEARIA.COM: agendamento, operação e crescimento para a tua barbearia.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
@@ -147,7 +147,7 @@ export default async function HomePage() {
               <Badge variant="outline" className="w-fit rounded-full">
                 Base do produto
               </Badge>
-              <CardTitle className="font-heading text-2xl">
+              <CardTitle className="text-2xl">
                 O que já estamos a construir com consistência
               </CardTitle>
             </CardHeader>
@@ -173,7 +173,7 @@ export default async function HomePage() {
                 <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <pillar.icon className="size-5" />
                 </div>
-                <CardTitle className="font-heading text-xl">{pillar.title}</CardTitle>
+                <CardTitle className="text-xl">{pillar.title}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm leading-7 text-muted-foreground">{pillar.description}</p>

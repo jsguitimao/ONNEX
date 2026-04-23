@@ -224,7 +224,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="font-heading text-xl font-semibold">Gestão do negócio</h2>
+          <h2 className="text-xl font-semibold">Gestão do negócio</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Serviços, equipa e disponibilidade semanal.
           </p>
@@ -255,7 +255,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <div>
-          <h3 className="mb-4 font-heading text-base font-semibold">Serviços</h3>
+          <h3 className="mb-4 text-base font-semibold">Serviços</h3>
           <div className="grid gap-4">
             {snapshot.services.map((service) => {
               const draft = serviceDrafts[service.id] ?? makeServiceDraft(service);
@@ -423,7 +423,7 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
         </div>
 
         <div>
-          <h3 className="mb-4 font-heading text-base font-semibold">Equipa e disponibilidade</h3>
+          <h3 className="mb-4 text-base font-semibold">Equipa e disponibilidade</h3>
           <div className="grid gap-4">
             {snapshot.staffMembers.map((member) => {
               const draft = staffDrafts[member.id] ?? makeStaffDraft(member);

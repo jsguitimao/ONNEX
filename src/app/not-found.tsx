@@ -12,7 +12,7 @@ export default function NotFound() {
             <SearchX className="size-7" />
           </div>
           <p className="mt-6 text-sm font-medium uppercase tracking-[0.18em] text-primary">404</p>
-          <h1 className="mt-3 font-heading text-4xl font-semibold tracking-tight">
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight">
             A pagina que procuras nao esta disponivel.
           </h1>
           <p className="mt-4 max-w-xl text-muted-foreground">

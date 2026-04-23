@@ -327,7 +327,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
     <div className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="font-heading text-xl font-semibold">Agenda operacional</h2>
+          <h2 className="text-xl font-semibold">Agenda operacional</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Vista diária e semanal com ações rápidas de gestão.
           </p>
@@ -582,7 +582,7 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                     {format(day, "EEE")}
                   </p>
-                  <p className="mt-2 font-heading text-2xl font-semibold">{format(day, "dd")}</p>
+                  <p className="mt-2 text-2xl font-semibold">{format(day, "dd")}</p>
                   <p className="mt-3 text-sm text-muted-foreground">{bookings.length} reservas</p>
                 </button>
               );
@@ -592,38 +592,38 @@ export function DashboardAgenda({ initialSnapshot, initialWeekSnapshot }: Dashbo
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-xl border border-border/70 px-4 py-3">
             <p className="text-xs text-muted-foreground">Hoje</p>
-            <p className="font-heading text-2xl font-semibold">{summary.total}</p>
+            <p className="text-2xl font-semibold">{summary.total}</p>
           </div>
           <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3">
             <p className="text-xs text-sky-600">Confirmadas</p>
-            <p className="font-heading text-2xl font-semibold text-sky-700">{summary.confirmed}</p>
+            <p className="text-2xl font-semibold text-sky-700">{summary.confirmed}</p>
           </div>
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
             <p className="text-xs text-amber-600">Pendentes</p>
-            <p className="font-heading text-2xl font-semibold text-amber-700">{summary.pending}</p>
+            <p className="text-2xl font-semibold text-amber-700">{summary.pending}</p>
           </div>
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
             <p className="text-xs text-emerald-600">Concluídas</p>
-            <p className="font-heading text-2xl font-semibold text-emerald-700">{summary.completed}</p>
+            <p className="text-2xl font-semibold text-emerald-700">{summary.completed}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 rounded-xl border border-border/70 px-4 py-3 sm:grid-cols-4">
           <div>
             <p className="text-xs text-muted-foreground">Semana</p>
-            <p className="font-heading text-lg font-semibold">{weekSummary.total}</p>
+            <p className="text-lg font-semibold">{weekSummary.total}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Confirmadas</p>
-            <p className="font-heading text-lg font-semibold">{weekSummary.confirmed}</p>
+            <p className="text-lg font-semibold">{weekSummary.confirmed}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Pendentes</p>
-            <p className="font-heading text-lg font-semibold">{weekSummary.pending}</p>
+            <p className="text-lg font-semibold">{weekSummary.pending}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Receita prevista</p>
-            <p className="font-heading text-lg font-semibold">{formatEuro(weekSummary.revenue)}</p>
+            <p className="text-lg font-semibold">{formatEuro(weekSummary.revenue)}</p>
           </div>
         </div>
 

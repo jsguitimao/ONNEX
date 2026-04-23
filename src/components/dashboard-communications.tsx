@@ -286,23 +286,23 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-xl bg-emerald-500/10 px-4 py-3">
           <p className="text-xs font-medium text-emerald-700/70">Enviados (24h)</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-emerald-700">
+          <p className="mt-1 text-2xl font-bold text-emerald-700">
             {initialSnapshot.totals.sentLast24h}
           </p>
         </div>
         <div className="rounded-xl bg-red-500/10 px-4 py-3">
           <p className="text-xs font-medium text-red-700/70">Falhas (24h)</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-red-700">
+          <p className="mt-1 text-2xl font-bold text-red-700">
             {initialSnapshot.totals.failedLast24h}
           </p>
         </div>
         <div className="rounded-xl bg-sky-500/10 px-4 py-3">
           <p className="text-xs font-medium text-sky-700/70">Total enviados</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-sky-700">{sentCount}</p>
+          <p className="mt-1 text-2xl font-bold text-sky-700">{sentCount}</p>
         </div>
         <div className="rounded-xl bg-amber-500/10 px-4 py-3">
           <p className="text-xs font-medium text-amber-700/70">Total registos</p>
-          <p className="mt-1 font-heading text-2xl font-bold text-amber-700">{totalNotifications}</p>
+          <p className="mt-1 text-2xl font-bold text-amber-700">{totalNotifications}</p>
         </div>
       </div>
 
@@ -344,15 +344,15 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
               </p>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-muted/40 px-2 py-2">
-                  <p className="font-heading text-lg font-bold">{engineRun.sent}</p>
+                  <p className="text-lg font-bold">{engineRun.sent}</p>
                   <p className="text-[10px] text-muted-foreground">Enviados</p>
                 </div>
                 <div className="rounded-lg bg-muted/40 px-2 py-2">
-                  <p className="font-heading text-lg font-bold">{engineRun.skipped}</p>
+                  <p className="text-lg font-bold">{engineRun.skipped}</p>
                   <p className="text-[10px] text-muted-foreground">Ignorados</p>
                 </div>
                 <div className="rounded-lg bg-muted/40 px-2 py-2">
-                  <p className="font-heading text-lg font-bold">{engineRun.failed}</p>
+                  <p className="text-lg font-bold">{engineRun.failed}</p>
                   <p className="text-[10px] text-muted-foreground">Falhas</p>
                 </div>
               </div>

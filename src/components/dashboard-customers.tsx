@@ -98,7 +98,7 @@ export function DashboardCustomers({ initialSnapshot }: DashboardCustomersProps)
     <div className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="font-heading text-xl font-semibold">Clientes e CRM</h2>
+          <h2 className="text-xl font-semibold">Clientes e CRM</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Notas, histórico e preferências de cada cliente.
           </p>

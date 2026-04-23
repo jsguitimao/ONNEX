@@ -30,13 +30,13 @@ export function LegalPageShell({
 
           <section className="rounded-[2rem] border bg-card p-8 shadow-sm">
             <p className="text-sm font-medium uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
-            <h1 className="mt-4 font-heading text-4xl font-semibold tracking-tight">{title}</h1>
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight">{title}</h1>
             <p className="mt-4 max-w-2xl text-muted-foreground">{description}</p>
             <p className="mt-4 text-sm text-muted-foreground">Ultima atualizacao: {updatedAt}</p>
           </section>
 
           <section className="rounded-[2rem] border bg-card p-8 shadow-sm">
-            <div className="grid gap-8 text-sm leading-7 text-muted-foreground [&_h2]:font-heading [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_p_strong]:text-foreground [&_ul]:grid [&_ul]:gap-2 [&_li]:ml-5 [&_li]:list-disc">
+            <div className="grid gap-8 text-sm leading-7 text-muted-foreground [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_p_strong]:text-foreground [&_ul]:grid [&_ul]:gap-2 [&_li]:ml-5 [&_li]:list-disc">
               {children}
             </div>
           </section>

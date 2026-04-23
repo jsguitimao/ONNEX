@@ -155,7 +155,7 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm text-muted-foreground">Gestão da tua reserva</p>
-          <h1 className="font-heading text-3xl font-semibold">{booking.businessName}</h1>
+          <h1 className="text-3xl font-semibold">{booking.businessName}</h1>
         </div>
         <span className="rounded-full border bg-muted px-3 py-1 text-sm font-medium">
           {statusLabel[booking.status]}
@@ -264,7 +264,6 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
         {booking.canReconfirm ? (
           <Button
             disabled={loadingAction !== null}
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
             onClick={async () => {
               setLoadingAction("reconfirm");
               setError(null);
