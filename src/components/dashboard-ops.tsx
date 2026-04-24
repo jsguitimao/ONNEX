@@ -4,6 +4,7 @@ import { startTransition, useRef, useState } from "react";
 import { Check, ImageIcon, Loader2, LoaderCircle, Plus, Save, Trash2, Upload, UserRound, X } from "lucide-react";
 import { DEFAULT_AVAILABILITY } from "@/lib/business-modules/types";
 import type { AvailabilityInput, ManagementSnapshot } from "@/lib/business";
+import { uploadMedia } from "@/lib/client-upload";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,16 +101,8 @@ function AvatarUploader({
     setError("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = (await response.json()) as { url?: string; error?: string };
-
-      if (!response.ok || !data.url) {
-        throw new Error(data.error ?? "Erro ao carregar ficheiro.");
-      }
-      onChange(data.url);
+      const url = await uploadMedia(file);
+      onChange(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado ao carregar.");
     } finally {
@@ -201,16 +194,8 @@ function PortfolioUploader({
     try {
       const uploaded: string[] = [];
       for (const file of Array.from(files).slice(0, remaining)) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("/api/upload", { method: "POST", body: formData });
-        const data = (await response.json()) as { url?: string; error?: string };
-
-        if (!response.ok || !data.url) {
-          throw new Error(data.error ?? "Erro ao carregar ficheiro.");
-        }
-        uploaded.push(data.url);
+        const url = await uploadMedia(file);
+        uploaded.push(url);
       }
 
       onChange([...images, ...uploaded]);

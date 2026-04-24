@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import type { OnboardingDraft } from "@/lib/business";
+import { uploadMedia } from "@/lib/client-upload";
 import { normalizeOnboardingDraft } from "@/lib/onboarding-input";
 import { cn } from "@/lib/utils";
 
@@ -370,21 +371,8 @@ function HeroMediaField({
     setError("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = (await response.json()) as { url?: string; error?: string };
-
-      if (!response.ok || !data.url) {
-        throw new Error(data.error ?? "Erro ao carregar ficheiro.");
-      }
-
-      onChange(data.url);
+      const url = await uploadMedia(file);
+      onChange(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado ao carregar.");
     } finally {
