@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -90,42 +90,12 @@ type PortfolioCarouselProps = {
 };
 
 function PortfolioCarousel({ staffName, images }: PortfolioCarouselProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(images.length > 1);
-  const [paused, setPaused] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [touchPaused, setTouchPaused] = useState(false);
 
-  const refreshArrows = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-  }, []);
-
-  const scroll = useCallback((direction: "left" | "right") => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const step = el.clientWidth * 0.9;
-    el.scrollBy({ left: direction === "left" ? -step : step, behavior: "smooth" });
-  }, []);
-
-  useEffect(() => {
-    if (images.length < 2 || paused || lightboxIndex !== null) return;
-
-    const interval = setInterval(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-      const reachedEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
-      if (reachedEnd) {
-        el.scrollTo({ left: 0, behavior: "smooth" });
-      } else {
-        el.scrollBy({ left: el.clientWidth * 0.9, behavior: "smooth" });
-      }
-    }, 3500);
-
-    return () => clearInterval(interval);
-  }, [images.length, paused, lightboxIndex]);
+  const shouldAnimate = images.length > 1;
+  // Duplicamos as imagens para o loop visual ser sem "salto"
+  const loopedImages = shouldAnimate ? [...images, ...images] : images;
 
   return (
     <section aria-label={`Trabalhos de ${staffName}`} className="flex flex-col gap-3">
@@ -133,58 +103,39 @@ function PortfolioCarousel({ staffName, images }: PortfolioCarouselProps) {
         <h3 className="text-sm font-semibold text-foreground">Últimos trabalhos de {staffName}</h3>
         <p className="text-xs text-muted-foreground">{images.length} {images.length === 1 ? "foto" : "fotos"}</p>
       </header>
-      <div
-        className="relative"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onTouchStart={() => setPaused(true)}
-      >
+      <div className="relative overflow-hidden rounded-2xl">
         <div
-          ref={scrollRef}
-          onScroll={refreshArrows}
-          className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-2xl"
+          className={cn(
+            "flex gap-3 will-change-transform",
+            shouldAnimate && "animate-marquee",
+            shouldAnimate && touchPaused && "animate-marquee-paused"
+          )}
+          style={{ width: shouldAnimate ? "max-content" : undefined }}
+          onTouchStart={() => setTouchPaused(true)}
+          onTouchEnd={() => setTouchPaused(false)}
         >
-          {images.map((src, idx) => (
-            <button
-              type="button"
-              key={`${src}-${idx}`}
-              onClick={() => setLightboxIndex(idx)}
-              aria-label={`Abrir trabalho ${idx + 1} em tamanho grande`}
-              className="group relative aspect-square w-[70%] flex-none cursor-zoom-in snap-start overflow-hidden rounded-xl bg-muted sm:w-[40%] lg:w-[25%]"
-            >
-              <Image
-                src={src}
-                alt={`Trabalho ${idx + 1} de ${staffName}`}
-                fill
-                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 40vw, 70vw"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            </button>
-          ))}
+          {loopedImages.map((src, idx) => {
+            const realIndex = idx % images.length;
+            return (
+              <button
+                type="button"
+                key={`${src}-${idx}`}
+                onClick={() => setLightboxIndex(realIndex)}
+                aria-hidden={idx >= images.length}
+                aria-label={`Abrir trabalho ${realIndex + 1} em tamanho grande`}
+                className="group relative aspect-square w-[70vw] max-w-[280px] flex-none cursor-zoom-in overflow-hidden rounded-xl bg-muted sm:w-[40vw] sm:max-w-[300px] lg:w-[25vw] lg:max-w-[320px]"
+              >
+                <Image
+                  src={src}
+                  alt={`Trabalho ${realIndex + 1} de ${staffName}`}
+                  fill
+                  sizes="(min-width: 1024px) 320px, (min-width: 640px) 300px, 70vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              </button>
+            );
+          })}
         </div>
-
-        {images.length > 1 ? (
-          <>
-            <button
-              type="button"
-              onClick={() => scroll("left")}
-              disabled={!canScrollLeft}
-              aria-label="Anterior"
-              className="absolute left-2 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-md backdrop-blur transition hover:bg-background disabled:opacity-0"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => scroll("right")}
-              disabled={!canScrollRight}
-              aria-label="Próximo"
-              className="absolute right-2 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-md backdrop-blur transition hover:bg-background disabled:opacity-0"
-            >
-              <ChevronRight className="size-5" />
-            </button>
-          </>
-        ) : null}
       </div>
 
       {lightboxIndex !== null ? (

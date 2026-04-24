@@ -140,4 +140,22 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  @keyframes marquee-x {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee-x 40s linear infinite;
+  }
+
+  .animate-marquee:hover,
+  .animate-marquee-paused {
+    animation-play-state: paused;
+  }
 }
