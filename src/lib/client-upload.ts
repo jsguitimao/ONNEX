@@ -45,19 +45,49 @@ export async function uploadMedia(
 
   const pathname = pickPathname(file);
 
-  const blob = await upload(pathname, file, {
-    access: "public",
-    handleUploadUrl: "/api/upload",
-    onUploadProgress: onProgress
-      ? (event) => {
+  // Detecção de upload preso: se não progredir em 30s, aborta com mensagem útil.
+  let lastProgressAt = Date.now();
+  const stallChecker = setInterval(() => {
+    if (Date.now() - lastProgressAt > 30_000) {
+      clearInterval(stallChecker);
+      console.error("[uploadMedia] stall detected", { pathname, size: file.size });
+    }
+  }, 5_000);
+
+  try {
+    const blob = await upload(pathname, file, {
+      access: "public",
+      handleUploadUrl: "/api/upload",
+      onUploadProgress: (event) => {
+        lastProgressAt = Date.now();
+        if (onProgress) {
           onProgress({
             percent: Math.round(event.percentage),
             loaded: event.loaded,
             total: event.total,
           });
         }
-      : undefined,
-  });
+      },
+    });
 
-  return blob.url;
+    return blob.url;
+  } catch (error) {
+    console.error("[uploadMedia] error", error);
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes("unauthorized") || msg.includes("401")) {
+        throw new Error("Sessão expirou. Faz login novamente.");
+      }
+      if (msg.includes("network") || msg.includes("failed to fetch")) {
+        throw new Error("Falha de rede. Verifica a ligação à internet.");
+      }
+      if (msg.includes("blob") || msg.includes("storage")) {
+        throw new Error(`Erro no storage: ${error.message}`);
+      }
+      throw error;
+    }
+    throw new Error("Erro inesperado ao carregar.");
+  } finally {
+    clearInterval(stallChecker);
+  }
 }

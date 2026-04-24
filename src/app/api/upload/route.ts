@@ -11,14 +11,21 @@ const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "avif", "gif", "
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  console.log("[upload] request received", {
+    method: req.method,
+    hasBlobToken: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+  });
   try {
     const body = (await req.json()) as HandleUploadBody;
+    console.log("[upload] body parsed", { type: body?.type });
 
     const jsonResponse = await handleUpload({
       body,
       request: req,
       onBeforeGenerateToken: async (pathname) => {
+        console.log("[upload] onBeforeGenerateToken", { pathname });
         const business = await getCurrentBusiness();
+        console.log("[upload] business authenticated", { businessId: business.id });
 
         const rawExtension = pathname.split(".").pop()?.toLowerCase() ?? "";
         const isVideoByExt = VIDEO_EXTENSIONS.has(rawExtension);
@@ -44,7 +51,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
-    console.error("POST upload error:", error);
+    console.error("[upload] error", {
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack?.split("\n").slice(0, 3).join(" | ") : undefined,
+    });
     const message =
       error instanceof Error ? error.message : "Erro ao carregar ficheiro.";
     return NextResponse.json({ error: message }, { status: 400 });
