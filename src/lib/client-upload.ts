@@ -20,7 +20,16 @@ function pickPathname(file: File) {
   return `media/${Date.now()}.${safeExt}`;
 }
 
-export async function uploadMedia(file: File): Promise<string> {
+export type UploadProgress = {
+  percent: number;
+  loaded: number;
+  total: number;
+};
+
+export async function uploadMedia(
+  file: File,
+  onProgress?: (progress: UploadProgress) => void,
+): Promise<string> {
   if (!file) {
     throw new Error("Ficheiro em falta.");
   }
@@ -39,6 +48,15 @@ export async function uploadMedia(file: File): Promise<string> {
   const blob = await upload(pathname, file, {
     access: "public",
     handleUploadUrl: "/api/upload",
+    onUploadProgress: onProgress
+      ? (event) => {
+          onProgress({
+            percent: Math.round(event.percentage),
+            loaded: event.loaded,
+            total: event.total,
+          });
+        }
+      : undefined,
   });
 
   return blob.url;

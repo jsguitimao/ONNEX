@@ -114,7 +114,7 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               Hero (imagem ou vídeo)
             </div>
             <p className="-mt-2 text-xs text-muted-foreground">
-              Foto ou vídeo grande no topo da página pública. Vídeos tocam em loop, sem som. Imagens até 10MB, vídeos até 25MB.
+              Foto ou vídeo grande no topo da página pública. Vídeos tocam em loop, sem som. Imagens até 10MB, vídeos até 50MB.
             </p>
             <HeroMediaField
               value={form.heroImageUrl}
@@ -360,6 +360,7 @@ function HeroMediaField({
   onChange: (value: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -368,15 +369,17 @@ function HeroMediaField({
     if (!file) return;
 
     setUploading(true);
+    setProgress(0);
     setError("");
 
     try {
-      const url = await uploadMedia(file);
+      const url = await uploadMedia(file, ({ percent }) => setProgress(percent));
       onChange(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado ao carregar.");
     } finally {
       setUploading(false);
+      setProgress(0);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -400,7 +403,7 @@ function HeroMediaField({
           className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-semibold text-foreground transition hover:border-ring hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
           {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-          {uploading ? "A carregar..." : "Carregar"}
+          {uploading ? `A carregar... ${progress}%` : "Carregar"}
         </button>
         <input
           ref={fileInputRef}
