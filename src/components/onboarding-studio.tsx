@@ -177,37 +177,6 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
 
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
-              <Store className="size-4 text-muted-foreground" />
-              Comunicação
-            </div>
-            <div className="grid gap-4">
-              <Field label="Tagline do hero (opcional)">
-                <FormInput
-                  value={form.heroTagline}
-                  onChange={(e) => updateField("heroTagline", e.target.value)}
-                  placeholder="Ex: Barbearia · Lisboa"
-                />
-              </Field>
-              <Field label="Headline (opcional)">
-                <FormInput value={form.headline} onChange={(e) => updateField("headline", e.target.value)} placeholder="Ex: Estilo é um reflexo da tua atitude" />
-              </Field>
-              <Field label="Subheadline">
-                <FormTextarea
-                  value={form.subheadline}
-                  onChange={(e) => updateField("subheadline", e.target.value)}
-                />
-              </Field>
-              <Field label="Mensagem de boas-vindas">
-                <FormTextarea
-                  value={form.welcomeMessage}
-                  onChange={(e) => updateField("welcomeMessage", e.target.value)}
-                />
-              </Field>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium">
               <Settings2 className="size-4 text-muted-foreground" />
               Preferências operacionais
             </div>

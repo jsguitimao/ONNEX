@@ -651,13 +651,28 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
                 >
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <UserRound className="size-5" />
-                      </div>
+                      {member.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={member.avatarUrl}
+                          alt={member.fullName}
+                          className="size-11 rounded-2xl object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                          <UserRound className="size-5" />
+                        </div>
+                      )}
                       <div>
                         <p className="font-medium">{member.fullName}</p>
                         <p className="text-sm text-muted-foreground">
                           {member.roleTitle ?? "Profissional"} · {member.serviceIds.length} serviços
+                          {member.portfolioImages.length > 0
+                            ? ` · ${member.portfolioImages.length} foto${member.portfolioImages.length === 1 ? "" : "s"}`
+                            : ""}
                         </p>
                       </div>
                     </div>
