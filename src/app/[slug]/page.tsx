@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { HeroVideo } from "@/components/hero-video";
 import { PublicBookingFlow } from "@/components/public-booking-flow";
 import { PublicStaffGrid } from "@/components/public-staff-grid";
 import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
@@ -128,16 +129,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
       <section className="relative h-[70vh] w-full overflow-hidden bg-muted md:h-screen">
         {heroImage ? (
           isHeroVideo(heroImage) ? (
-            <video
-              src={heroImage}
-              className="h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              aria-label={`${business.name} — vídeo principal`}
-            />
+            <HeroVideo src={heroImage} ariaLabel={`${business.name} — vídeo principal`} />
           ) : (
             <Image
               src={heroImage}
@@ -151,7 +143,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         ) : null}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-b from-transparent to-background"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-background"
         />
       </section>
 

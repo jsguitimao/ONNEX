@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type StaffMember = {
@@ -93,6 +93,8 @@ function PortfolioCarousel({ staffName, images }: PortfolioCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(images.length > 1);
+  const [paused, setPaused] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const refreshArrows = useCallback(() => {
     const el = scrollRef.current;
@@ -101,12 +103,29 @@ function PortfolioCarousel({ staffName, images }: PortfolioCarouselProps) {
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
   }, []);
 
-  function scroll(direction: "left" | "right") {
+  const scroll = useCallback((direction: "left" | "right") => {
     const el = scrollRef.current;
     if (!el) return;
     const step = el.clientWidth * 0.9;
     el.scrollBy({ left: direction === "left" ? -step : step, behavior: "smooth" });
-  }
+  }, []);
+
+  useEffect(() => {
+    if (images.length < 2 || paused || lightboxIndex !== null) return;
+
+    const interval = setInterval(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const reachedEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+      if (reachedEnd) {
+        el.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        el.scrollBy({ left: el.clientWidth * 0.9, behavior: "smooth" });
+      }
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [images.length, paused, lightboxIndex]);
 
   return (
     <section aria-label={`Trabalhos de ${staffName}`} className="flex flex-col gap-3">
@@ -114,25 +133,33 @@ function PortfolioCarousel({ staffName, images }: PortfolioCarouselProps) {
         <h3 className="text-sm font-semibold text-foreground">Últimos trabalhos de {staffName}</h3>
         <p className="text-xs text-muted-foreground">{images.length} {images.length === 1 ? "foto" : "fotos"}</p>
       </header>
-      <div className="relative">
+      <div
+        className="relative"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onTouchStart={() => setPaused(true)}
+      >
         <div
           ref={scrollRef}
           onScroll={refreshArrows}
           className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-2xl"
         >
           {images.map((src, idx) => (
-            <div
+            <button
+              type="button"
               key={`${src}-${idx}`}
-              className="relative aspect-square w-[70%] flex-none snap-start overflow-hidden rounded-xl bg-muted sm:w-[40%] lg:w-[25%]"
+              onClick={() => setLightboxIndex(idx)}
+              aria-label={`Abrir trabalho ${idx + 1} em tamanho grande`}
+              className="group relative aspect-square w-[70%] flex-none cursor-zoom-in snap-start overflow-hidden rounded-xl bg-muted sm:w-[40%] lg:w-[25%]"
             >
               <Image
                 src={src}
                 alt={`Trabalho ${idx + 1} de ${staffName}`}
                 fill
                 sizes="(min-width: 1024px) 25vw, (min-width: 640px) 40vw, 70vw"
-                className="object-cover"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
               />
-            </div>
+            </button>
           ))}
         </div>
 
@@ -159,6 +186,107 @@ function PortfolioCarousel({ staffName, images }: PortfolioCarouselProps) {
           </>
         ) : null}
       </div>
+
+      {lightboxIndex !== null ? (
+        <PortfolioLightbox
+          images={images}
+          startIndex={lightboxIndex}
+          staffName={staffName}
+          onClose={() => setLightboxIndex(null)}
+        />
+      ) : null}
     </section>
+  );
+}
+
+type LightboxProps = {
+  images: string[];
+  startIndex: number;
+  staffName: string;
+  onClose: () => void;
+};
+
+function PortfolioLightbox({ images, startIndex, staffName, onClose }: LightboxProps) {
+  const [index, setIndex] = useState(startIndex);
+
+  const goPrev = useCallback(() => {
+    setIndex((current) => (current - 1 + images.length) % images.length);
+  }, [images.length]);
+
+  const goNext = useCallback(() => {
+    setIndex((current) => (current + 1) % images.length);
+  }, [images.length]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft") goPrev();
+      if (event.key === "ArrowRight") goNext();
+    };
+    document.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose, goPrev, goNext]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Foto ${index + 1} de ${staffName}`}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Fechar"
+        className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white transition hover:bg-black/70"
+      >
+        <X className="size-5" />
+      </button>
+
+      <div
+        className="relative h-full max-h-[90vh] w-full max-w-5xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Image
+          src={images[index]}
+          alt={`Trabalho ${index + 1} de ${staffName}`}
+          fill
+          sizes="100vw"
+          priority
+          className="object-contain"
+        />
+
+        {images.length > 1 ? (
+          <>
+            <button
+              type="button"
+              onClick={goPrev}
+              aria-label="Anterior"
+              className="absolute left-2 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white transition hover:bg-black/70"
+            >
+              <ChevronLeft className="size-6" />
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              aria-label="Próximo"
+              className="absolute right-2 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white transition hover:bg-black/70"
+            >
+              <ChevronRight className="size-6" />
+            </button>
+          </>
+        ) : null}
+
+        <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
+          {index + 1} / {images.length}
+        </p>
+      </div>
+    </div>
   );
 }
