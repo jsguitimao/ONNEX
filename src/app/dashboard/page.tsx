@@ -27,8 +27,16 @@ export default async function DashboardPreviewPage() {
       getCommunicationSnapshot(),
     ]);
   } catch (error) {
-    if (error instanceof Error && error.message === "AUTH_REQUIRED") {
-      redirect("/sign-in?redirect_url=/dashboard");
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+      if (
+        msg.includes("auth_required") ||
+        msg.includes("unauthenticated") ||
+        msg.includes("not authenticated") ||
+        msg.includes("sign in")
+      ) {
+        redirect("/sign-in?redirect_url=/dashboard");
+      }
     }
     throw error;
   }

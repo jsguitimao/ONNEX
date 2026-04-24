@@ -12,8 +12,16 @@ export default async function OnboardingPreviewPage() {
   try {
     initialData = await getBusinessForOnboarding();
   } catch (error) {
-    if (error instanceof Error && error.message === "AUTH_REQUIRED") {
-      redirect("/sign-in?redirect_url=/onboarding");
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+      if (
+        msg.includes("auth_required") ||
+        msg.includes("unauthenticated") ||
+        msg.includes("not authenticated") ||
+        msg.includes("sign in")
+      ) {
+        redirect("/sign-in?redirect_url=/onboarding");
+      }
     }
     throw error;
   }
