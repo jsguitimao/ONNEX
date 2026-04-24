@@ -12,6 +12,11 @@ type PublicPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+function isHeroVideo(url: string) {
+  const lowered = url.toLowerCase().split("?")[0];
+  return /\.(mp4|webm|mov)$/.test(lowered);
+}
+
 function buildPublicPageMetadata(input: {
   name: string;
   slug: string;
@@ -92,7 +97,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
     name: business.name,
     url: pageUrl,
     ...(business.description ? { description: business.description } : {}),
-    ...(heroImage ? { image: heroImage } : {}),
+    ...(heroImage && !isHeroVideo(heroImage) ? { image: heroImage } : {}),
     ...(phoneDigits ? { telephone: `+${phoneDigits}` } : {}),
     ...(business.contactEmail ? { email: business.contactEmail } : {}),
     ...(location
@@ -119,18 +124,35 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* 1. Hero — 30vh */}
-      <section className="relative h-[30vh] w-full overflow-hidden bg-muted">
+      {/* 1. Hero — 70vh */}
+      <section className="relative h-[70vh] w-full overflow-hidden bg-muted">
         {heroImage ? (
-          <Image
-            src={heroImage}
-            alt={`${business.name} — imagem principal`}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
+          isHeroVideo(heroImage) ? (
+            <video
+              src={heroImage}
+              className="h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label={`${business.name} — vídeo principal`}
+            />
+          ) : (
+            <Image
+              src={heroImage}
+              alt={`${business.name} — imagem principal`}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          )
         ) : null}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-b from-transparent to-background"
+        />
       </section>
 
       {/* 2. Nome da barbearia */}

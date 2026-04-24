@@ -1,6 +1,8 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== "production";
+
 const securityHeaders = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -16,9 +18,10 @@ const securityHeaders = [
       "frame-ancestors 'self'",
       "object-src 'none'",
       "img-src 'self' data: blob: https:",
+      "media-src 'self' blob: https:",
       "style-src 'self' 'unsafe-inline' https:",
       "font-src 'self' data: https:",
-      "script-src 'self' 'unsafe-inline' https://*.clerk.com https://*.clerk.accounts.dev https://browser.sentry-cdn.com https://challenges.cloudflare.com",
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://*.clerk.com https://*.clerk.accounts.dev https://browser.sentry-cdn.com https://challenges.cloudflare.com`,
       "connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com https://*.sentry.io https://*.ingest.sentry.io https://vitals.vercel-insights.com",
       "frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://challenges.cloudflare.com https://www.google.com",
       "worker-src 'self' blob:",

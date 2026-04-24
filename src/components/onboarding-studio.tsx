@@ -110,13 +110,12 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <ImageIcon className="size-4 text-muted-foreground" />
-              Imagem principal (hero)
+              Hero (imagem ou vídeo)
             </div>
             <p className="-mt-2 text-xs text-muted-foreground">
-              Foto grande no topo da página pública. Se ficar vazio, a imagem de capa é usada como fallback.
+              Foto ou vídeo grande no topo da página pública. Vídeos tocam em loop, sem som. Imagens até 10MB, vídeos até 25MB.
             </p>
-            <ImageField
-              label="Foto hero"
+            <HeroMediaField
               value={form.heroImageUrl}
               onChange={(value) => updateField("heroImageUrl", value)}
             />
@@ -347,12 +346,15 @@ function FormTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) 
   );
 }
 
-function ImageField({
-  label,
+function isVideoUrl(url: string) {
+  const lowered = url.toLowerCase().split("?")[0];
+  return /\.(mp4|webm|mov)$/.test(lowered);
+}
+
+function HeroMediaField({
   value,
   onChange,
 }: {
-  label: string;
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -393,9 +395,10 @@ function ImageField({
     }
   };
 
+  const isVideo = value ? isVideoUrl(value) : false;
+
   return (
     <div className="grid gap-2">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <div className="flex gap-2">
         <FormInput
           value={value}
@@ -414,30 +417,48 @@ function ImageField({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/avif"
+          accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime"
           className="hidden"
           onChange={handleFileChange}
         />
       </div>
       {value ? (
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-muted p-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={value}
-            alt={label}
-            className="h-16 w-16 rounded-lg object-cover"
-            onError={(event) => {
-              (event.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => onChange("")}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition hover:text-destructive"
-          >
-            <X className="size-3.5" />
-            Remover
-          </button>
+        <div className="flex items-start gap-3 rounded-xl border border-border bg-muted p-2">
+          <div className="relative size-24 shrink-0 overflow-hidden rounded-lg bg-background">
+            {isVideo ? (
+              <video
+                src={value}
+                className="h-full w-full object-cover"
+                muted
+                loop
+                playsInline
+                autoPlay
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={value}
+                alt="Preview hero"
+                className="h-full w-full object-cover"
+                onError={(event) => {
+                  (event.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+            )}
+          </div>
+          <div className="flex flex-col gap-1 pt-1">
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-background px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {isVideo ? "Vídeo" : "Imagem"}
+            </span>
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition hover:text-destructive"
+            >
+              <X className="size-3.5" />
+              Remover
+            </button>
+          </div>
         </div>
       ) : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
