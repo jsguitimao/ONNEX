@@ -5,7 +5,7 @@ function Block({ className }: { className: string }) {
 export default function PublicPageLoading() {
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <Block className="h-[70vh] w-full rounded-none" />
+      <Block className="h-[70vh] w-full rounded-none md:h-screen" />
 
       <section className="mx-auto max-w-3xl px-5 pt-10 text-center sm:pt-14">
         <Block className="mx-auto h-10 w-64 max-w-full" />

@@ -124,8 +124,8 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* 1. Hero — 70vh */}
-      <section className="relative h-[70vh] w-full overflow-hidden bg-muted">
+      {/* 1. Hero — 70vh (mobile) / 100vh (desktop) */}
+      <section className="relative h-[70vh] w-full overflow-hidden bg-muted md:h-screen">
         {heroImage ? (
           isHeroVideo(heroImage) ? (
             <video
