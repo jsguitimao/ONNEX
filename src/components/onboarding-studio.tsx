@@ -417,7 +417,7 @@ function HeroMediaField({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime"
+          accept="image/*,video/*"
           className="hidden"
           onChange={handleFileChange}
         />

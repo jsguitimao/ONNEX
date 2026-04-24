@@ -4,8 +4,9 @@ import { getCurrentBusiness } from "@/lib/business-modules/core";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 25 * 1024 * 1024;
-const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
-const ACCEPTED_VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+
+const VIDEO_EXTENSIONS = new Set(["mp4", "webm", "mov", "m4v", "qt"]);
+const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "avif", "gif", "heic", "heif"]);
 
 export const runtime = "nodejs";
 
@@ -24,12 +25,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Ficheiro vazio." }, { status: 400 });
     }
 
-    const isVideo = ACCEPTED_VIDEO_TYPES.has(file.type);
-    const isImage = ACCEPTED_IMAGE_TYPES.has(file.type);
+    const rawExtension = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const declaredType = (file.type || "").toLowerCase();
+    const isVideoByMime = declaredType.startsWith("video/");
+    const isImageByMime = declaredType.startsWith("image/");
+    const isVideoByExt = VIDEO_EXTENSIONS.has(rawExtension);
+    const isImageByExt = IMAGE_EXTENSIONS.has(rawExtension);
+    const isVideo = isVideoByMime || (!isImageByMime && isVideoByExt);
+    const isImage = isImageByMime || (!isVideo && isImageByExt);
 
     if (!isImage && !isVideo) {
       return NextResponse.json(
-        { error: "Formato não suportado. Imagens: JPG, PNG, WEBP, AVIF. Vídeos: MP4, WEBM, MOV." },
+        { error: "Formato não suportado. Imagens: JPG, PNG, WEBP, AVIF, HEIC. Vídeos: MP4, WEBM, MOV, M4V." },
         { status: 415 },
       );
     }
@@ -44,8 +51,7 @@ export async function POST(req: Request) {
     }
 
     const fallbackExtension = isVideo ? "mp4" : "jpg";
-    const extension = file.name.split(".").pop()?.toLowerCase() ?? fallbackExtension;
-    const safeExtension = /^[a-z0-9]{2,5}$/.test(extension) ? extension : fallbackExtension;
+    const safeExtension = /^[a-z0-9]{2,5}$/.test(rawExtension) ? rawExtension : fallbackExtension;
     const pathname = `business/${business.id}/${Date.now()}-${crypto.randomUUID()}.${safeExtension}`;
 
     const blob = await put(pathname, file, {
