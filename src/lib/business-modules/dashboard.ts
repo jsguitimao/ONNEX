@@ -1,4 +1,4 @@
-import { addDays, endOfWeek, format, set, startOfWeek } from "date-fns";
+import { set } from "date-fns";
 import { getCronSecret, getEmailFrom } from "@/lib/app-config";
 import { assertSlotAvailable, runBookingTransaction } from "@/lib/booking-transaction";
 import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
@@ -8,6 +8,15 @@ import {
   sendBookingNotification,
   sendRepresentativeBookingNotification,
 } from "@/lib/notifications";
+import {
+  addDaysToDateKey,
+  getDayOfWeekForDateKey,
+  getSafeTimeZone,
+  getWeekDateKeys,
+  getZonedDateKey,
+  getZonedDayBounds,
+  getZonedTimeValue,
+} from "@/lib/timezone";
 import { getCurrentBusiness } from "./core";
 import { upsertBookingCustomer } from "./customers";
 import type {
@@ -78,12 +87,19 @@ function mapBookingAgendaItem(booking: {
 export async function getDashboardSnapshot() {
   const business = await getCurrentBusiness();
 
-  const monthStart = set(new Date(), { date: 1, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
+  const timeZone = getSafeTimeZone(business.timezone);
+  const currentMonthKey = `${getZonedDateKey(new Date(), timeZone).slice(0, 7)}-01`;
+  const nextMonthKey = addDaysToDateKey(currentMonthKey, 32)?.slice(0, 7).concat("-01") ?? currentMonthKey;
+  const monthStart = getZonedDayBounds(currentMonthKey, timeZone)?.start ?? set(new Date(), { date: 1, hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
+  const nextMonthStart = getZonedDayBounds(nextMonthKey, timeZone)?.start;
+  const monthFilter = nextMonthStart
+    ? { startsAt: { gte: monthStart, lt: nextMonthStart } }
+    : { startsAt: { gte: monthStart } };
   const [monthlyRevenue, bookingsCount, recentBookings] = await Promise.all([
     db.booking.aggregate({
       where: {
         businessId: business.id,
-        startsAt: { gte: monthStart },
+        ...monthFilter,
         status: { notIn: ["CANCELLED", "NO_SHOW"] },
       },
       _sum: {
@@ -93,6 +109,7 @@ export async function getDashboardSnapshot() {
     db.booking.count({
       where: {
         businessId: business.id,
+        ...monthFilter,
       },
     }),
     db.booking.findMany({
@@ -235,19 +252,20 @@ export async function getCommunicationSnapshot(): Promise<CommunicationSnapshot>
 
 export async function getBookingAgenda(input?: { date?: string; staffMemberId?: string }): Promise<BookingAgendaSnapshot> {
   const business = await getCurrentBusiness();
-  const requestedDate = input?.date ? new Date(`${input.date}T00:00:00`) : new Date();
-  const safeDate = Number.isNaN(requestedDate.getTime()) ? new Date() : requestedDate;
-  const dayStart = set(safeDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
-  const dayEnd = set(safeDate, { hours: 23, minutes: 59, seconds: 59, milliseconds: 999 });
+  const timeZone = getSafeTimeZone(business.timezone);
+  const dateKey = input?.date && getZonedDayBounds(input.date, timeZone)
+    ? input.date
+    : getZonedDateKey(new Date(), timeZone);
+  const dayBounds = getZonedDayBounds(dateKey, timeZone)!;
 
   const bookings = await db.booking.findMany({
     where: {
       businessId: business.id,
       startsAt: {
-        lt: dayEnd,
+        lt: dayBounds.endExclusive,
       },
       endsAt: {
-        gt: dayStart,
+        gt: dayBounds.start,
       },
       ...(input?.staffMemberId ? { staffMemberId: input.staffMemberId } : {}),
     },
@@ -261,10 +279,10 @@ export async function getBookingAgenda(input?: { date?: string; staffMemberId?: 
     where: {
       businessId: business.id,
       startsAt: {
-        lt: dayEnd,
+        lt: dayBounds.endExclusive,
       },
       endsAt: {
-        gt: dayStart,
+        gt: dayBounds.start,
       },
       ...(input?.staffMemberId ? { OR: [{ staffMemberId: input.staffMemberId }, { staffMemberId: null }] } : {}),
     },
@@ -275,7 +293,7 @@ export async function getBookingAgenda(input?: { date?: string; staffMemberId?: 
   });
 
   return {
-    date: format(dayStart, "yyyy-MM-dd"),
+    date: dateKey,
     staffMembers: business.staffMembers.map((member) => ({
       id: member.id,
       fullName: member.fullName,
@@ -305,20 +323,24 @@ export async function getBookingAgendaWeek(input?: {
   staffMemberId?: string;
 }): Promise<BookingAgendaWeekSnapshot> {
   const business = await getCurrentBusiness();
-  const requestedDate = input?.date ? new Date(`${input.date}T00:00:00`) : new Date();
-  const safeDate = Number.isNaN(requestedDate.getTime()) ? new Date() : requestedDate;
-  const weekStart = startOfWeek(safeDate, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(safeDate, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+  const timeZone = getSafeTimeZone(business.timezone);
+  const dateKey = input?.date && getZonedDayBounds(input.date, timeZone)
+    ? input.date
+    : getZonedDateKey(new Date(), timeZone);
+  const weekDays = getWeekDateKeys(dateKey, 1);
+  const weekStartBounds = getZonedDayBounds(weekDays[0] ?? dateKey, timeZone)!;
+  const lastWeekDay = weekDays[weekDays.length - 1] ?? dateKey;
+  const nextWeekDay = addDaysToDateKey(lastWeekDay, 1) ?? lastWeekDay;
+  const weekEndExclusive = getZonedDayBounds(nextWeekDay, timeZone)?.start ?? weekStartBounds.endExclusive;
 
   const bookings = await db.booking.findMany({
     where: {
       businessId: business.id,
       startsAt: {
-        lt: weekEnd,
+        lt: weekEndExclusive,
       },
       endsAt: {
-        gt: weekStart,
+        gt: weekStartBounds.start,
       },
       ...(input?.staffMemberId ? { staffMemberId: input.staffMemberId } : {}),
     },
@@ -330,19 +352,19 @@ export async function getBookingAgendaWeek(input?: {
   });
 
   const grouped = Object.fromEntries(
-    weekDays.map((day) => [format(day, "yyyy-MM-dd"), [] as BookingAgendaItem[]])
+    weekDays.map((day) => [day, [] as BookingAgendaItem[]])
   ) as Record<string, BookingAgendaItem[]>;
 
   for (const booking of bookings) {
-    const key = format(booking.startsAt, "yyyy-MM-dd");
+    const key = getZonedDateKey(booking.startsAt, timeZone);
     if (grouped[key]) {
       grouped[key].push(mapBookingAgendaItem(booking));
     }
   }
 
   return {
-    weekStart: format(weekStart, "yyyy-MM-dd"),
-    weekEnd: format(weekEnd, "yyyy-MM-dd"),
+    weekStart: weekDays[0] ?? dateKey,
+    weekEnd: lastWeekDay,
     bookingsByDate: grouped,
   };
 }
@@ -396,11 +418,12 @@ export async function createManualBooking(input: {
   const staffAvailabilities = await db.weeklyAvailability.findMany({
     where: { staffMemberId: staffMember.id },
   });
-  const bookingDay = startsAt.getDay();
-  const bookingTime = `${String(startsAt.getHours()).padStart(2, "0")}:${String(startsAt.getMinutes()).padStart(2, "0")}`;
-  const endTime = `${String(endsAt.getHours()).padStart(2, "0")}:${String(endsAt.getMinutes()).padStart(2, "0")}`;
+  const businessTimeZone = getSafeTimeZone(business.timezone);
+  const bookingDay = getDayOfWeekForDateKey(getZonedDateKey(startsAt, businessTimeZone));
+  const bookingTime = getZonedTimeValue(startsAt, businessTimeZone);
+  const endTime = getZonedTimeValue(endsAt, businessTimeZone);
   const hasAvailability = staffAvailabilities.some(
-    (slot) => slot.dayOfWeek === bookingDay && slot.startTime <= bookingTime && slot.endTime >= endTime
+    (slot) => bookingDay !== null && slot.dayOfWeek === bookingDay && slot.startTime <= bookingTime && slot.endTime >= endTime
   );
   if (!hasAvailability) {
     throw new Error("FORA_DA_DISPONIBILIDADE");

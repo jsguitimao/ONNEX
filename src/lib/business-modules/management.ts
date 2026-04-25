@@ -141,6 +141,15 @@ export async function createStaffMember(input: {
 }) {
   const business = await getCurrentBusiness();
   const location = business.locations[0];
+  const validServiceIds = new Set(business.services.map((service) => service.id));
+  const requestedServiceIds = Array.from(new Set(input.serviceIds));
+
+  if (
+    requestedServiceIds.length === 0 ||
+    requestedServiceIds.some((serviceId) => !validServiceIds.has(serviceId))
+  ) {
+    throw new Error("STAFF_SERVICE_INVALID");
+  }
 
   const staffMember = await db.staffMember.create({
     data: {
@@ -155,15 +164,13 @@ export async function createStaffMember(input: {
     },
   });
 
-  if (input.serviceIds.length > 0) {
-    await db.staffService.createMany({
-      data: input.serviceIds.map((serviceId) => ({
-        staffMemberId: staffMember.id,
-        serviceId,
-      })),
-      skipDuplicates: true,
-    });
-  }
+  await db.staffService.createMany({
+    data: requestedServiceIds.map((serviceId) => ({
+      staffMemberId: staffMember.id,
+      serviceId,
+    })),
+    skipDuplicates: true,
+  });
 
   await replaceStaffAvailability(staffMember.id, input.availability);
 
@@ -192,6 +199,15 @@ export async function updateStaffMember(
   if (!staffExists) {
     throw new Error("STAFF_NOT_FOUND");
   }
+  const validServiceIds = new Set(business.services.map((service) => service.id));
+  const requestedServiceIds = Array.from(new Set(input.serviceIds));
+
+  if (
+    requestedServiceIds.length === 0 ||
+    requestedServiceIds.some((serviceId) => !validServiceIds.has(serviceId))
+  ) {
+    throw new Error("STAFF_SERVICE_INVALID");
+  }
 
   const staffMember = await db.$transaction(async (tx) => {
     const updated = await tx.staffMember.update({
@@ -217,15 +233,13 @@ export async function updateStaffMember(
       where: { staffMemberId: id },
     });
 
-    if (input.serviceIds.length > 0) {
-      await tx.staffService.createMany({
-        data: input.serviceIds.map((serviceId) => ({
-          staffMemberId: id,
-          serviceId,
-        })),
-        skipDuplicates: true,
-      });
-    }
+    await tx.staffService.createMany({
+      data: requestedServiceIds.map((serviceId) => ({
+        staffMemberId: id,
+        serviceId,
+      })),
+      skipDuplicates: true,
+    });
 
     return updated;
   });

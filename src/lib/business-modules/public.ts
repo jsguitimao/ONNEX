@@ -1,4 +1,3 @@
-import { format, set } from "date-fns";
 import { getBookableRange, getBookingPolicySettings, getCancellationDeadline } from "@/lib/booking-policy";
 import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
 import { db } from "@/lib/db";
@@ -9,6 +8,14 @@ import {
   getPublicBookingTokenExpiresAt,
   isPublicBookingTokenExpired,
 } from "@/lib/public-booking-token";
+import {
+  getDayOfWeekForDateKey,
+  getSafeTimeZone,
+  getZonedDateKey,
+  getZonedDayBounds,
+  getZonedTimeValue,
+  zonedTimeToUtc,
+} from "@/lib/timezone";
 import { upsertBookingCustomer } from "./customers";
 import { getBusinessBySlug } from "./core";
 import type { BookingSlot, PublicBookingDetails, PublicBusinessPayload } from "./types";
@@ -19,6 +26,7 @@ async function listBookingSlots(input: {
   bookingLeadTimeHours?: number | null;
   bookingWindowDays?: number | null;
   slotIntervalMinutes?: number | null;
+  timezone?: string | null;
   serviceId: string;
   staffMemberId: string;
   date: string;
@@ -28,6 +36,7 @@ async function listBookingSlots(input: {
 
   const policy = getBookingPolicySettings(input);
   const { minBookableAt, maxBookableAt } = getBookableRange(input);
+  const timeZone = getSafeTimeZone(input.timezone);
 
   const service = await db.service.findFirst({
     where: {
@@ -56,13 +65,11 @@ async function listBookingSlots(input: {
   const hasService = staffMember.services.some((assignment) => assignment.serviceId === service.id);
   if (!hasService) return [];
 
-  const requestedDate = new Date(`${input.date}T00:00:00`);
-  if (Number.isNaN(requestedDate.getTime())) return [];
-  const dayStart = set(requestedDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
-  const dayEnd = set(requestedDate, { hours: 23, minutes: 59, seconds: 59, milliseconds: 999 });
-  if (dayEnd < minBookableAt || dayStart > maxBookableAt) return [];
+  const dayBounds = getZonedDayBounds(input.date, timeZone);
+  const dayOfWeek = getDayOfWeekForDateKey(input.date);
+  if (!dayBounds || dayOfWeek === null) return [];
+  if (dayBounds.endExclusive <= minBookableAt || dayBounds.start > maxBookableAt) return [];
 
-  const dayOfWeek = requestedDate.getDay();
   const windows = staffMember.availabilities.filter((slot) => slot.dayOfWeek === dayOfWeek);
   if (windows.length === 0) return [];
 
@@ -71,10 +78,10 @@ async function listBookingSlots(input: {
       businessId: input.businessId,
       staffMemberId: staffMember.id,
       startsAt: {
-        lt: dayEnd,
+        lt: dayBounds.endExclusive,
       },
       endsAt: {
-        gt: dayStart,
+        gt: dayBounds.start,
       },
       status: {
         notIn: ["CANCELLED", "NO_SHOW"],
@@ -92,10 +99,10 @@ async function listBookingSlots(input: {
       businessId: input.businessId,
       OR: [{ staffMemberId: staffMember.id }, { staffMemberId: null }],
       startsAt: {
-        lt: dayEnd,
+        lt: dayBounds.endExclusive,
       },
       endsAt: {
-        gt: dayStart,
+        gt: dayBounds.start,
       },
     },
     select: {
@@ -107,20 +114,10 @@ async function listBookingSlots(input: {
   const slots: BookingSlot[] = [];
 
   for (const window of windows) {
-    const [startHour, startMinute] = window.startTime.split(":").map(Number);
-    const [endHour, endMinute] = window.endTime.split(":").map(Number);
-    let cursor = set(requestedDate, {
-      hours: startHour,
-      minutes: startMinute,
-      seconds: 0,
-      milliseconds: 0,
-    });
-    const windowEnd = set(requestedDate, {
-      hours: endHour,
-      minutes: endMinute,
-      seconds: 0,
-      milliseconds: 0,
-    });
+    const cursorStart = zonedTimeToUtc(input.date, window.startTime, timeZone);
+    const windowEnd = zonedTimeToUtc(input.date, window.endTime, timeZone);
+    if (!cursorStart || !windowEnd) continue;
+    let cursor = cursorStart;
 
     while (cursor.getTime() + service.durationMinutes * 60_000 <= windowEnd.getTime()) {
       const candidateEnd = new Date(cursor.getTime() + service.durationMinutes * 60_000);
@@ -134,7 +131,7 @@ async function listBookingSlots(input: {
       if (!overlaps && !overlapsBlock && cursor >= minBookableAt && candidateEnd <= maxBookableAt) {
         slots.push({
           iso: cursor.toISOString(),
-          label: format(cursor, "HH:mm"),
+          label: getZonedTimeValue(cursor, timeZone),
         });
       }
 
@@ -143,6 +140,30 @@ async function listBookingSlots(input: {
   }
 
   return slots;
+}
+
+async function assertPublicSlotIsBookable(input: {
+  businessId: string;
+  onlineBooking: boolean;
+  bookingLeadTimeHours?: number | null;
+  bookingWindowDays?: number | null;
+  slotIntervalMinutes?: number | null;
+  timezone?: string | null;
+  serviceId: string;
+  staffMemberId: string;
+  startsAt: Date;
+  ignoreBookingId?: string;
+}) {
+  const date = getZonedDateKey(input.startsAt, getSafeTimeZone(input.timezone));
+  const slots = await listBookingSlots({
+    ...input,
+    date,
+  });
+  const isBookable = slots.some((slot) => slot.iso === input.startsAt.toISOString());
+
+  if (!isBookable) {
+    throw new Error("FORA_DA_DISPONIBILIDADE");
+  }
 }
 
 function buildPublicBookingDetails(booking: {
@@ -249,6 +270,7 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
     bookingWindowDays: policy.bookingWindowDays,
     slotIntervalMinutes: policy.slotIntervalMinutes,
     cancellationWindowHours: policy.cancellationWindowHours,
+    timezone: business.timezone,
     services: business.services.map((service) => ({
       id: service.id,
       name: service.name,
@@ -285,6 +307,7 @@ export async function getAvailableSlots(input: {
     bookingLeadTimeHours: business.bookingLeadTimeHours,
     bookingWindowDays: business.bookingWindowDays,
     slotIntervalMinutes: business.slotIntervalMinutes,
+    timezone: business.timezone,
     serviceId: input.serviceId,
     staffMemberId: input.staffMemberId,
     date: input.date,
@@ -311,6 +334,7 @@ export async function getPublicBookingRescheduleSlots(token: string, date: strin
     bookingLeadTimeHours: booking.business.bookingLeadTimeHours,
     bookingWindowDays: booking.business.bookingWindowDays,
     slotIntervalMinutes: booking.business.slotIntervalMinutes,
+    timezone: booking.business.timezone,
     serviceId: booking.serviceId,
     staffMemberId: booking.staffMemberId,
     date,
@@ -360,6 +384,17 @@ export async function createPublicBooking(input: {
   }
 
   const endsAt = new Date(startsAt.getTime() + service.durationMinutes * 60_000);
+  await assertPublicSlotIsBookable({
+    businessId: business.id,
+    onlineBooking: business.onlineBooking,
+    bookingLeadTimeHours: business.bookingLeadTimeHours,
+    bookingWindowDays: business.bookingWindowDays,
+    slotIntervalMinutes: business.slotIntervalMinutes,
+    timezone: business.timezone,
+    serviceId: service.id,
+    staffMemberId: staffMember.id,
+    startsAt,
+  });
   const publicToken = createPublicBookingToken();
   const customerInput = sanitizeBookingCustomerInput({
     fullName: input.customerName,
@@ -560,6 +595,18 @@ export async function reschedulePublicBookingByToken(
 
   const endsAt = new Date(startsAt.getTime() + booking.service.durationMinutes * 60_000);
   const staffMemberId = booking.staffMemberId;
+  await assertPublicSlotIsBookable({
+    businessId: booking.businessId,
+    onlineBooking: booking.business.onlineBooking,
+    bookingLeadTimeHours: booking.business.bookingLeadTimeHours,
+    bookingWindowDays: booking.business.bookingWindowDays,
+    slotIntervalMinutes: booking.business.slotIntervalMinutes,
+    timezone: booking.business.timezone,
+    serviceId: booking.serviceId,
+    staffMemberId,
+    startsAt,
+    ignoreBookingId: booking.id,
+  });
 
   const updated = await runBookingTransaction(async (tx) => {
     await assertSlotAvailable(tx, {

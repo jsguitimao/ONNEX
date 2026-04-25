@@ -34,6 +34,9 @@ export async function POST(req: Request) {
     return NextResponse.json(staffMember);
   } catch (error) {
     const message = error instanceof Error ? error.message : "ERRO";
+    if (message === "STAFF_SERVICE_INVALID") {
+      return NextResponse.json({ error: "Escolhe apenas servicos deste negocio." }, { status: 400 });
+    }
     const status = message === "INVALID_JSON_BODY" ? 400 : 500;
     const mapped = status === 400 ? "Corpo JSON inválido." : "Não foi possível criar o profissional.";
     return NextResponse.json({ error: mapped }, { status });

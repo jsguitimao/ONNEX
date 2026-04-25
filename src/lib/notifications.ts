@@ -1,7 +1,8 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { addMinutes, format } from "date-fns";
 import { getAppUrl, getEmailFrom } from "./app-config";
 import { db } from "./db";
+import { escapeHtml } from "./html";
 import { captureException } from "./observability";
 
 type NotificationKind =
@@ -87,30 +88,36 @@ function buildEmailShell(input: {
   muted?: string;
   footer?: string[];
 }) {
-  const bodyHtml = input.body.map((paragraph) => `<p style="margin:0 0 14px;line-height:1.7;">${paragraph}</p>`).join("");
+  const bodyHtml = input.body
+    .map((paragraph) =>
+      `<p style="margin:0 0 14px;line-height:1.7;">${escapeHtml(paragraph)
+        .replace(/&lt;(\/?strong)&gt;/g, "<$1>")
+        .replace(/&lt;br \/&gt;/g, "<br />")}</p>`
+    )
+    .join("");
   const ctaHtml =
     input.ctaLabel && input.ctaUrl
-      ? `<p style="margin:24px 0 0;"><a href="${input.ctaUrl}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:600;">${input.ctaLabel}</a></p>`
+      ? `<p style="margin:24px 0 0;"><a href="${escapeHtml(input.ctaUrl)}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:600;">${escapeHtml(input.ctaLabel)}</a></p>`
       : "";
   const mutedHtml = input.muted
-    ? `<p style="margin:18px 0 0;color:#6b7280;font-size:13px;line-height:1.6;">${input.muted}</p>`
+    ? `<p style="margin:18px 0 0;color:#6b7280;font-size:13px;line-height:1.6;">${escapeHtml(input.muted)}</p>`
     : "";
   const footerHtml =
     input.footer && input.footer.length > 0
       ? `<div style="margin-top:24px;padding-top:18px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:13px;line-height:1.7;">${input.footer
-          .map((line) => `<p style="margin:0 0 8px;">${line}</p>`)
+          .map((line) => `<p style="margin:0 0 8px;">${escapeHtml(line)}</p>`)
           .join("")}</div>`
       : "";
 
   return `
     <div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0;">
-      ${input.preview}
+      ${escapeHtml(input.preview)}
     </div>
     <div style="background:#f5f7fb;padding:32px 16px;font-family:Arial,sans-serif;color:#111827;">
       <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:24px;overflow:hidden;">
         <div style="padding:28px 28px 18px;background:linear-gradient(135deg,#111827 0%,#1f2937 100%);color:#ffffff;">
-          <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;opacity:0.76;">${input.eyebrow}</p>
-          <h1 style="margin:0;font-size:28px;line-height:1.2;">${input.title}</h1>
+          <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;opacity:0.76;">${escapeHtml(input.eyebrow)}</p>
+          <h1 style="margin:0;font-size:28px;line-height:1.2;">${escapeHtml(input.title)}</h1>
         </div>
         <div style="padding:24px 28px 28px;">
           ${bodyHtml}
@@ -471,20 +478,48 @@ async function loadBookingNotificationPayload(bookingId: string) {
   });
 }
 
-async function findExistingSentNotification(input: {
+async function reserveNotificationDelivery(input: {
   bookingId: string;
+  businessId: string;
   channel: NotificationChannel;
   kind: NotificationKind;
   recipient: string;
 }) {
-  return db.notificationLog.findFirst({
-    where: {
-      bookingId: input.bookingId,
-      channel: input.channel,
-      kind: input.kind,
-      recipient: input.recipient,
-      status: "SENT",
-    },
+  return db.$transaction(async (tx) => {
+    const pendingCutoff = new Date(Date.now() - 10 * 60_000);
+    const existing = await tx.notificationLog.findFirst({
+      where: {
+        bookingId: input.bookingId,
+        channel: input.channel,
+        kind: input.kind,
+        recipient: input.recipient,
+        OR: [
+          { status: "SENT" },
+          { status: "PENDING", createdAt: { gt: pendingCutoff } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (existing) {
+      return { duplicate: true as const, logId: existing.id };
+    }
+
+    const log = await tx.notificationLog.create({
+      data: {
+        bookingId: input.bookingId,
+        businessId: input.businessId,
+        channel: input.channel,
+        kind: input.kind,
+        recipient: input.recipient,
+        status: "PENDING",
+      },
+      select: { id: true },
+    });
+
+    return { duplicate: false as const, logId: log.id };
+  }, {
+    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   });
 }
 
@@ -553,14 +588,15 @@ async function fetchWithProviderRetry(
 }
 
 async function sendEmailForKind(booking: BookingNotificationPayload, kind: NotificationKind, recipient: string) {
-  const existing = await findExistingSentNotification({
+  const reservation = await reserveNotificationDelivery({
     bookingId: booking.id,
+    businessId: booking.business.id,
     channel: "EMAIL",
     kind,
     recipient,
   });
 
-  if (existing) {
+  if (reservation.duplicate) {
     return { channel: "EMAIL", status: "duplicate" } satisfies DeliveryResult;
   }
 
@@ -569,7 +605,13 @@ async function sendEmailForKind(booking: BookingNotificationPayload, kind: Notif
   const template = buildTemplate(kind, booking);
 
   if (!apiKey || !from) {
-    await createSkippedNotification(booking, "EMAIL", kind, "EMAIL_PROVIDER_NOT_CONFIGURED", recipient);
+    await db.notificationLog.update({
+      where: { id: reservation.logId },
+      data: {
+        status: "SKIPPED",
+        errorMessage: "EMAIL_PROVIDER_NOT_CONFIGURED",
+      },
+    });
     return { channel: "EMAIL", status: "skipped", reason: "EMAIL_PROVIDER_NOT_CONFIGURED" } satisfies DeliveryResult;
   }
 
@@ -592,30 +634,26 @@ async function sendEmailForKind(booking: BookingNotificationPayload, kind: Notif
     const payload = await safeReadJson(response);
 
     if (!response.ok) {
-      await createNotificationLog({
-        bookingId: booking.id,
-        businessId: booking.business.id,
-        channel: "EMAIL",
-        kind,
-        recipient,
+      await db.notificationLog.update({
+        where: { id: reservation.logId },
+        data: {
         status: "FAILED",
         errorMessage: String(payload.message ?? payload.name ?? "EMAIL_SEND_FAILED"),
         payload: payload as Prisma.InputJsonValue,
+        },
       });
 
       return { channel: "EMAIL", status: "failed", reason: String(payload.message ?? "EMAIL_SEND_FAILED") } satisfies DeliveryResult;
     }
 
-    await createNotificationLog({
-      bookingId: booking.id,
-      businessId: booking.business.id,
-      channel: "EMAIL",
-      kind,
-      recipient,
+    await db.notificationLog.update({
+      where: { id: reservation.logId },
+      data: {
       status: "SENT",
       providerMessageId: typeof payload.id === "string" ? payload.id : undefined,
       payload: payload as Prisma.InputJsonValue,
       sentAt: new Date(),
+      },
     });
 
     return { channel: "EMAIL", status: "sent" } satisfies DeliveryResult;
@@ -626,14 +664,12 @@ async function sendEmailForKind(booking: BookingNotificationPayload, kind: Notif
       recipient,
     });
 
-    await createNotificationLog({
-      bookingId: booking.id,
-      businessId: booking.business.id,
-      channel: "EMAIL",
-      kind,
-      recipient,
+    await db.notificationLog.update({
+      where: { id: reservation.logId },
+      data: {
       status: "FAILED",
       errorMessage: error instanceof Error ? error.message : "EMAIL_SEND_FAILED",
+      },
     });
 
     return {
@@ -645,14 +681,15 @@ async function sendEmailForKind(booking: BookingNotificationPayload, kind: Notif
 }
 
 async function sendSmsForKind(booking: BookingNotificationPayload, kind: NotificationKind, recipient: string) {
-  const existing = await findExistingSentNotification({
+  const reservation = await reserveNotificationDelivery({
     bookingId: booking.id,
+    businessId: booking.business.id,
     channel: "SMS",
     kind,
     recipient,
   });
 
-  if (existing) {
+  if (reservation.duplicate) {
     return { channel: "SMS", status: "duplicate" } satisfies DeliveryResult;
   }
 
@@ -661,7 +698,13 @@ async function sendSmsForKind(booking: BookingNotificationPayload, kind: Notific
   const fromNumber = process.env.TWILIO_PHONE_NUMBER?.trim();
 
   if (!accountSid || !authToken || !fromNumber) {
-    await createSkippedNotification(booking, "SMS", kind, "SMS_PROVIDER_NOT_CONFIGURED", recipient);
+    await db.notificationLog.update({
+      where: { id: reservation.logId },
+      data: {
+        status: "SKIPPED",
+        errorMessage: "SMS_PROVIDER_NOT_CONFIGURED",
+      },
+    });
     return { channel: "SMS", status: "skipped", reason: "SMS_PROVIDER_NOT_CONFIGURED" } satisfies DeliveryResult;
   }
 
@@ -682,30 +725,26 @@ async function sendSmsForKind(booking: BookingNotificationPayload, kind: Notific
     const payload = await safeReadJson(response);
 
     if (!response.ok) {
-      await createNotificationLog({
-        bookingId: booking.id,
-        businessId: booking.business.id,
-        channel: "SMS",
-        kind,
-        recipient,
+      await db.notificationLog.update({
+        where: { id: reservation.logId },
+        data: {
         status: "FAILED",
         errorMessage: String(payload.message ?? payload.code ?? "SMS_SEND_FAILED"),
         payload: payload as Prisma.InputJsonValue,
+        },
       });
 
       return { channel: "SMS", status: "failed", reason: String(payload.message ?? "SMS_SEND_FAILED") } satisfies DeliveryResult;
     }
 
-    await createNotificationLog({
-      bookingId: booking.id,
-      businessId: booking.business.id,
-      channel: "SMS",
-      kind,
-      recipient,
+    await db.notificationLog.update({
+      where: { id: reservation.logId },
+      data: {
       status: "SENT",
       providerMessageId: typeof payload.sid === "string" ? payload.sid : undefined,
       payload: payload as Prisma.InputJsonValue,
       sentAt: new Date(),
+      },
     });
 
     return { channel: "SMS", status: "sent" } satisfies DeliveryResult;
@@ -716,14 +755,12 @@ async function sendSmsForKind(booking: BookingNotificationPayload, kind: Notific
       recipient,
     });
 
-    await createNotificationLog({
-      bookingId: booking.id,
-      businessId: booking.business.id,
-      channel: "SMS",
-      kind,
-      recipient,
+    await db.notificationLog.update({
+      where: { id: reservation.logId },
+      data: {
       status: "FAILED",
       errorMessage: error instanceof Error ? error.message : "SMS_SEND_FAILED",
+      },
     });
 
     return {

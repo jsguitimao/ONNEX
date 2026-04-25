@@ -49,6 +49,7 @@ export type PublicBusinessPayload = {
   bookingWindowDays: number;
   slotIntervalMinutes: number;
   cancellationWindowHours: number;
+  timezone: string;
   services: Array<{
     id: string;
     name: string;

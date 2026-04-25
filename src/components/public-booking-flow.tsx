@@ -11,9 +11,15 @@ type Props = {
   business: PublicBusinessPayload;
 };
 
-function toDateInputValue(date: Date) {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 10);
+function toDateInputValueInTimeZone(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
 }
 
 const fieldClass =
@@ -30,6 +36,7 @@ export function PublicBookingFlow({ business }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [manageUrl, setManageUrl] = useState("");
   const [success, setSuccess] = useState<{
@@ -49,14 +56,14 @@ export function PublicBookingFlow({ business }: Props) {
 
   const minDate = useMemo(() => {
     const target = new Date(Date.now() + business.bookingLeadTimeHours * 60 * 60_000);
-    return toDateInputValue(target);
-  }, [business.bookingLeadTimeHours]);
+    return toDateInputValueInTimeZone(target, business.timezone);
+  }, [business.bookingLeadTimeHours, business.timezone]);
 
   const maxDate = useMemo(() => {
     const target = new Date();
     target.setDate(target.getDate() + business.bookingWindowDays);
-    return toDateInputValue(target);
-  }, [business.bookingWindowDays]);
+    return toDateInputValueInTimeZone(target, business.timezone);
+  }, [business.bookingWindowDays, business.timezone]);
 
   useEffect(() => {
     if (!compatibleStaffMembers.some((member) => member.id === staffMemberId)) {
@@ -115,6 +122,7 @@ export function PublicBookingFlow({ business }: Props) {
     setManageUrl("");
     setError("");
     setCustomerName("");
+    setCustomerEmail("");
     setCustomerPhone("");
     setSelectedSlot("");
     setDate("");
@@ -140,6 +148,7 @@ export function PublicBookingFlow({ business }: Props) {
           staffMemberId,
           startsAt: selectedSlot,
           customerName,
+          customerEmail,
           customerPhone,
         }),
       });
@@ -318,10 +327,21 @@ export function PublicBookingFlow({ business }: Props) {
         />
       </label>
 
+      <label className="grid gap-2">
+        <span className={labelClass}>Email</span>
+        <input
+          type="email"
+          placeholder="O teu email"
+          value={customerEmail}
+          onChange={(event) => setCustomerEmail(event.target.value)}
+          className={cn(fieldClass, "placeholder:text-muted-foreground")}
+        />
+      </label>
+
       <button
         type="button"
         onClick={handleBooking}
-        disabled={!selectedService || !selectedSlot || !customerName || !staffMemberId || submitting}
+        disabled={!selectedService || !selectedSlot || !customerName || (!customerPhone && !customerEmail) || !staffMemberId || submitting}
         className={cn(
           "mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition",
           "hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"

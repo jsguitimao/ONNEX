@@ -11,34 +11,28 @@ const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "avif", "gif", "
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  console.log("[upload] request received", {
-    method: req.method,
-    hasBlobToken: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-  });
   try {
     const body = (await req.json()) as HandleUploadBody;
-    console.log("[upload] body parsed", { type: body?.type });
 
     const jsonResponse = await handleUpload({
       body,
       request: req,
       onBeforeGenerateToken: async (pathname) => {
-        console.log("[upload] onBeforeGenerateToken", { pathname });
         const business = await getCurrentBusiness();
-        console.log("[upload] business authenticated", { businessId: business.id });
 
         const rawExtension = pathname.split(".").pop()?.toLowerCase() ?? "";
         const isVideoByExt = VIDEO_EXTENSIONS.has(rawExtension);
         const isImageByExt = IMAGE_EXTENSIONS.has(rawExtension);
+        const normalizedPathname = pathname.replace(/\\/g, "/");
 
-        if (!isVideoByExt && !isImageByExt) {
+        if (pathname.length > 180 || normalizedPathname.includes("../") || (!isVideoByExt && !isImageByExt)) {
           throw new Error(
             "Formato não suportado. Imagens: JPG, PNG, WEBP, AVIF, HEIC. Vídeos: MP4, WEBM, MOV, M4V.",
           );
         }
 
         return {
-          allowedContentTypes: ["image/*", "video/*"],
+          allowedContentTypes: isVideoByExt ? ["video/*"] : ["image/*"],
           maximumSizeInBytes: isVideoByExt ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({ businessId: business.id }),

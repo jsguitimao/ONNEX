@@ -267,7 +267,6 @@ export function DashboardCommunications({ initialSnapshot }: DashboardCommunicat
   const engineRun = initialSnapshot.reminderEngine.latestRun;
   const totalNotifications = initialSnapshot.notifications.length;
   const sentCount = initialSnapshot.notifications.filter((n) => n.status === "SENT").length;
-  const failedCount = initialSnapshot.notifications.filter((n) => n.status === "FAILED").length;
 
   return (
     <div className="grid gap-6">

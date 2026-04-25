@@ -14,6 +14,13 @@ import {
 } from "../src/lib/rate-limit.ts";
 import { normalizeOnboardingDraft, onboardingSchema } from "../src/lib/onboarding-input.ts";
 import { validatePublicMutationOrigin } from "../src/lib/request-origin.ts";
+import {
+  getDayOfWeekForDateKey,
+  getZonedDateKey,
+  getZonedDayBounds,
+  getZonedTimeValue,
+  zonedTimeToUtc,
+} from "../src/lib/timezone.ts";
 
 type TestCase = {
   name: string;
@@ -347,6 +354,27 @@ const tests: TestCase[] = [
 
       assert.equal(parsed.phone, "");
       assert.equal(parsed.description, "");
+    },
+  },
+  {
+    name: "timezone helpers convert Lisbon business times to UTC safely",
+    run: () => {
+      const startsAt = zonedTimeToUtc("2026-04-20", "10:30", "Europe/Lisbon");
+
+      assert.ok(startsAt);
+      assert.equal(getZonedDateKey(startsAt, "Europe/Lisbon"), "2026-04-20");
+      assert.equal(getZonedTimeValue(startsAt, "Europe/Lisbon"), "10:30");
+      assert.equal(getDayOfWeekForDateKey("2026-04-20"), 1);
+    },
+  },
+  {
+    name: "timezone helpers return UTC day bounds for a local business date",
+    run: () => {
+      const bounds = getZonedDayBounds("2026-04-20", "Europe/Lisbon");
+
+      assert.ok(bounds);
+      assert.equal(getZonedDateKey(bounds.start, "Europe/Lisbon"), "2026-04-20");
+      assert.equal(getZonedDateKey(new Date(bounds.endExclusive.getTime() - 1), "Europe/Lisbon"), "2026-04-20");
     },
   },
 ];

@@ -6,14 +6,19 @@ import { buildRateLimitHeaders, checkRequestRateLimit } from "@/lib/rate-limit";
 import { readJsonBody } from "@/lib/request-body";
 import { validatePublicMutationOrigin } from "@/lib/request-origin";
 
-const schema = z.object({
-  serviceId: z.string().min(1),
-  staffMemberId: z.string().min(1),
-  startsAt: z.string().datetime(),
-  customerName: z.string().min(2).max(80),
-  customerEmail: z.string().email().optional().or(z.literal("")),
-  customerPhone: z.string().min(6).max(30).optional().or(z.literal("")),
-});
+const schema = z
+  .object({
+    serviceId: z.string().min(1),
+    staffMemberId: z.string().min(1),
+    startsAt: z.string().datetime(),
+    customerName: z.string().min(2).max(80),
+    customerEmail: z.string().email().optional().or(z.literal("")),
+    customerPhone: z.string().min(6).max(30).optional().or(z.literal("")),
+  })
+  .refine((value) => Boolean(value.customerEmail || value.customerPhone), {
+    message: "Indica email ou telefone para gerir a reserva.",
+    path: ["customerEmail"],
+  });
 
 type RouteProps = {
   params: Promise<{ slug: string }>;
@@ -101,7 +106,9 @@ export async function POST(req: Request, { params }: RouteProps) {
               ? { status: 400, error: "Escolhe um horário dentro da antecedência e da janela permitidas." }
               : message === "HORARIO_BLOQUEADO"
                 ? { status: 409, error: "Este horário está bloqueado na agenda." }
-                : message === "PROFISSIONAL_INCOMPATIVEL"
+                : message === "FORA_DA_DISPONIBILIDADE"
+                  ? { status: 400, error: "Este horario nao esta dentro da disponibilidade do profissional." }
+                  : message === "PROFISSIONAL_INCOMPATIVEL"
                   ? { status: 400, error: "Este profissional não executa o serviço escolhido." }
                   : message === "DADOS_INVALIDOS"
                     ? { status: 400, error: "Serviço, profissional ou localização inválidos." }

@@ -59,7 +59,7 @@ export default async function DashboardPreviewPage() {
     },
     {
       label: "Reservas (mês)",
-      value: snapshot.recentBookings.length.toString(),
+      value: snapshot.bookingsCount.toString(),
       color: "bg-violet-500/15 text-violet-700",
     },
   ];
