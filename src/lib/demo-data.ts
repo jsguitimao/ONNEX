@@ -18,8 +18,6 @@ export type DemoBusiness = {
   slug: string;
   city: string;
   headline: string;
-  subheadline: string;
-  welcomeMessage: string;
   primaryColor: string;
   accentColor: string;
   services: DemoService[];
@@ -31,10 +29,6 @@ export const demoBusiness: DemoBusiness = {
   slug: "barbearia-sample",
   city: "Porto",
   headline: "Marcações simples para uma barbearia moderna.",
-  subheadline:
-    "Página pública personalizada, equipa visível e experiência pensada para converter visitas em reservas.",
-  welcomeMessage:
-    "Escolha o serviço, selecione o profissional e reserve em poucos cliques.",
   primaryColor: "#1570ef",
   accentColor: "#0f9f7a",
   services: [

@@ -19,27 +19,12 @@ export async function getBusinessForOnboarding() {
     instagramUrl: business.instagramUrl ?? "",
     description: business.description ?? "",
     headline: business.bookingPage?.headline ?? demoBusiness.headline,
-    subheadline: business.bookingPage?.subheadline ?? demoBusiness.subheadline,
-    welcomeMessage: business.bookingPage?.welcomeMessage ?? demoBusiness.welcomeMessage,
     primaryColor: business.primaryColor ?? demoBusiness.primaryColor,
     accentColor: business.accentColor ?? demoBusiness.accentColor,
     logoUrl: business.logoUrl ?? "",
     coverImageUrl: business.coverImageUrl ?? "",
     heroImageUrl: business.bookingPage?.heroImageUrl ?? "",
-    aboutImages: (business.bookingPage?.aboutImages as string[] | null) ??
-      (business.bookingPage?.aboutImageUrl ? [business.bookingPage.aboutImageUrl] : []),
-    servicesImages: (business.bookingPage?.servicesImages as string[] | null) ??
-      (business.bookingPage?.servicesImageUrl ? [business.bookingPage.servicesImageUrl] : []),
-    teamImages: (business.bookingPage?.teamImages as string[] | null) ??
-      (business.bookingPage?.teamImageUrl ? [business.bookingPage.teamImageUrl] : []),
     onlineBooking: business.onlineBooking,
-    sobreColor: business.bookingPage?.sobreColor ?? "",
-    servicosColor: business.bookingPage?.servicosColor ?? "",
-    equipaColor: business.bookingPage?.equipaColor ?? "",
-    localizacaoColor: business.bookingPage?.localizacaoColor ?? "",
-    reservaColor: business.bookingPage?.reservaColor ?? "",
-    heroTagline: business.bookingPage?.heroTagline ?? "",
-    textColor: business.bookingPage?.textColor ?? "",
     theme: business.bookingPage?.theme === "light" ? "light" : "dark",
     showTeam: business.bookingPage?.showTeam ?? true,
     showPrices: business.bookingPage?.showPrices ?? true,
@@ -65,6 +50,15 @@ export async function updateBusinessFromOnboarding(input: OnboardingDraft) {
     }
   }
 
+  const bookingPageData = {
+    headline: input.headline,
+    heroImageUrl: input.heroImageUrl || null,
+    theme: input.theme,
+    showTeam: input.showTeam,
+    showPrices: input.showPrices,
+    showDurations: input.showDurations,
+  } as const;
+
   return db.business.update({
     where: { id: business.id },
     data: {
@@ -86,52 +80,8 @@ export async function updateBusinessFromOnboarding(input: OnboardingDraft) {
       cancellationWindowHours: input.cancellationWindowHours,
       bookingPage: {
         upsert: {
-          create: {
-            headline: input.headline,
-            subheadline: input.subheadline,
-            welcomeMessage: input.welcomeMessage,
-            heroImageUrl: input.heroImageUrl || null,
-            aboutImageUrl: input.aboutImages[0] ?? null,
-            servicesImageUrl: input.servicesImages[0] ?? null,
-            teamImageUrl: input.teamImages[0] ?? null,
-            aboutImages: input.aboutImages,
-            servicesImages: input.servicesImages,
-            teamImages: input.teamImages,
-            sobreColor: input.sobreColor || null,
-            servicosColor: input.servicosColor || null,
-            equipaColor: input.equipaColor || null,
-            localizacaoColor: input.localizacaoColor || null,
-            reservaColor: input.reservaColor || null,
-            heroTagline: input.heroTagline || null,
-            textColor: input.textColor || null,
-            theme: input.theme,
-            showTeam: input.showTeam,
-            showPrices: input.showPrices,
-            showDurations: input.showDurations,
-          },
-          update: {
-            headline: input.headline,
-            subheadline: input.subheadline,
-            welcomeMessage: input.welcomeMessage,
-            heroImageUrl: input.heroImageUrl || null,
-            aboutImageUrl: input.aboutImages[0] ?? null,
-            servicesImageUrl: input.servicesImages[0] ?? null,
-            teamImageUrl: input.teamImages[0] ?? null,
-            aboutImages: input.aboutImages,
-            servicesImages: input.servicesImages,
-            teamImages: input.teamImages,
-            sobreColor: input.sobreColor || null,
-            servicosColor: input.servicosColor || null,
-            equipaColor: input.equipaColor || null,
-            localizacaoColor: input.localizacaoColor || null,
-            reservaColor: input.reservaColor || null,
-            heroTagline: input.heroTagline || null,
-            textColor: input.textColor || null,
-            theme: input.theme,
-            showTeam: input.showTeam,
-            showPrices: input.showPrices,
-            showDurations: input.showDurations,
-          },
+          create: bookingPageData,
+          update: bookingPageData,
         },
       },
       locations: business.locations[0]

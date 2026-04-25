@@ -184,8 +184,6 @@ async function fetchCurrentBusiness() {
       bookingPage: {
         create: {
           headline: demoBusiness.headline,
-          subheadline: demoBusiness.subheadline,
-          welcomeMessage: demoBusiness.welcomeMessage,
         },
       },
       locations: {
@@ -273,8 +271,6 @@ async function ensureDemoBusinessInternal() {
         bookingPage: {
           create: {
             headline: demoBusiness.headline,
-            subheadline: demoBusiness.subheadline,
-            welcomeMessage: demoBusiness.welcomeMessage,
           },
         },
         locations: {

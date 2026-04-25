@@ -80,22 +80,7 @@ model BookingPage {
   id                String   @id @default(cuid())
   businessId        String   @unique
   headline          String?
-  subheadline       String?
-  welcomeMessage    String?
   heroImageUrl      String?
-  aboutImageUrl     String?
-  servicesImageUrl  String?
-  teamImageUrl      String?
-  aboutImages       Json?
-  servicesImages    Json?
-  teamImages        Json?
-  sobreColor        String?
-  servicosColor     String?
-  equipaColor       String?
-  localizacaoColor  String?
-  reservaColor      String?
-  heroTagline       String?
-  textColor         String?
   theme             String?
   showTeam          Boolean  @default(true)
   showPrices        Boolean  @default(true)

@@ -85,11 +85,6 @@ const hexColorSchema = z.preprocess(
   z.string().regex(/^#([0-9A-F]{6})$/, "Use uma cor hexadecimal valida, como #111827."),
 );
 
-const optionalHexColorSchema = z.preprocess(
-  normalizeHexColorInput,
-  z.string().regex(/^#([0-9A-F]{6})$/, "Use uma cor hexadecimal valida, como #111827.").or(z.literal("")),
-);
-
 export const onboardingSchema = z.object({
   businessName: z.preprocess(normalizeString, z.string().min(2).max(100)),
   slug: z.preprocess(
@@ -103,41 +98,11 @@ export const onboardingSchema = z.object({
   instagramUrl: optionalUrlSchema,
   description: z.preprocess(normalizeOptionalString, z.string().max(500)),
   headline: z.preprocess(normalizeOptionalString, z.string().max(140)),
-  subheadline: z.preprocess(normalizeOptionalString, z.string().max(300)),
-  welcomeMessage: z.preprocess(normalizeOptionalString, z.string().max(240)),
   primaryColor: hexColorSchema,
   accentColor: hexColorSchema,
   logoUrl: optionalUrlSchema,
   coverImageUrl: optionalUrlSchema,
   heroImageUrl: optionalUrlSchema,
-  aboutImages: z.preprocess(
-    (val) => {
-      if (!Array.isArray(val)) return [];
-      return val.map((v) => normalizeOptionalUrlInput(v)).filter((v) => typeof v === "string" && v.length > 0);
-    },
-    z.array(z.string().url("Cada URL de imagem deve ser valido.")).max(6),
-  ),
-  servicesImages: z.preprocess(
-    (val) => {
-      if (!Array.isArray(val)) return [];
-      return val.map((v) => normalizeOptionalUrlInput(v)).filter((v) => typeof v === "string" && v.length > 0);
-    },
-    z.array(z.string().url("Cada URL de imagem deve ser valido.")).max(6),
-  ),
-  teamImages: z.preprocess(
-    (val) => {
-      if (!Array.isArray(val)) return [];
-      return val.map((v) => normalizeOptionalUrlInput(v)).filter((v) => typeof v === "string" && v.length > 0);
-    },
-    z.array(z.string().url("Cada URL de imagem deve ser valido.")).max(6),
-  ),
-  sobreColor: optionalHexColorSchema,
-  servicosColor: optionalHexColorSchema,
-  equipaColor: optionalHexColorSchema,
-  localizacaoColor: optionalHexColorSchema,
-  reservaColor: optionalHexColorSchema,
-  heroTagline: z.preprocess(normalizeOptionalString, z.string().max(100)),
-  textColor: optionalHexColorSchema,
   theme: z.preprocess(
     (value) => (value === "light" || value === "dark" ? value : "dark"),
     z.enum(["dark", "light"]),
@@ -164,29 +129,11 @@ export function normalizeOnboardingDraft(input: OnboardingDraft): OnboardingDraf
     instagramUrl: ensureString(normalizeOptionalUrlInput(input.instagramUrl)),
     description: ensureString(normalizeOptionalString(input.description)),
     headline: ensureString(normalizeOptionalString(input.headline)),
-    subheadline: ensureString(normalizeOptionalString(input.subheadline)),
-    welcomeMessage: ensureString(normalizeOptionalString(input.welcomeMessage)),
     primaryColor: ensureString(normalizeHexColorInput(input.primaryColor)),
     accentColor: ensureString(normalizeHexColorInput(input.accentColor)),
     logoUrl: ensureString(normalizeOptionalUrlInput(input.logoUrl)),
     coverImageUrl: ensureString(normalizeOptionalUrlInput(input.coverImageUrl)),
     heroImageUrl: ensureString(normalizeOptionalUrlInput(input.heroImageUrl)),
-    aboutImages: input.aboutImages
-      .map((url) => ensureString(normalizeOptionalUrlInput(url)))
-      .filter((url) => url.length > 0),
-    servicesImages: input.servicesImages
-      .map((url) => ensureString(normalizeOptionalUrlInput(url)))
-      .filter((url) => url.length > 0),
-    teamImages: input.teamImages
-      .map((url) => ensureString(normalizeOptionalUrlInput(url)))
-      .filter((url) => url.length > 0),
-    sobreColor: ensureString(normalizeHexColorInput(input.sobreColor)),
-    servicosColor: ensureString(normalizeHexColorInput(input.servicosColor)),
-    equipaColor: ensureString(normalizeHexColorInput(input.equipaColor)),
-    localizacaoColor: ensureString(normalizeHexColorInput(input.localizacaoColor)),
-    reservaColor: ensureString(normalizeHexColorInput(input.reservaColor)),
-    heroTagline: ensureString(normalizeOptionalString(input.heroTagline)),
-    textColor: ensureString(normalizeHexColorInput(input.textColor)),
     theme: input.theme === "light" ? "light" : "dark",
   };
 }
