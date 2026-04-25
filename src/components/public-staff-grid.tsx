@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -159,6 +159,7 @@ type LightboxProps = {
 
 function PortfolioLightbox({ images, startIndex, staffName, onClose }: LightboxProps) {
   const [index, setIndex] = useState(startIndex);
+  const touchStartX = useRef<number | null>(null);
 
   const goPrev = useCallback(() => {
     setIndex((current) => (current - 1 + images.length) % images.length);
@@ -183,26 +184,43 @@ function PortfolioLightbox({ images, startIndex, staffName, onClose }: LightboxP
     };
   }, [onClose, goPrev, goNext]);
 
+  const handleTouchStart = (event: React.TouchEvent) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const endX = event.changedTouches[0]?.clientX ?? touchStartX.current;
+    const delta = endX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(delta) < 50) return;
+    if (delta < 0) goNext();
+    else goPrev();
+  };
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={`Foto ${index + 1} de ${staffName}`}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <button
         type="button"
         onClick={onClose}
         aria-label="Fechar"
-        className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white transition hover:bg-black/70"
+        className="absolute right-4 top-4 z-[60] flex size-11 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white transition hover:bg-black/80 active:scale-95"
       >
         <X className="size-5" />
       </button>
 
       <div
         className="relative h-full max-h-[90vh] w-full max-w-5xl"
-        onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         <Image
           src={images[index]}
@@ -210,7 +228,8 @@ function PortfolioLightbox({ images, startIndex, staffName, onClose }: LightboxP
           fill
           sizes="100vw"
           priority
-          className="object-contain"
+          className="pointer-events-none object-contain"
+          draggable={false}
         />
 
         {images.length > 1 ? (
