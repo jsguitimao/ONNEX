@@ -241,16 +241,16 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "public booking token expires 30 days after the latest booking anchor",
+    name: "public booking token expires 7 days after the latest booking anchor",
     run: () => {
       const endsAt = new Date("2026-04-14T10:00:00.000Z");
       const updatedAt = new Date("2026-04-16T12:30:00.000Z");
 
       const expiresAt = getPublicBookingTokenExpiresAt({ endsAt, updatedAt });
 
-      assert.equal(expiresAt.toISOString(), "2026-05-16T12:30:00.000Z");
-      assert.equal(isPublicBookingTokenExpired({ endsAt, updatedAt }, new Date("2026-05-16T12:29:59.000Z")), false);
-      assert.equal(isPublicBookingTokenExpired({ endsAt, updatedAt }, new Date("2026-05-16T12:30:01.000Z")), true);
+      assert.equal(expiresAt.toISOString(), "2026-04-23T12:30:00.000Z");
+      assert.equal(isPublicBookingTokenExpired({ endsAt, updatedAt }, new Date("2026-04-23T12:29:59.000Z")), false);
+      assert.equal(isPublicBookingTokenExpired({ endsAt, updatedAt }, new Date("2026-04-23T12:30:01.000Z")), true);
     },
   },
   {
