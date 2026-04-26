@@ -90,14 +90,14 @@ export function OnboardingStudio({ initialData }: { initialData: OnboardingDraft
               <Field label="Telefone">
                 <FormInput value={form.phone} onChange={(e) => updateField("phone", e.target.value)} />
               </Field>
-              <Field label="Email de contacto">
-                <FormInput type="email" value={form.contactEmail} onChange={(e) => updateField("contactEmail", e.target.value)} />
-              </Field>
-              <Field label="Website">
-                <FormInput value={form.websiteUrl} onChange={(e) => updateField("websiteUrl", e.target.value)} placeholder="https://..." />
-              </Field>
               <Field label="Instagram">
                 <FormInput value={form.instagramUrl} onChange={(e) => updateField("instagramUrl", e.target.value)} placeholder="https://instagram.com/o-teu-perfil" />
+              </Field>
+              <Field label="TikTok">
+                <FormInput value={form.tiktokUrl} onChange={(e) => updateField("tiktokUrl", e.target.value)} placeholder="https://tiktok.com/@o-teu-perfil" />
+              </Field>
+              <Field label="Facebook">
+                <FormInput value={form.facebookUrl} onChange={(e) => updateField("facebookUrl", e.target.value)} placeholder="https://facebook.com/a-tua-pagina" />
               </Field>
             </div>
             <Field label="Descrição curta do negócio">

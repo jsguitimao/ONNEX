@@ -27,10 +27,10 @@ model Business {
   name             String
   slug             String               @unique
   description      String?
-  contactEmail     String?
   contactPhone     String?
-  websiteUrl       String?
   instagramUrl     String?
+  tiktokUrl        String?
+  facebookUrl      String?
   timezone         String               @default("Europe/Lisbon")
   locale           String               @default("pt-PT")
   status           BusinessStatus       @default(DRAFT)

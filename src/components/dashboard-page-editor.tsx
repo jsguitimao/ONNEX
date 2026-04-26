@@ -192,20 +192,13 @@ export function DashboardPageEditor({ initialDraft, slug }: Props) {
             </Field>
           </Block>
 
-          <Block title="3. Contactos" description="Aparecem como ícones na página.">
-            <Field label="Telefone">
+          <Block title="3. Redes sociais" description="Aparecem como ícones na página.">
+            <Field label="Telefone (WhatsApp)">
               <Input
                 type="tel"
                 value={draft.phone}
                 onChange={(event) => update("phone", event.target.value)}
                 maxLength={30}
-              />
-            </Field>
-            <Field label="Email de contacto">
-              <Input
-                type="email"
-                value={draft.contactEmail}
-                onChange={(event) => update("contactEmail", event.target.value)}
               />
             </Field>
             <Field label="Instagram (URL)">
@@ -215,11 +208,18 @@ export function DashboardPageEditor({ initialDraft, slug }: Props) {
                 placeholder="instagram.com/..."
               />
             </Field>
-            <Field label="Website">
+            <Field label="TikTok (URL)">
               <Input
-                value={draft.websiteUrl}
-                onChange={(event) => update("websiteUrl", event.target.value)}
-                placeholder="https://"
+                value={draft.tiktokUrl}
+                onChange={(event) => update("tiktokUrl", event.target.value)}
+                placeholder="tiktok.com/@..."
+              />
+            </Field>
+            <Field label="Facebook (URL)">
+              <Input
+                value={draft.facebookUrl}
+                onChange={(event) => update("facebookUrl", event.target.value)}
+                placeholder="facebook.com/..."
               />
             </Field>
           </Block>

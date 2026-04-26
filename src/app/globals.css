@@ -118,6 +118,25 @@
 }
 
 @layer base {
+  :root {
+    --bio-card-width: 460px;
+    --bio-page-gutter: 0.5rem;
+
+    /* Type scale — bio surfaces (mock + slug). Major-second ish (1.25). */
+    --text-bio-tab: 16px;
+    --text-bio-tab-line: 24px;
+    --text-bio-section: 20px;
+    --text-bio-section-line: 24px;
+    --text-bio-section-tracking: -0.3px;
+    --text-bio-label: 12px;
+    --text-bio-label-line: 14px;
+    --text-bio-label-tracking: 0.06em;
+
+    /* Selection accent — bio surfaces (Serviços, Barbeiros, Horários, etc.) */
+    --bio-accent: oklch(0.62 0.19 255);
+    --bio-accent-foreground: oklch(0.99 0 0);
+    --bio-accent-ring: oklch(0.62 0.19 255 / 25%);
+  }
   * {
     @apply border-border outline-ring/50;
   }
@@ -133,6 +152,14 @@
 }
 
 @layer utilities {
+  .bio-container {
+    width: min(
+      var(--bio-card-width),
+      100% - calc(var(--bio-page-gutter) * 2)
+    );
+    margin-inline: auto;
+  }
+
   .scrollbar-hide {
     scrollbar-width: none;
     -ms-overflow-style: none;

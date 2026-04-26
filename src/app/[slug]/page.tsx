@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { HeroVideo } from "@/components/hero-video";
 import { PublicBookingFlow } from "@/components/public-booking-flow";
 import { PublicStaffGrid } from "@/components/public-staff-grid";
+import { SocialLinks } from "@/components/social-links";
 import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
 import { getAppUrl } from "@/lib/app-config";
 
@@ -100,7 +101,6 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
     ...(business.description ? { description: business.description } : {}),
     ...(heroImage && !isHeroVideo(heroImage) ? { image: heroImage } : {}),
     ...(phoneDigits ? { telephone: `+${phoneDigits}` } : {}),
-    ...(business.contactEmail ? { email: business.contactEmail } : {}),
     ...(location
       ? {
           address: {
@@ -112,7 +112,12 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           },
         }
       : {}),
-    ...(business.instagramUrl ? { sameAs: [business.instagramUrl] } : {}),
+    ...(() => {
+      const sameAs = [business.instagramUrl, business.tiktokUrl, business.facebookUrl].filter(
+        (url): url is string => Boolean(url),
+      );
+      return sameAs.length > 0 ? { sameAs } : {};
+    })(),
   };
 
   return (
@@ -164,7 +169,8 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         <SocialLinks
           phoneDigits={phoneDigits}
           instagramUrl={business.instagramUrl}
-          websiteUrl={business.websiteUrl}
+          tiktokUrl={business.tiktokUrl}
+          facebookUrl={business.facebookUrl}
           className="mt-6"
         />
       </section>
@@ -226,16 +232,9 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
           <SocialLinks
             phoneDigits={phoneDigits}
             instagramUrl={business.instagramUrl}
-            websiteUrl={business.websiteUrl}
+            tiktokUrl={business.tiktokUrl}
+            facebookUrl={business.facebookUrl}
           />
-          {business.contactEmail ? (
-            <a
-              href={`mailto:${business.contactEmail}`}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              {business.contactEmail}
-            </a>
-          ) : null}
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} · {business.name}
           </p>
@@ -245,63 +244,3 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
   );
 }
 
-type SocialLinksProps = {
-  phoneDigits: string;
-  instagramUrl: string | null;
-  websiteUrl: string | null;
-  className?: string;
-};
-
-function SocialLinks({ phoneDigits, instagramUrl, websiteUrl, className }: SocialLinksProps) {
-  if (!phoneDigits && !instagramUrl && !websiteUrl) return null;
-
-  const iconClass =
-    "flex size-11 items-center justify-center rounded-full border border-border bg-card text-foreground transition hover:-translate-y-0.5 hover:border-ring hover:bg-accent";
-
-  return (
-    <div className={`flex items-center justify-center gap-3 ${className ?? ""}`}>
-      {phoneDigits ? (
-        <a
-          href={`https://wa.me/${phoneDigits}`}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="WhatsApp"
-          className={iconClass}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.4A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.3-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.5-2.6-1.2-4.4-3.8-4.5-4-.1-.2-1-1.3-1-2.5 0-1.2.6-1.8.9-2.1.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.7.8 1.8.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.2-.1.5.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l.8-1c.2-.3.5-.2.7-.1l1.7.8c.3.2.5.3.5.5.1.2.1.9-.1 1.6z" />
-          </svg>
-        </a>
-      ) : null}
-      {instagramUrl ? (
-        <a
-          href={instagramUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Instagram"
-          className={iconClass}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <rect x="3" y="3" width="18" height="18" rx="5" />
-            <circle cx="12" cy="12" r="4" />
-            <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
-          </svg>
-        </a>
-      ) : null}
-      {websiteUrl ? (
-        <a
-          href={websiteUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Website"
-          className={iconClass}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <circle cx="12" cy="12" r="9" />
-            <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
-          </svg>
-        </a>
-      ) : null}
-    </div>
-  );
-}

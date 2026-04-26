@@ -63,7 +63,10 @@ export default async function DashboardPreviewPage() {
       description: "Adiciona headline, foto/vídeo de capa e contactos no separador Página.",
       done: Boolean(
         (pageDraft.headline?.trim() || pageDraft.heroImageUrl?.trim()) &&
-          (pageDraft.phone?.trim() || pageDraft.contactEmail?.trim()),
+          (pageDraft.phone?.trim() ||
+            pageDraft.instagramUrl?.trim() ||
+            pageDraft.tiktokUrl?.trim() ||
+            pageDraft.facebookUrl?.trim()),
       ),
     },
   ];

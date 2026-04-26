@@ -182,7 +182,6 @@ async function fetchCurrentBusiness() {
       name: businessName,
       slug: businessSlug,
       status: "ACTIVE",
-      contactEmail: primaryEmail,
       primaryColor: demoBusiness.primaryColor,
       accentColor: demoBusiness.accentColor,
       bookingPage: {

@@ -1,189 +1,246 @@
-import { auth } from "@clerk/nextjs/server";
-import Link from "next/link";
-import {
-  ArrowRight,
-  BellRing,
-  CalendarDays,
-  CreditCard,
-  LayoutDashboard,
-  Scissors,
-  Sparkles,
-  Store,
-  Users,
-} from "lucide-react";
-import { AuthUserButton } from "@/components/auth-user-button";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PublicSiteFooter } from "@/components/public-site-footer";
+import type { Metadata } from "next";
+import Image from "next/image";
+import { notFound } from "next/navigation";
+import { HeroVideo } from "@/components/hero-video";
+import { PublicBookingFlow } from "@/components/public-booking-flow";
+import { PublicStaffGrid } from "@/components/public-staff-grid";
+import { SocialLinks } from "@/components/social-links";
+import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
+import { getAppUrl } from "@/lib/app-config";
 
-const pillars = [
-  {
-    title: "Página pública da barbearia",
-    description:
-      "Cada barbearia ganha um endereço público para receber marcações sem depender de mensagens ou chamadas.",
-    icon: Store,
-  },
-  {
-    title: "Agenda e operação",
-    description:
-      "Gestão de serviços, equipa, disponibilidade, clientes e marcações numa experiência única e preparada para crescer.",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Lembretes e pagamentos",
-    description:
-      "Estrutura pronta para e-mail, SMS e pagamentos online, com arquitetura pensada para Vercel agora e VPS depois.",
-    icon: BellRing,
-  },
-];
+export const revalidate = 60;
 
-const roadmap = [
-  "Auth com Clerk e onboarding do negócio",
-  "Dashboard com agenda, serviços, equipa e clientes",
-  "Perfil público por slug, tipo /nomedabarbearia",
-  "Fluxo de marcação com disponibilidade real",
-  "Base de notificações e gestão da reserva",
-  "Deploy contínuo desde o primeiro ciclo",
-];
+type PublicPageProps = {
+  params: Promise<{ slug: string }>;
+};
 
-export default async function HomePage() {
-  let isSignedIn = false;
+function isHeroVideo(url: string) {
+  const lowered = url.toLowerCase().split("?")[0];
+  return /\.(mp4|webm)$/.test(lowered);
+}
 
-  try {
-    const { userId } = await auth();
-    isSignedIn = Boolean(userId);
-  } catch {
-    isSignedIn = false;
+function buildPublicPageMetadata(input: {
+  name: string;
+  slug: string;
+  description: string;
+  imageUrl?: string | null;
+}) {
+  const url = `${getAppUrl()}/${input.slug}`;
+  const images = input.imageUrl ? [{ url: input.imageUrl }] : undefined;
+
+  return {
+    title: input.name,
+    description: input.description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: input.name,
+      description: input.description,
+      url,
+      type: "website",
+      images,
+    },
+    twitter: {
+      card: images ? "summary_large_image" : "summary",
+      title: input.name,
+      description: input.description,
+      images: input.imageUrl ? [input.imageUrl] : undefined,
+    },
+  } satisfies Metadata;
+}
+
+export async function generateMetadata({ params }: PublicPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const business = await getBusinessBySlug(slug);
+
+  if (!business) {
+    return {
+      title: "Página não encontrada | BUKBARBEARIA.COM",
+      description: "A página pública pedida não está disponível.",
+    };
   }
 
+  const title =
+    business.bookingPage?.seoTitle?.trim() ||
+    `${business.name} — Marcação online`;
+  const description =
+    business.bookingPage?.seoDescription?.trim() ||
+    business.bookingPage?.headline?.trim() ||
+    business.description?.trim() ||
+    `Marca online com ${business.name}.`;
+
+  return buildPublicPageMetadata({
+    name: title,
+    slug: business.slug,
+    description,
+    imageUrl: business.coverImageUrl || business.logoUrl,
+  });
+}
+
+export default async function PublicBookingPage({ params }: PublicPageProps) {
+  const { slug } = await params;
+  const business = await getBusinessBySlug(slug);
+  const publicBusiness = await getPublicBusinessPayload(slug);
+
+  if (!business || !publicBusiness) {
+    notFound();
+  }
+
+  const location = business.locations[0];
+  const phoneDigits = (business.contactPhone ?? "").replace(/\D/g, "");
+  const heroImage = publicBusiness.heroImageUrl ?? business.coverImageUrl ?? business.logoUrl;
+  const theme = publicBusiness.theme;
+
+  const mapQuery = [location?.addressLine1, location?.city].filter(Boolean).join(", ");
+  const pageUrl = `${getAppUrl()}/${business.slug}`;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BarberShop",
+    name: business.name,
+    url: pageUrl,
+    ...(business.description ? { description: business.description } : {}),
+    ...(heroImage && !isHeroVideo(heroImage) ? { image: heroImage } : {}),
+    ...(phoneDigits ? { telephone: `+${phoneDigits}` } : {}),
+    ...(location
+      ? {
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: location.addressLine1 ?? undefined,
+            addressLocality: location.city ?? undefined,
+            postalCode: location.postalCode ?? undefined,
+            addressCountry: location.countryCode ?? "PT",
+          },
+        }
+      : {}),
+    ...(() => {
+      const sameAs = [business.instagramUrl, business.tiktokUrl, business.facebookUrl].filter(
+        (url): url is string => Boolean(url),
+      );
+      return sameAs.length > 0 ? { sameAs } : {};
+    })(),
+  };
+
   return (
-    <main className="relative overflow-hidden">
-      <div className="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(circle_at_top,_color-mix(in_oklch,_var(--color-primary)_18%,_transparent),_transparent_55%)]" />
+    <main
+      data-theme={theme}
+      className="min-h-screen bg-background text-foreground"
+    >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
-      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-8">
-        <header className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-              <Scissors className="size-5" />
-            </div>
-            <div>
-              <p className="text-lg font-semibold tracking-tight">BUKBARBEARIA.COM</p>
-              <p className="text-sm text-muted-foreground">software de agendamento para barbearias</p>
-            </div>
-          </Link>
+      {/* 1. Hero — 70vh (mobile) / 100vh (desktop) */}
+      <section className="relative h-[70vh] w-full overflow-hidden bg-muted md:h-screen">
+        {heroImage ? (
+          isHeroVideo(heroImage) ? (
+            <HeroVideo
+              src={heroImage}
+              posterUrl={business.coverImageUrl ?? business.logoUrl}
+              ariaLabel={`${business.name} — vídeo principal`}
+            />
+          ) : (
+            <Image
+              src={heroImage}
+              alt={`${business.name} — imagem principal`}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          )
+        ) : null}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[15%] bg-gradient-to-b from-transparent to-background"
+        />
+      </section>
 
-          <div className="flex items-center gap-3">
-            {isSignedIn ? (
-              <>
-                <Link href="/dashboard" className={buttonVariants({ variant: "ghost" })}>
-                  Dashboard
-                </Link>
-                <AuthUserButton />
-              </>
-            ) : (
-              <>
-                <Link href="/sign-in" className={buttonVariants({ variant: "ghost" })}>
-                  Entrar
-                </Link>
-                <Link href="/sign-up" className={buttonVariants({ className: "gap-2" })}>
-                  Criar conta
-                  <ArrowRight className="size-4" />
-                </Link>
-              </>
-            )}
-          </div>
-        </header>
+      {/* 2. Nome da barbearia */}
+      <section className="mx-auto max-w-[480px] px-5 pt-10 text-center sm:pt-14">
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{business.name}</h1>
+        {business.description ? (
+          <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">
+            {business.description}
+          </p>
+        ) : null}
 
-        <div className="grid flex-1 items-center gap-16 py-20 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="max-w-3xl">
-            <Badge variant="secondary" className="mb-6 rounded-full px-4 py-1.5">
-              Marca nova, arquitetura limpa e foco total na operação da barbearia
-            </Badge>
-            <h1 className="text-5xl font-semibold tracking-tight sm:text-6xl">
-              BUKBARBEARIA.COM: agendamento, operação e crescimento para a tua barbearia.
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Estamos a construir uma plataforma focada em barbearias, com página pública por slug,
-              dashboard privado, CRM, agenda operacional, confirmações e lembretes, sem acumular
-              atalhos ruins logo no arranque.
+        {/* 3. Redes sociais */}
+        <SocialLinks
+          phoneDigits={phoneDigits}
+          instagramUrl={business.instagramUrl}
+          tiktokUrl={business.tiktokUrl}
+          facebookUrl={business.facebookUrl}
+          className="mt-6"
+        />
+      </section>
+
+      {/* 4. Barbeiros + portfolio */}
+      {publicBusiness.showTeam && publicBusiness.staffMembers.length > 0 ? (
+        <section className="mx-auto max-w-[480px] px-5 py-12 sm:py-16">
+          <header className="mb-6 text-center sm:mb-8">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Os nossos barbeiros</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Seleciona um barbeiro para ver os últimos trabalhos.
             </p>
+          </header>
+          <PublicStaffGrid staffMembers={publicBusiness.staffMembers} />
+        </section>
+      ) : null}
 
-            <div className="mt-10 flex flex-wrap gap-3">
-              {isSignedIn ? (
-                <Link href="/onboarding" className={buttonVariants({ size: "lg", className: "gap-2" })}>
-                  Abrir onboarding
-                  <ArrowRight className="size-4" />
-                </Link>
-              ) : (
-                <Link href="/sign-up" className={buttonVariants({ size: "lg", className: "gap-2" })}>
-                  Começar agora
-                  <ArrowRight className="size-4" />
-                </Link>
-              )}
-              <Link href="/barbearia-sample" className={buttonVariants({ size: "lg", variant: "outline" })}>
-                Abrir barbearia de exemplo
-              </Link>
-            </div>
+      {/* 5. Agendamento */}
+      {publicBusiness.onlineBooking ? (
+        <section id="booking" className="mx-auto max-w-[480px] px-5 py-12 sm:py-16">
+          <header className="mb-6 text-center">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Agendar horário</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Escolhe serviço, barbeiro e horário. Confirmação imediata.
+            </p>
+          </header>
+          <PublicBookingFlow business={publicBusiness} />
+        </section>
+      ) : null}
 
-            <div className="mt-10 flex flex-wrap gap-3 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-2">
-                <CalendarDays className="size-4" />
-                Next.js App Router
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-2">
-                <Users className="size-4" />
-                Clerk + Prisma
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-2">
-                <CreditCard className="size-4" />
-                Pagamentos para fase final
-              </span>
-            </div>
+      {/* 6. Google Maps */}
+      {mapQuery ? (
+        <section className="mx-auto max-w-[480px] px-5 py-12 sm:py-16">
+          <header className="mb-6 text-center">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Onde estamos</h2>
+            {location?.addressLine1 ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {[location.addressLine1, location.city].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
+          </header>
+          <div className="overflow-hidden rounded-2xl border border-border bg-muted">
+            <iframe
+              src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+              title={`Mapa de ${location?.addressLine1 ?? location?.city ?? business.name}`}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="aspect-[16/9] w-full border-0"
+              allowFullScreen
+            />
           </div>
+        </section>
+      ) : null}
 
-          <Card className="border-border/60 bg-card/80 shadow-2xl shadow-black/5 backdrop-blur">
-            <CardHeader className="space-y-3">
-              <Badge variant="outline" className="w-fit rounded-full">
-                Base do produto
-              </Badge>
-              <CardTitle className="text-2xl">
-                O que já estamos a construir com consistência
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {roadmap.map((item) => (
-                <div key={item} className="flex gap-3 rounded-2xl border bg-background/70 p-4">
-                  <div className="mt-0.5 rounded-full bg-primary/10 p-2 text-primary">
-                    <Sparkles className="size-4" />
-                  </div>
-                  <p className="text-sm leading-6 text-muted-foreground">{item}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+      {/* 7. Footer */}
+      <footer className="border-t border-border py-10">
+        <div className="mx-auto flex max-w-[480px] flex-col items-center gap-4 px-5 text-center">
+          <p className="text-lg font-semibold">{business.name}</p>
+          <SocialLinks
+            phoneDigits={phoneDigits}
+            instagramUrl={business.instagramUrl}
+            tiktokUrl={business.tiktokUrl}
+            facebookUrl={business.facebookUrl}
+          />
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} · {business.name}
+          </p>
         </div>
-      </section>
-
-      <section className="border-y bg-muted/30">
-        <div className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-16 md:grid-cols-3">
-          {pillars.map((pillar) => (
-            <Card key={pillar.title} className="border-border/60 bg-card">
-              <CardHeader>
-                <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <pillar.icon className="size-5" />
-                </div>
-                <CardTitle className="text-xl">{pillar.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm leading-7 text-muted-foreground">{pillar.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      <PublicSiteFooter />
+      </footer>
     </main>
   );
 }
+

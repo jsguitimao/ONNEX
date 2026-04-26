@@ -2,13 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import type { BookingSlot, PublicBusinessPayload } from "@/lib/business";
 import { formatEuro } from "@/lib/formatters";
+import { generateMockSlots } from "@/lib/mock-business";
 import { cn } from "@/lib/utils";
 
 type Props = {
   business: PublicBusinessPayload;
+  mockMode?: boolean;
 };
 
 function toDateInputValueInTimeZone(date: Date, timeZone: string) {
@@ -26,9 +29,28 @@ const fieldClass =
   "rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40";
 const labelClass = "text-xs font-medium text-muted-foreground";
 
-export function PublicBookingFlow({ business }: Props) {
-  const [serviceId, setServiceId] = useState(business.services[0]?.id ?? "");
+export function PublicBookingFlow({ business, mockMode = false }: Props) {
+  const searchParams = useSearchParams();
+  const requestedServiceId = searchParams?.get("service") ?? null;
+  const initialServiceId = useMemo(() => {
+    if (requestedServiceId && business.services.some((s) => s.id === requestedServiceId)) {
+      return requestedServiceId;
+    }
+    return business.services[0]?.id ?? "";
+  }, [business.services, requestedServiceId]);
+
+  const [serviceId, setServiceId] = useState(initialServiceId);
   const [staffMemberId, setStaffMemberId] = useState("");
+
+  useEffect(() => {
+    if (
+      requestedServiceId &&
+      requestedServiceId !== serviceId &&
+      business.services.some((s) => s.id === requestedServiceId)
+    ) {
+      setServiceId(requestedServiceId);
+    }
+  }, [requestedServiceId, serviceId, business.services]);
   const [date, setDate] = useState("");
   const [slots, setSlots] = useState<BookingSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState("");
@@ -85,6 +107,15 @@ export function PublicBookingFlow({ business }: Props) {
       return;
     }
 
+    if (mockMode) {
+      setLoadingSlots(true);
+      const timeout = setTimeout(() => {
+        setSlots(generateMockSlots(date));
+        setLoadingSlots(false);
+      }, 250);
+      return () => clearTimeout(timeout);
+    }
+
     const controller = new AbortController();
 
     async function loadSlots() {
@@ -115,7 +146,7 @@ export function PublicBookingFlow({ business }: Props) {
     void loadSlots();
 
     return () => controller.abort();
-  }, [business.slug, date, serviceId, staffMemberId]);
+  }, [business.slug, date, serviceId, staffMemberId, mockMode]);
 
   const resetForm = () => {
     setSuccess(null);
@@ -137,6 +168,18 @@ export function PublicBookingFlow({ business }: Props) {
     if (!selectedSlot || new Date(selectedSlot).getTime() <= Date.now()) {
       setError("Escolhe um horário válido a partir de agora.");
       setSubmitting(false);
+      return;
+    }
+
+    if (mockMode) {
+      setTimeout(() => {
+        setSuccess({
+          serviceName: selectedService?.name ?? "",
+          startsAt: selectedSlot,
+        });
+        setManageUrl("");
+        setSubmitting(false);
+      }, 400);
       return;
     }
 

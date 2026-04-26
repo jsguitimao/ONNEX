@@ -3,9 +3,9 @@ export type OnboardingDraft = {
   slug: string;
   city: string;
   phone: string;
-  contactEmail: string;
-  websiteUrl: string;
   instagramUrl: string;
+  tiktokUrl: string;
+  facebookUrl: string;
   description: string;
   headline: string;
   primaryColor: string;
@@ -31,10 +31,11 @@ export type PublicBusinessPayload = {
   name: string;
   slug: string;
   city: string;
+  mapsAddress: string | null;
   phone: string | null;
-  contactEmail: string | null;
-  websiteUrl: string | null;
   instagramUrl: string | null;
+  tiktokUrl: string | null;
+  facebookUrl: string | null;
   description: string | null;
   primaryColor: string | null;
   accentColor: string | null;

@@ -47,3 +47,9 @@ next-env.d.ts
 # local IDE / agent tooling
 /.claude
 /.vscode
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+# playwright MCP session artifacts
+/.playwright-mcp/

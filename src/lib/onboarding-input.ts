@@ -18,16 +18,6 @@ function ensureString(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-export function normalizeOptionalEmailInput(value: unknown) {
-  const normalized = normalizeOptionalString(value);
-
-  if (typeof normalized !== "string" || normalized.length === 0) {
-    return normalized;
-  }
-
-  return normalized.toLowerCase();
-}
-
 export function normalizeOptionalUrlInput(value: unknown) {
   const normalized = normalizeOptionalString(value);
 
@@ -62,11 +52,6 @@ function normalizeHexColorInput(value: unknown) {
   return value.trim().toUpperCase();
 }
 
-const optionalEmailSchema = z.preprocess(
-  normalizeOptionalEmailInput,
-  z.string().email("Use um email valido.").or(z.literal("")),
-);
-
 const optionalPhoneSchema = z.preprocess(
   normalizeOptionalString,
   z
@@ -93,9 +78,9 @@ export const onboardingSchema = z.object({
   ),
   city: z.preprocess(normalizeString, z.string().min(2).max(80)),
   phone: optionalPhoneSchema,
-  contactEmail: optionalEmailSchema,
-  websiteUrl: optionalUrlSchema,
   instagramUrl: optionalUrlSchema,
+  tiktokUrl: optionalUrlSchema,
+  facebookUrl: optionalUrlSchema,
   description: z.preprocess(normalizeOptionalString, z.string().max(500)),
   headline: z.preprocess(normalizeOptionalString, z.string().max(140)),
   primaryColor: hexColorSchema,
@@ -136,9 +121,9 @@ export function normalizeOnboardingDraft(input: OnboardingDraft): OnboardingDraf
     slug: ensureString(normalizeSlugInput(input.slug)),
     city: ensureString(normalizeString(input.city)),
     phone: ensureString(normalizeOptionalString(input.phone)),
-    contactEmail: ensureString(normalizeOptionalEmailInput(input.contactEmail)),
-    websiteUrl: ensureString(normalizeOptionalUrlInput(input.websiteUrl)),
     instagramUrl: ensureString(normalizeOptionalUrlInput(input.instagramUrl)),
+    tiktokUrl: ensureString(normalizeOptionalUrlInput(input.tiktokUrl)),
+    facebookUrl: ensureString(normalizeOptionalUrlInput(input.facebookUrl)),
     description: ensureString(normalizeOptionalString(input.description)),
     headline: ensureString(normalizeOptionalString(input.headline)),
     primaryColor: ensureString(normalizeHexColorInput(input.primaryColor)),

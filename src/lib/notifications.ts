@@ -40,7 +40,6 @@ type BookingNotificationPayload = {
     id: string;
     name: string;
     slug: string;
-    contactEmail: string | null;
     contactPhone: string | null;
     owner: {
       email: string;
@@ -71,7 +70,7 @@ function buildPublicPageUrl(booking: BookingNotificationPayload) {
 }
 
 function getRepresentativeEmailRecipient(booking: BookingNotificationPayload) {
-  return booking.business.contactEmail || booking.business.owner.email;
+  return booking.business.owner.email;
 }
 
 function getRepresentativeSmsRecipient(booking: BookingNotificationPayload) {
@@ -156,10 +155,9 @@ function buildTemplate(kind: NotificationKind, booking: BookingNotificationPaylo
   const publicPageUrl = buildPublicPageUrl(booking);
   const professional = booking.staffMember?.fullName ?? "equipa";
   const representativeName = booking.business.owner.firstName || booking.business.name;
-  const contactLines = [
-    booking.business.contactEmail ? `Email: ${booking.business.contactEmail}` : null,
-    booking.business.contactPhone ? `Telefone: ${booking.business.contactPhone}` : null,
-  ].filter((value): value is string => Boolean(value));
+  const contactLines = booking.business.contactPhone
+    ? [`Telefone: ${booking.business.contactPhone}`]
+    : [];
 
   switch (kind) {
     case "BOOKING_CREATED":

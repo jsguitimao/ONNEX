@@ -254,15 +254,28 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
   if (!business) return null;
   const policy = getBookingPolicySettings(business);
 
+  const primaryLocation = business.locations[0];
+  const mapsAddress = primaryLocation
+    ? [
+        primaryLocation.addressLine1,
+        primaryLocation.addressLine2,
+        [primaryLocation.postalCode, primaryLocation.city].filter(Boolean).join(" "),
+        primaryLocation.countryCode,
+      ]
+        .filter((part): part is string => Boolean(part?.trim()))
+        .join(", ") || null
+    : null;
+
   return {
     id: business.id,
     name: business.name,
     slug: business.slug,
-    city: business.locations[0]?.city ?? "Portugal",
+    city: primaryLocation?.city ?? "Portugal",
+    mapsAddress,
     phone: business.contactPhone,
-    contactEmail: business.contactEmail,
-    websiteUrl: business.websiteUrl,
     instagramUrl: business.instagramUrl,
+    tiktokUrl: business.tiktokUrl,
+    facebookUrl: business.facebookUrl,
     description: business.description,
     primaryColor: business.primaryColor,
     accentColor: business.accentColor,
