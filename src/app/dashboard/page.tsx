@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import { AuthUserButton } from "@/components/auth-user-button";
 import { DashboardAgenda } from "@/components/dashboard-agenda";
 import { DashboardAnalyticsCards } from "@/components/dashboard-analytics-cards";
@@ -22,31 +22,21 @@ import { formatEuro } from "@/lib/demo-data";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPreviewPage() {
-  let snapshot, management, agendaView, customers, communications, pageDraft, analytics;
-  try {
-    [snapshot, management, agendaView, customers, communications, pageDraft, analytics] = await Promise.all([
-      getDashboardSnapshot(),
-      getManagementSnapshot(),
-      getBookingAgendaView(),
-      getCustomersSnapshot(),
-      getCommunicationSnapshot(),
-      getBusinessForOnboarding(),
-      getDashboardAnalytics(),
-    ]);
-  } catch (error) {
-    if (error instanceof Error) {
-      const msg = error.message.toLowerCase();
-      if (
-        msg.includes("auth_required") ||
-        msg.includes("unauthenticated") ||
-        msg.includes("not authenticated") ||
-        msg.includes("sign in")
-      ) {
-        redirect("/sign-in?redirect_url=/dashboard");
-      }
-    }
-    throw error;
+  const { isAuthenticated, redirectToSignIn } = await auth();
+
+  if (!isAuthenticated) {
+    return redirectToSignIn({ returnBackUrl: "/dashboard" });
   }
+
+  const [snapshot, management, agendaView, customers, communications, pageDraft, analytics] = await Promise.all([
+    getDashboardSnapshot(),
+    getManagementSnapshot(),
+    getBookingAgendaView(),
+    getCustomersSnapshot(),
+    getCommunicationSnapshot(),
+    getBusinessForOnboarding(),
+    getDashboardAnalytics(),
+  ]);
 
   const checklist: ChecklistItem[] = [
     {

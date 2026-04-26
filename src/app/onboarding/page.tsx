@@ -1,6 +1,6 @@
+import { auth } from "@clerk/nextjs/server";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AuthUserButton } from "@/components/auth-user-button";
 import { OnboardingStudio } from "@/components/onboarding-studio";
 import { getBusinessForOnboarding } from "@/lib/business";
@@ -8,23 +8,13 @@ import { getBusinessForOnboarding } from "@/lib/business";
 export const dynamic = "force-dynamic";
 
 export default async function OnboardingPreviewPage() {
-  let initialData;
-  try {
-    initialData = await getBusinessForOnboarding();
-  } catch (error) {
-    if (error instanceof Error) {
-      const msg = error.message.toLowerCase();
-      if (
-        msg.includes("auth_required") ||
-        msg.includes("unauthenticated") ||
-        msg.includes("not authenticated") ||
-        msg.includes("sign in")
-      ) {
-        redirect("/sign-in?redirect_url=/onboarding");
-      }
-    }
-    throw error;
+  const { isAuthenticated, redirectToSignIn } = await auth();
+
+  if (!isAuthenticated) {
+    return redirectToSignIn({ returnBackUrl: "/onboarding" });
   }
+
+  const initialData = await getBusinessForOnboarding();
 
   return (
     <main className="min-h-screen bg-background text-foreground">
