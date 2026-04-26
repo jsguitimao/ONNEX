@@ -33,6 +33,7 @@ export {
   getBookingAgenda,
   getBookingAgendaView,
   getBookingAgendaWeek,
+  getDashboardAnalytics,
   getDashboardSnapshot,
   retryCommunicationNotification,
   updateBookingStatus,

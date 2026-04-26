@@ -72,6 +72,32 @@ export default function PrivacyPage() {
           barbearia especifica, o negocio responsavel deve ser o primeiro ponto de contacto.
         </p>
       </section>
+
+      <section className="grid gap-3">
+        <h2>7. Exportar e apagar a tua conta</h2>
+        <p>
+          Os titulares de conta na plataforma podem, no separador <strong>Gestão</strong> do dashboard:
+        </p>
+        <ul>
+          <li>
+            <strong>Exportar dados</strong>: descarregar um ficheiro JSON com utilizador, negocios,
+            servicos, equipa, clientes e marcacoes.
+          </li>
+          <li>
+            <strong>Apagar conta</strong>: eliminar de forma permanente o utilizador, o negocio e todos
+            os dados relacionados (cascade). A operacao requer confirmacao explicita e nao e reversivel.
+          </li>
+        </ul>
+      </section>
+
+      <section className="grid gap-3">
+        <h2>8. Cookies</h2>
+        <p>
+          A plataforma utiliza apenas cookies tecnicamente necessarios (autenticacao, sessao, prevencao
+          de abuso). Nao utilizamos cookies de tracking publicitario. Na primeira visita e mostrado um
+          aviso para registo do consentimento.
+        </p>
+      </section>
     </LegalPageShell>
   );
 }

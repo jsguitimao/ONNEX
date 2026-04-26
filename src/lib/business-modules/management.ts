@@ -84,7 +84,7 @@ export async function updateService(
 ) {
   const business = await getCurrentBusiness();
   const service = await db.service.findFirst({
-    where: { id, businessId: business.id },
+    where: { id, businessId: business.id, deletedAt: null },
   });
 
   if (!service) {
@@ -106,7 +106,7 @@ export async function updateService(
 export async function deleteService(id: string) {
   const business = await getCurrentBusiness();
   const service = await db.service.findFirst({
-    where: { id, businessId: business.id },
+    where: { id, businessId: business.id, deletedAt: null },
   });
 
   if (!service) {
@@ -126,7 +126,10 @@ export async function deleteService(id: string) {
 
   await db.$transaction([
     db.staffService.deleteMany({ where: { serviceId: id } }),
-    db.service.delete({ where: { id } }),
+    db.service.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false },
+    }),
   ]);
 }
 
@@ -193,7 +196,7 @@ export async function updateStaffMember(
 ) {
   const business = await getCurrentBusiness();
   const staffExists = await db.staffMember.findFirst({
-    where: { id, businessId: business.id },
+    where: { id, businessId: business.id, deletedAt: null },
   });
 
   if (!staffExists) {
@@ -252,7 +255,7 @@ export async function updateStaffMember(
 export async function deleteStaffMember(id: string) {
   const business = await getCurrentBusiness();
   const member = await db.staffMember.findFirst({
-    where: { id, businessId: business.id },
+    where: { id, businessId: business.id, deletedAt: null },
   });
 
   if (!member) {
@@ -274,6 +277,9 @@ export async function deleteStaffMember(id: string) {
     db.weeklyAvailability.deleteMany({ where: { staffMemberId: id } }),
     db.staffService.deleteMany({ where: { staffMemberId: id } }),
     db.scheduleBlock.deleteMany({ where: { staffMemberId: id } }),
-    db.staffMember.delete({ where: { id } }),
+    db.staffMember.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false },
+    }),
   ]);
 }

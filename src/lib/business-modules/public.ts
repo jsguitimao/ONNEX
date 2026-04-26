@@ -43,6 +43,7 @@ async function listBookingSlots(input: {
       id: input.serviceId,
       businessId: input.businessId,
       isActive: true,
+      deletedAt: null,
     },
   });
 
@@ -51,6 +52,7 @@ async function listBookingSlots(input: {
       id: input.staffMemberId,
       businessId: input.businessId,
       isActive: true,
+      deletedAt: null,
     },
     include: {
       availabilities: {
@@ -369,10 +371,10 @@ export async function createPublicBooking(input: {
   const { minBookableAt, maxBookableAt } = getBookableRange(business);
 
   const service = await db.service.findFirst({
-    where: { id: input.serviceId, businessId: business.id, isActive: true },
+    where: { id: input.serviceId, businessId: business.id, isActive: true, deletedAt: null },
   });
   const staffMember = await db.staffMember.findFirst({
-    where: { id: input.staffMemberId, businessId: business.id, isActive: true },
+    where: { id: input.staffMemberId, businessId: business.id, isActive: true, deletedAt: null },
     include: { services: true },
   });
   const location = business.locations[0];

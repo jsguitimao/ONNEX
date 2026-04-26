@@ -6,6 +6,7 @@ import { DEFAULT_AVAILABILITY } from "@/lib/business-modules/types";
 import type { AvailabilityInput, ManagementSnapshot } from "@/lib/business";
 import { uploadMedia } from "@/lib/client-upload";
 import { cn } from "@/lib/utils";
+import { AccountDataPanel } from "@/components/account-data-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -929,6 +930,8 @@ export function DashboardOps({ initialSnapshot }: DashboardOpsProps) {
             </div>
           </div>
         </div>
+
+        <AccountDataPanel />
       </div>
     </div>
   );

@@ -15,8 +15,12 @@ import { DEFAULT_AVAILABILITY } from "./types";
 
 const currentBusinessInclude = {
   bookingPage: true,
-  services: { orderBy: { displayOrder: "asc" } },
+  services: {
+    where: { deletedAt: null },
+    orderBy: { displayOrder: "asc" },
+  },
   staffMembers: {
+    where: { deletedAt: null },
     orderBy: { displayOrder: "asc" },
     include: {
       services: true,
@@ -468,11 +472,11 @@ export async function hydrateOperationalData(
 const publicBusinessInclude = {
   bookingPage: true,
   services: {
-    where: { isActive: true },
+    where: { isActive: true, deletedAt: null },
     orderBy: { displayOrder: "asc" },
   },
   staffMembers: {
-    where: { isActive: true },
+    where: { isActive: true, deletedAt: null },
     orderBy: { displayOrder: "asc" },
     include: {
       services: true,

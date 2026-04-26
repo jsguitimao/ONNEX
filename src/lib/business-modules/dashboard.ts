@@ -144,6 +144,110 @@ export async function getDashboardSnapshot() {
   };
 }
 
+export type DashboardAnalytics = {
+  cancellationRatePct: number;
+  confirmedRevenueCents30d: number;
+  bookingsThisWeek: number;
+  bookingsLastWeek: number;
+  weeklyDeltaPct: number | null;
+  topService:
+    | {
+        id: string;
+        name: string;
+        bookings: number;
+      }
+    | null;
+};
+
+export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
+  const business = await getCurrentBusiness();
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60_000);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60_000);
+
+  const [statusCounts, revenueAggregate, bookingsThisWeek, bookingsLastWeek, topServiceGroup] =
+    await Promise.all([
+      db.booking.groupBy({
+        by: ["status"],
+        where: {
+          businessId: business.id,
+          startsAt: { gte: thirtyDaysAgo, lt: now },
+        },
+        _count: { _all: true },
+      }),
+      db.booking.aggregate({
+        where: {
+          businessId: business.id,
+          startsAt: { gte: thirtyDaysAgo, lt: now },
+          status: { in: ["CONFIRMED", "COMPLETED"] },
+        },
+        _sum: { priceCents: true },
+      }),
+      db.booking.count({
+        where: {
+          businessId: business.id,
+          startsAt: { gte: sevenDaysAgo, lt: now },
+        },
+      }),
+      db.booking.count({
+        where: {
+          businessId: business.id,
+          startsAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo },
+        },
+      }),
+      db.booking.groupBy({
+        by: ["serviceId"],
+        where: {
+          businessId: business.id,
+          startsAt: { gte: thirtyDaysAgo, lt: now },
+          status: { notIn: ["CANCELLED", "NO_SHOW"] },
+        },
+        _count: { _all: true },
+        orderBy: { _count: { serviceId: "desc" } },
+        take: 1,
+      }),
+    ]);
+
+  const totalBookings30d = statusCounts.reduce((sum, item) => sum + item._count._all, 0);
+  const cancelledOrNoShow = statusCounts
+    .filter((item) => item.status === "CANCELLED" || item.status === "NO_SHOW")
+    .reduce((sum, item) => sum + item._count._all, 0);
+
+  const cancellationRatePct =
+    totalBookings30d > 0 ? Math.round((cancelledOrNoShow / totalBookings30d) * 100) : 0;
+
+  const weeklyDeltaPct =
+    bookingsLastWeek > 0
+      ? Math.round(((bookingsThisWeek - bookingsLastWeek) / bookingsLastWeek) * 100)
+      : null;
+
+  let topService: DashboardAnalytics["topService"] = null;
+  const topGroup = topServiceGroup[0];
+  if (topGroup) {
+    const service = await db.service.findUnique({
+      where: { id: topGroup.serviceId },
+      select: { id: true, name: true },
+    });
+    if (service) {
+      topService = {
+        id: service.id,
+        name: service.name,
+        bookings: topGroup._count._all,
+      };
+    }
+  }
+
+  return {
+    cancellationRatePct,
+    confirmedRevenueCents30d: revenueAggregate._sum.priceCents ?? 0,
+    bookingsThisWeek,
+    bookingsLastWeek,
+    weeklyDeltaPct,
+    topService,
+  };
+}
+
 export async function getCommunicationSnapshot(): Promise<CommunicationSnapshot> {
   const business = await getCurrentBusiness();
   const since = new Date(Date.now() - 24 * 60 * 60_000);
@@ -393,10 +497,10 @@ export async function createManualBooking(input: {
   const business = await getCurrentBusiness();
   const location = business.locations[0];
   const service = await db.service.findFirst({
-    where: { id: input.serviceId, businessId: business.id, isActive: true },
+    where: { id: input.serviceId, businessId: business.id, isActive: true, deletedAt: null },
   });
   const staffMember = await db.staffMember.findFirst({
-    where: { id: input.staffMemberId, businessId: business.id, isActive: true },
+    where: { id: input.staffMemberId, businessId: business.id, isActive: true, deletedAt: null },
     include: { services: true },
   });
 
@@ -502,7 +606,7 @@ export async function createScheduleBlock(input: {
 
   if (input.staffMemberId) {
     const staffMember = await db.staffMember.findFirst({
-      where: { id: input.staffMemberId, businessId: business.id },
+      where: { id: input.staffMemberId, businessId: business.id, deletedAt: null },
     });
 
     if (!staffMember) {
