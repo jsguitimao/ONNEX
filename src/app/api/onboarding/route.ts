@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getBusinessForOnboarding, updateBusinessFromOnboarding } from "@/lib/business";
 import { onboardingSchema } from "@/lib/onboarding-input";
+import { buildRateLimitHeaders, checkRequestRateLimit } from "@/lib/rate-limit";
 import { readJsonBody } from "@/lib/request-body";
 
 export async function GET() {
@@ -15,6 +16,19 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const rateLimit = await checkRequestRateLimit(req, {
+    namespace: "onboarding-write",
+    limit: 20,
+    windowMs: 60_000,
+  });
+
+  if (!rateLimit.ok) {
+    return NextResponse.json(
+      { error: "Demasiadas alterações em pouco tempo. Aguarda um momento." },
+      { status: 429, headers: buildRateLimitHeaders(rateLimit) },
+    );
+  }
+
   try {
     const body = await readJsonBody(req);
     const payload = onboardingSchema.parse(body);

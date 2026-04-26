@@ -1,6 +1,6 @@
 import { addDays } from "date-fns";
 
-const PUBLIC_BOOKING_TOKEN_TTL_DAYS = 30;
+const PUBLIC_BOOKING_TOKEN_TTL_DAYS = 7;
 
 type PublicTokenWindowInput = {
   endsAt: Date;
