@@ -240,6 +240,13 @@ function ensureActivePublicToken<T extends { publicToken: string | null; endsAt:
   return booking;
 }
 
+export async function listPublicBusinessSlugs(): Promise<{ slug: string; updatedAt: Date }[]> {
+  return db.business.findMany({
+    where: { status: "ACTIVE" },
+    select: { slug: true, updatedAt: true },
+  });
+}
+
 export async function getPublicBusinessPayload(slug: string): Promise<PublicBusinessPayload | null> {
   const business = await getBusinessBySlug(slug);
   if (!business) return null;

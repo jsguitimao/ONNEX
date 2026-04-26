@@ -33,6 +33,8 @@ export async function getBusinessForOnboarding() {
     bookingWindowDays: policy.bookingWindowDays,
     slotIntervalMinutes: policy.slotIntervalMinutes,
     cancellationWindowHours: policy.cancellationWindowHours,
+    seoTitle: business.bookingPage?.seoTitle ?? "",
+    seoDescription: business.bookingPage?.seoDescription ?? "",
   } satisfies OnboardingDraft;
 }
 
@@ -57,6 +59,8 @@ export async function updateBusinessFromOnboarding(input: OnboardingDraft) {
     showTeam: input.showTeam,
     showPrices: input.showPrices,
     showDurations: input.showDurations,
+    seoTitle: input.seoTitle || null,
+    seoDescription: input.seoDescription || null,
   } as const;
 
   return db.business.update({

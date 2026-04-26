@@ -26,7 +26,7 @@ export function PublicStaffGrid({ staffMembers }: Props) {
 
   return (
     <div className="flex flex-col gap-8">
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         {staffMembers.map((member) => {
           const isSelected = member.id === selectedId;
           return (
@@ -48,7 +48,7 @@ export function PublicStaffGrid({ staffMembers }: Props) {
                       src={member.avatarUrl}
                       alt={member.fullName}
                       fill
-                      sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                      sizes="(min-width: 480px) 160px, 50vw"
                       className="object-cover"
                     />
                   ) : (
@@ -116,12 +116,14 @@ function PortfolioCarousel({ staffName, images }: PortfolioCarouselProps) {
         >
           {loopedImages.map((src, idx) => {
             const realIndex = idx % images.length;
+            const isDuplicate = idx >= images.length;
             return (
               <button
                 type="button"
                 key={`${src}-${idx}`}
                 onClick={() => setLightboxIndex(realIndex)}
-                aria-hidden={idx >= images.length}
+                aria-hidden={isDuplicate || undefined}
+                tabIndex={isDuplicate ? -1 : undefined}
                 aria-label={`Abrir trabalho ${realIndex + 1} em tamanho grande`}
                 className="group relative aspect-square w-[70vw] max-w-[280px] flex-none cursor-zoom-in overflow-hidden rounded-xl bg-muted sm:w-[40vw] sm:max-w-[300px] lg:w-[25vw] lg:max-w-[320px]"
               >
@@ -129,7 +131,7 @@ function PortfolioCarousel({ staffName, images }: PortfolioCarouselProps) {
                   src={src}
                   alt={`Trabalho ${realIndex + 1} de ${staffName}`}
                   fill
-                  sizes="(min-width: 1024px) 320px, (min-width: 640px) 300px, 70vw"
+                  sizes="(min-width: 480px) 280px, 70vw"
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
               </button>
@@ -160,6 +162,8 @@ type LightboxProps = {
 function PortfolioLightbox({ images, startIndex, staffName, onClose }: LightboxProps) {
   const [index, setIndex] = useState(startIndex);
   const touchStartX = useRef<number | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const goPrev = useCallback(() => {
     setIndex((current) => (current - 1 + images.length) % images.length);
@@ -170,10 +174,28 @@ function PortfolioLightbox({ images, startIndex, staffName, onClose }: LightboxP
   }, [images.length]);
 
   useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowLeft") goPrev();
       if (event.key === "ArrowRight") goNext();
+      if (event.key === "Tab" && dialogRef.current) {
+        const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener("keydown", onKey);
     const previousOverflow = document.body.style.overflow;
@@ -181,6 +203,7 @@ function PortfolioLightbox({ images, startIndex, staffName, onClose }: LightboxP
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
     };
   }, [onClose, goPrev, goNext]);
 
@@ -200,6 +223,7 @@ function PortfolioLightbox({ images, startIndex, staffName, onClose }: LightboxP
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={`Foto ${index + 1} de ${staffName}`}
@@ -209,6 +233,7 @@ function PortfolioLightbox({ images, startIndex, staffName, onClose }: LightboxP
       }}
     >
       <button
+        ref={closeButtonRef}
         type="button"
         onClick={onClose}
         aria-label="Fechar"

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import type { BookingSlot, PublicBusinessPayload } from "@/lib/business";
-import { formatEuro } from "@/lib/demo-data";
+import { formatEuro } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -129,7 +129,8 @@ export function PublicBookingFlow({ business }: Props) {
     setSlots([]);
   };
 
-  const handleBooking = async () => {
+  const handleBooking = async (event?: React.FormEvent) => {
+    event?.preventDefault();
     setSubmitting(true);
     setError("");
 
@@ -184,7 +185,7 @@ export function PublicBookingFlow({ business }: Props) {
         })
       : "";
     return (
-      <section className="flex flex-col items-center gap-5 rounded-2xl border border-border bg-card p-6 text-center text-card-foreground sm:p-10">
+      <div className="flex flex-col items-center gap-5 rounded-2xl border border-border bg-card p-6 text-center text-card-foreground sm:p-10">
         <span className="flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <CheckCircle2 className="size-8" />
         </span>
@@ -216,12 +217,15 @@ export function PublicBookingFlow({ business }: Props) {
             Fazer nova reserva
           </button>
         </div>
-      </section>
+      </div>
     );
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-card-foreground sm:p-6">
+    <form
+      onSubmit={handleBooking}
+      className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-card-foreground sm:p-6"
+    >
       <label className="grid gap-2">
         <span className={labelClass}>Serviço</span>
         <select
@@ -276,13 +280,15 @@ export function PublicBookingFlow({ business }: Props) {
             A carregar horários...
           </div>
         ) : slots.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          <div role="radiogroup" aria-label="Horários disponíveis" className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {slots.map((slot) => {
               const isActive = selectedSlot === slot.iso;
               return (
                 <button
                   key={slot.iso}
                   type="button"
+                  role="radio"
+                  aria-checked={isActive}
                   onClick={() => setSelectedSlot(slot.iso)}
                   className={cn(
                     "rounded-xl border px-3 py-2 text-sm transition",
@@ -309,6 +315,7 @@ export function PublicBookingFlow({ business }: Props) {
         <span className={labelClass}>Nome completo</span>
         <input
           type="text"
+          autoComplete="name"
           placeholder="O teu nome"
           value={customerName}
           onChange={(event) => setCustomerName(event.target.value)}
@@ -320,6 +327,8 @@ export function PublicBookingFlow({ business }: Props) {
         <span className={labelClass}>Telefone</span>
         <input
           type="tel"
+          autoComplete="tel"
+          inputMode="tel"
           placeholder="O teu telefone"
           value={customerPhone}
           onChange={(event) => setCustomerPhone(event.target.value)}
@@ -331,6 +340,8 @@ export function PublicBookingFlow({ business }: Props) {
         <span className={labelClass}>Email</span>
         <input
           type="email"
+          autoComplete="email"
+          inputMode="email"
           placeholder="O teu email"
           value={customerEmail}
           onChange={(event) => setCustomerEmail(event.target.value)}
@@ -339,8 +350,7 @@ export function PublicBookingFlow({ business }: Props) {
       </label>
 
       <button
-        type="button"
-        onClick={handleBooking}
+        type="submit"
         disabled={!selectedService || !selectedSlot || !customerName || (!customerPhone && !customerEmail) || !staffMemberId || submitting}
         className={cn(
           "mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition",
@@ -357,7 +367,11 @@ export function PublicBookingFlow({ business }: Props) {
         )}
       </button>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-    </section>
+      {error ? (
+        <p role="alert" aria-live="polite" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+    </form>
   );
 }

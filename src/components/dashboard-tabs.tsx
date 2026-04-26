@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   CalendarDays,
   ExternalLink,
+  LayoutTemplate,
   Mail,
   Menu,
   Settings2,
@@ -12,12 +13,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Tab = "agenda" | "comunicacao" | "clientes" | "gestao";
+type Tab = "agenda" | "comunicacao" | "clientes" | "pagina" | "gestao";
 
 const tabs: { id: Tab; label: string; icon: typeof CalendarDays }[] = [
   { id: "agenda", label: "Agenda", icon: CalendarDays },
   { id: "comunicacao", label: "Comunicação", icon: Mail },
   { id: "clientes", label: "Clientes", icon: Users },
+  { id: "pagina", label: "Página", icon: LayoutTemplate },
   { id: "gestao", label: "Gestão", icon: Settings2 },
 ];
 
@@ -30,6 +32,7 @@ type DashboardTabsProps = {
     agenda: React.ReactNode;
     comunicacao: React.ReactNode;
     clientes: React.ReactNode;
+    pagina: React.ReactNode;
     gestao: React.ReactNode;
   };
 };

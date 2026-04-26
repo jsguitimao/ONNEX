@@ -4,9 +4,11 @@ import { DashboardAgenda } from "@/components/dashboard-agenda";
 import { DashboardCommunications } from "@/components/dashboard-communications";
 import { DashboardCustomers } from "@/components/dashboard-customers";
 import { DashboardOps } from "@/components/dashboard-ops";
+import { DashboardPageEditor } from "@/components/dashboard-page-editor";
 import { DashboardTabs } from "@/components/dashboard-tabs";
 import {
   getBookingAgendaView,
+  getBusinessForOnboarding,
   getCommunicationSnapshot,
   getCustomersSnapshot,
   getDashboardSnapshot,
@@ -17,14 +19,15 @@ import { formatEuro } from "@/lib/demo-data";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPreviewPage() {
-  let snapshot, management, agendaView, customers, communications;
+  let snapshot, management, agendaView, customers, communications, pageDraft;
   try {
-    [snapshot, management, agendaView, customers, communications] = await Promise.all([
+    [snapshot, management, agendaView, customers, communications, pageDraft] = await Promise.all([
       getDashboardSnapshot(),
       getManagementSnapshot(),
       getBookingAgendaView(),
       getCustomersSnapshot(),
       getCommunicationSnapshot(),
+      getBusinessForOnboarding(),
     ]);
   } catch (error) {
     if (error instanceof Error) {
@@ -80,6 +83,7 @@ export default async function DashboardPreviewPage() {
         ),
         comunicacao: <DashboardCommunications initialSnapshot={communications} />,
         clientes: <DashboardCustomers initialSnapshot={customers} />,
+        pagina: <DashboardPageEditor initialDraft={pageDraft} slug={snapshot.slug} />,
         gestao: <DashboardOps initialSnapshot={management} />,
       }}
     </DashboardTabs>

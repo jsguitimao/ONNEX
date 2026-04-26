@@ -70,9 +70,4 @@ export const demoBusiness: DemoBusiness = {
   ],
 };
 
-export function formatEuro(cents: number) {
-  return new Intl.NumberFormat("pt-PT", {
-    style: "currency",
-    currency: "EUR",
-  }).format(cents / 100);
-}
+export { formatEuro } from "@/lib/formatters";

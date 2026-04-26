@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { BookingManageCard } from "@/components/booking-manage-card";
@@ -11,6 +12,15 @@ type RouteProps = {
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: { index: false, follow: false, noimageindex: true },
+  },
+};
+
 export default async function BookingManagePage({ params }: RouteProps) {
   const { token } = await params;
   const booking = await getPublicBookingByToken(token);
@@ -20,7 +30,7 @@ export default async function BookingManagePage({ params }: RouteProps) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
+    <main className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col px-6 py-12">
       <Link href={`/${booking.businessSlug}`} className={buttonVariants({ variant: "ghost", className: "mb-6 w-fit gap-2" })}>
         <ArrowLeft className="size-4" />
         Voltar para a página pública

@@ -22,6 +22,8 @@ export type OnboardingDraft = {
   bookingWindowDays: number;
   slotIntervalMinutes: number;
   cancellationWindowHours: number;
+  seoTitle: string;
+  seoDescription: string;
 };
 
 export type PublicBusinessPayload = {

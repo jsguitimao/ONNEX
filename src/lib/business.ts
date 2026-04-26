@@ -21,6 +21,7 @@ export {
   getPublicBookingByToken,
   getPublicBookingRescheduleSlots,
   getPublicBusinessPayload,
+  listPublicBusinessSlugs,
   reschedulePublicBookingByToken,
   updatePublicBookingByToken,
 } from "@/lib/business-modules/public";

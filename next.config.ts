@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "**.clerk.com" },
       { protocol: "https", hostname: "**.clerk.accounts.dev" },

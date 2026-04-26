@@ -115,6 +115,18 @@ export const onboardingSchema = z.object({
   bookingWindowDays: z.coerce.number().int().min(1).max(365),
   slotIntervalMinutes: z.coerce.number().int().min(5).max(120),
   cancellationWindowHours: z.coerce.number().int().min(0).max(168),
+  seoTitle: z
+    .preprocess(
+      (value) => (value === undefined || value === null ? "" : normalizeOptionalString(value)),
+      z.string().max(70, "Mantém o título SEO até 70 caracteres."),
+    )
+    .default(""),
+  seoDescription: z
+    .preprocess(
+      (value) => (value === undefined || value === null ? "" : normalizeOptionalString(value)),
+      z.string().max(160, "Mantém a descrição SEO até 160 caracteres."),
+    )
+    .default(""),
 });
 
 export function normalizeOnboardingDraft(input: OnboardingDraft): OnboardingDraft {
@@ -135,5 +147,7 @@ export function normalizeOnboardingDraft(input: OnboardingDraft): OnboardingDraf
     coverImageUrl: ensureString(normalizeOptionalUrlInput(input.coverImageUrl)),
     heroImageUrl: ensureString(normalizeOptionalUrlInput(input.heroImageUrl)),
     theme: input.theme === "light" ? "light" : "dark",
+    seoTitle: ensureString(normalizeOptionalString(input.seoTitle)),
+    seoDescription: ensureString(normalizeOptionalString(input.seoDescription)),
   };
 }

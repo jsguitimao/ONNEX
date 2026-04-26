@@ -229,20 +229,25 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
                 A carregar horários...
               </div>
             ) : slots.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {slots.map((slot) => (
-                  <button
-                    key={slot.iso}
-                    type="button"
-                    onClick={() => setSelectedSlot(slot.iso)}
-                    className={cn(
-                      "rounded-xl border px-3 py-2 text-sm transition",
-                      selectedSlot === slot.iso ? "border-primary bg-primary text-primary-foreground" : "hover:border-primary/30"
-                    )}
-                  >
-                    {slot.label}
-                  </button>
-                ))}
+              <div role="radiogroup" aria-label="Novos horários disponíveis" className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {slots.map((slot) => {
+                  const isActive = selectedSlot === slot.iso;
+                  return (
+                    <button
+                      key={slot.iso}
+                      type="button"
+                      role="radio"
+                      aria-checked={isActive}
+                      onClick={() => setSelectedSlot(slot.iso)}
+                      className={cn(
+                        "rounded-xl border px-3 py-2 text-sm transition",
+                        isActive ? "border-primary bg-primary text-primary-foreground" : "hover:border-primary/30"
+                      )}
+                    >
+                      {slot.label}
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -316,7 +321,11 @@ export function BookingManageCard({ initialBooking }: BookingManageCardProps) {
         </p>
       ) : null}
 
-      {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <p role="alert" aria-live="polite" className="mt-4 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
 
       <p className="mt-5 text-sm text-muted-foreground">
         Podes guardar este link para voltar a consultar, remarcar ou acompanhar o estado da reserva.

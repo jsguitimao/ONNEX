@@ -7,7 +7,7 @@ import { PublicStaffGrid } from "@/components/public-staff-grid";
 import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
 import { getAppUrl } from "@/lib/app-config";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type PublicPageProps = {
   params: Promise<{ slug: string }>;
@@ -15,7 +15,7 @@ type PublicPageProps = {
 
 function isHeroVideo(url: string) {
   const lowered = url.toLowerCase().split("?")[0];
-  return /\.(mp4|webm|mov)$/.test(lowered);
+  return /\.(mp4|webm)$/.test(lowered);
 }
 
 function buildPublicPageMetadata(input: {
@@ -60,12 +60,12 @@ export async function generateMetadata({ params }: PublicPageProps): Promise<Met
 
   const title =
     business.bookingPage?.seoTitle?.trim() ||
-    `${business.name} | Marcação online na BUKBARBEARIA.COM`;
+    `${business.name} — Marcação online`;
   const description =
     business.bookingPage?.seoDescription?.trim() ||
     business.bookingPage?.headline?.trim() ||
     business.description?.trim() ||
-    `Marca online com ${business.name} na BUKBARBEARIA.COM.`;
+    `Marca online com ${business.name}.`;
 
   return buildPublicPageMetadata({
     name: title,
@@ -129,7 +129,11 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
       <section className="relative h-[70vh] w-full overflow-hidden bg-muted md:h-screen">
         {heroImage ? (
           isHeroVideo(heroImage) ? (
-            <HeroVideo src={heroImage} ariaLabel={`${business.name} — vídeo principal`} />
+            <HeroVideo
+              src={heroImage}
+              posterUrl={business.coverImageUrl ?? business.logoUrl}
+              ariaLabel={`${business.name} — vídeo principal`}
+            />
           ) : (
             <Image
               src={heroImage}
@@ -148,7 +152,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
       </section>
 
       {/* 2. Nome da barbearia */}
-      <section className="mx-auto max-w-3xl px-5 pt-10 text-center sm:pt-14">
+      <section className="mx-auto max-w-[480px] px-5 pt-10 text-center sm:pt-14">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{business.name}</h1>
         {business.description ? (
           <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">
@@ -167,7 +171,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 4. Barbeiros + portfolio */}
       {publicBusiness.showTeam && publicBusiness.staffMembers.length > 0 ? (
-        <section className="mx-auto max-w-5xl px-5 py-12 sm:py-16">
+        <section className="mx-auto max-w-[480px] px-5 py-12 sm:py-16">
           <header className="mb-6 text-center sm:mb-8">
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Os nossos barbeiros</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -180,7 +184,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 5. Agendamento */}
       {publicBusiness.onlineBooking ? (
-        <section id="booking" className="mx-auto max-w-xl px-5 py-12 sm:py-16">
+        <section id="booking" className="mx-auto max-w-[480px] px-5 py-12 sm:py-16">
           <header className="mb-6 text-center">
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Agendar horário</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -193,7 +197,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 6. Google Maps */}
       {mapQuery ? (
-        <section className="mx-auto max-w-5xl px-5 py-12 sm:py-16">
+        <section className="mx-auto max-w-[480px] px-5 py-12 sm:py-16">
           <header className="mb-6 text-center">
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Onde estamos</h2>
             {location?.addressLine1 ? (
@@ -217,7 +221,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
       {/* 7. Footer */}
       <footer className="border-t border-border py-10">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-5 text-center">
+        <div className="mx-auto flex max-w-[480px] flex-col items-center gap-4 px-5 text-center">
           <p className="text-lg font-semibold">{business.name}</p>
           <SocialLinks
             phoneDigits={phoneDigits}

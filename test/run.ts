@@ -280,6 +280,8 @@ const tests: TestCase[] = [
         bookingWindowDays: 30,
         slotIntervalMinutes: 15,
         cancellationWindowHours: 4,
+        seoTitle: "",
+        seoDescription: "",
       });
 
       assert.equal(normalized.slug, "minha-barbearia");
