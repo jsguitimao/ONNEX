@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Cookie } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,20 +28,27 @@ function writeDecision(decision: Decision) {
   }
 }
 
+function subscribeDecision(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
+function getServerSnapshot(): Decision | null {
+  // No SSR assumimos consentimento já registado para não imprimir o banner
+  // antes do client decidir — evita flash e qualquer divergência hidratação.
+  return "accepted";
+}
+
 export function CookieBanner() {
-  const [visible, setVisible] = useState(false);
+  const decision = useSyncExternalStore(subscribeDecision, readDecision, getServerSnapshot);
+  const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    if (readDecision() === null) {
-      setVisible(true);
-    }
-  }, []);
+  if (decision !== null || dismissed) return null;
 
-  if (!visible) return null;
-
-  function decide(decision: Decision) {
-    writeDecision(decision);
-    setVisible(false);
+  function decide(value: Decision) {
+    writeDecision(value);
+    setDismissed(true);
   }
 
   return (
