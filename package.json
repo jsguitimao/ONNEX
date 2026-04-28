@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "prisma migrate deploy && next build",
+    "vercel-build": "prisma db push --skip-generate && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types test/run.ts",
