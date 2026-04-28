@@ -95,6 +95,7 @@ function HeroBlock({
     <div className="relative aspect-square w-full bg-[#1a1a1d]">
       {hero.kind === "video" ? (
         <video
+          key={hero.url}
           src={hero.url}
           poster={hero.posterUrl ?? undefined}
           autoPlay

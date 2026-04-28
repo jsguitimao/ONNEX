@@ -27,7 +27,7 @@ export function IphonePreview({ draft }: Props) {
   // Sempre que o draft muda, propaga ao iframe (debounce ligeiro).
   useEffect(() => {
     if (!isReadyRef.current) return;
-    const handle = setTimeout(() => send(draft), 80);
+    const handle = setTimeout(() => send(draft), 300);
     return () => clearTimeout(handle);
   }, [draft]);
 

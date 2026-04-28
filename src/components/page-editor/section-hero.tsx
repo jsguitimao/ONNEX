@@ -68,6 +68,7 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
           {hero ? (
             hero.kind === "video" ? (
               <video
+                key={hero.url}
                 src={hero.url}
                 muted
                 playsInline

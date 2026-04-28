@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Loader2, Save } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ExternalLink, Loader2, Save } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { IphonePreview } from "@/components/page-editor/iphone-preview";
 import { SectionHero } from "@/components/page-editor/section-hero";
 import { SectionIdentity } from "@/components/page-editor/section-identity";
@@ -92,6 +92,17 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
             ) : null}
             {save.status === "success" ? (
               <p className="text-xs text-muted-foreground">Guardado.</p>
+            ) : null}
+            {!readOnly && draft.slug ? (
+              <a
+                href={`/${draft.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                <ExternalLink className="size-3.5" />
+                Ver página
+              </a>
             ) : null}
             <Button
               type="button"
