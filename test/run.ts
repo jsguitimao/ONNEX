@@ -12,7 +12,6 @@ import {
   getClientIp,
   resetRateLimitStoreForTests,
 } from "../src/lib/rate-limit.ts";
-import { normalizeOnboardingDraft, onboardingSchema } from "../src/lib/onboarding-input.ts";
 import { validatePublicMutationOrigin } from "../src/lib/request-origin.ts";
 import {
   getDayOfWeekForDateKey,
@@ -251,111 +250,6 @@ const tests: TestCase[] = [
       assert.equal(expiresAt.toISOString(), "2026-04-23T12:30:00.000Z");
       assert.equal(isPublicBookingTokenExpired({ endsAt, updatedAt }, new Date("2026-04-23T12:29:59.000Z")), false);
       assert.equal(isPublicBookingTokenExpired({ endsAt, updatedAt }, new Date("2026-04-23T12:30:01.000Z")), true);
-    },
-  },
-  {
-    name: "onboarding normalization accepts trimmed emails and bare URLs",
-    run: () => {
-      const normalized = normalizeOnboardingDraft({
-        businessName: "  Buk Barbearia  ",
-        slug: "  Minha_Barbearia  ",
-        city: " Lisboa ",
-        phone: " 912345678 ",
-        contactEmail: "  DONO@EXAMPLE.COM ",
-        websiteUrl: "bukbarbearia.com",
-        instagramUrl: "instagram.com/bukbarbearia",
-        description: "  Barbearia premium no centro de Lisboa.  ",
-        headline: "  Reserva online em segundos  ",
-        primaryColor: "#111827",
-        accentColor: "#c084fc",
-        logoUrl: "cdn.example.com/logo.png",
-        coverImageUrl: "images.example.com/capa.jpg",
-        heroImageUrl: "",
-        theme: "dark",
-        onlineBooking: true,
-        showTeam: true,
-        showPrices: true,
-        showDurations: true,
-        bookingLeadTimeHours: 2,
-        bookingWindowDays: 30,
-        slotIntervalMinutes: 15,
-        cancellationWindowHours: 4,
-        seoTitle: "",
-        seoDescription: "",
-      });
-
-      assert.equal(normalized.slug, "minha-barbearia");
-      assert.equal(normalized.contactEmail, "dono@example.com");
-      assert.equal(normalized.websiteUrl, "https://bukbarbearia.com");
-      assert.equal(normalized.logoUrl, "https://cdn.example.com/logo.png");
-      assert.equal(normalized.accentColor, "#C084FC");
-    },
-  },
-  {
-    name: "onboarding schema parses normalized optional URLs successfully",
-    run: () => {
-      const parsed = onboardingSchema.parse({
-        businessName: "Buk Barbearia",
-        slug: "Meu_Slug",
-        city: "Lisboa",
-        phone: "912345678",
-        contactEmail: " contacto@example.com ",
-        websiteUrl: "bukbarbearia.com",
-        instagramUrl: "",
-        description: "Barbearia com cortes, barba e experiência premium.",
-        headline: "Reserva online simples",
-        primaryColor: "#111827",
-        accentColor: "#C084FC",
-        logoUrl: "",
-        coverImageUrl: "",
-        heroImageUrl: "",
-        theme: "dark",
-        onlineBooking: true,
-        showTeam: true,
-        showPrices: true,
-        showDurations: true,
-        bookingLeadTimeHours: 0,
-        bookingWindowDays: 30,
-        slotIntervalMinutes: 15,
-        cancellationWindowHours: 4,
-      });
-
-      assert.equal(parsed.slug, "meu-slug");
-      assert.equal(parsed.contactEmail, "contacto@example.com");
-      assert.equal(parsed.websiteUrl, "https://bukbarbearia.com");
-    },
-  },
-  {
-    name: "onboarding schema accepts empty phone and description for progressive setup",
-    run: () => {
-      const parsed = onboardingSchema.parse({
-        businessName: "Buk Barbearia",
-        slug: "buk-barbearia",
-        city: "Lisboa",
-        phone: "   ",
-        contactEmail: "",
-        websiteUrl: "",
-        instagramUrl: "",
-        description: "   ",
-        headline: "Reserva online simples",
-        primaryColor: "#111827",
-        accentColor: "#C084FC",
-        logoUrl: "",
-        coverImageUrl: "",
-        heroImageUrl: "",
-        theme: "light",
-        onlineBooking: true,
-        showTeam: true,
-        showPrices: true,
-        showDurations: true,
-        bookingLeadTimeHours: 0,
-        bookingWindowDays: 30,
-        slotIntervalMinutes: 15,
-        cancellationWindowHours: 4,
-      });
-
-      assert.equal(parsed.phone, "");
-      assert.equal(parsed.description, "");
     },
   },
   {

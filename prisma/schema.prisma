@@ -81,6 +81,8 @@ model BookingPage {
   businessId        String   @unique
   headline          String?
   heroImageUrl      String?
+  heroPosterUrl     String?
+  heroMediaKind     String?
   theme             String?
   showTeam          Boolean  @default(true)
   showPrices        Boolean  @default(true)
@@ -88,6 +90,9 @@ model BookingPage {
   customDomain      String?  @unique
   seoTitle          String?
   seoDescription    String?
+  galleryImages     Json?
+  mapsAddress       String?
+  whatsappEnabled   Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

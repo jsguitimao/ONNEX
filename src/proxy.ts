@@ -1,14 +1,12 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Páginas /dashboard e /onboarding NÃO entram aqui: o auth.protect() do Clerk
+// A página /dashboard NÃO entra aqui: o auth.protect() do Clerk
 // faz um internal rewrite para /clerk_<ts> quando não autenticado, o que cai
 // no catch-all /[slug] da app e quebra o routing. As próprias pages já
 // redirecionam para /sign-in no try/catch (defense at the page boundary).
 const isProtectedRoute = createRouteMatcher([
   "/api/dashboard(.*)",
-  "/api/onboarding(.*)",
   "/api/upload(.*)",
-  "/api/account(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

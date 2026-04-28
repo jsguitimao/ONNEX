@@ -1,246 +1,90 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import { notFound } from "next/navigation";
-import { HeroVideo } from "@/components/hero-video";
-import { PublicBookingFlow } from "@/components/public-booking-flow";
-import { PublicStaffGrid } from "@/components/public-staff-grid";
-import { SocialLinks } from "@/components/social-links";
-import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
-import { getAppUrl } from "@/lib/app-config";
+import Link from "next/link";
+import { ArrowRight, Calendar, Layers, Smartphone } from "lucide-react";
 
-export const revalidate = 60;
-
-type PublicPageProps = {
-  params: Promise<{ slug: string }>;
+export const metadata: Metadata = {
+  title: "BUKBARBEARIA.COM — Marca a tua barbearia online",
+  description:
+    "Plataforma de marcações online para barbearias: página pública, agenda, equipa e clientes num só editor.",
 };
 
-function isHeroVideo(url: string) {
-  const lowered = url.toLowerCase().split("?")[0];
-  return /\.(mp4|webm)$/.test(lowered);
-}
+const features = [
+  {
+    icon: Smartphone,
+    title: "Página pública pronta",
+    body: "Link-in-bio com hero, equipa, serviços, galeria e mapa. Edita e vês em tempo real num mockup iPhone.",
+  },
+  {
+    icon: Calendar,
+    title: "Reservas online 24/7",
+    body: "Os teus clientes marcam direto no telemóvel. Confirmação imediata e sem comissão por reserva.",
+  },
+  {
+    icon: Layers,
+    title: "Tudo num só sítio",
+    body: "Página, agenda, equipa, serviços e clientes geridos a partir do mesmo editor — sem mil tabs.",
+  },
+];
 
-function buildPublicPageMetadata(input: {
-  name: string;
-  slug: string;
-  description: string;
-  imageUrl?: string | null;
-}) {
-  const url = `${getAppUrl()}/${input.slug}`;
-  const images = input.imageUrl ? [{ url: input.imageUrl }] : undefined;
-
-  return {
-    title: input.name,
-    description: input.description,
-    alternates: { canonical: url },
-    openGraph: {
-      title: input.name,
-      description: input.description,
-      url,
-      type: "website",
-      images,
-    },
-    twitter: {
-      card: images ? "summary_large_image" : "summary",
-      title: input.name,
-      description: input.description,
-      images: input.imageUrl ? [input.imageUrl] : undefined,
-    },
-  } satisfies Metadata;
-}
-
-export async function generateMetadata({ params }: PublicPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const business = await getBusinessBySlug(slug);
-
-  if (!business) {
-    return {
-      title: "Página não encontrada | BUKBARBEARIA.COM",
-      description: "A página pública pedida não está disponível.",
-    };
-  }
-
-  const title =
-    business.bookingPage?.seoTitle?.trim() ||
-    `${business.name} — Marcação online`;
-  const description =
-    business.bookingPage?.seoDescription?.trim() ||
-    business.bookingPage?.headline?.trim() ||
-    business.description?.trim() ||
-    `Marca online com ${business.name}.`;
-
-  return buildPublicPageMetadata({
-    name: title,
-    slug: business.slug,
-    description,
-    imageUrl: business.coverImageUrl || business.logoUrl,
-  });
-}
-
-export default async function PublicBookingPage({ params }: PublicPageProps) {
-  const { slug } = await params;
-  const business = await getBusinessBySlug(slug);
-  const publicBusiness = await getPublicBusinessPayload(slug);
-
-  if (!business || !publicBusiness) {
-    notFound();
-  }
-
-  const location = business.locations[0];
-  const phoneDigits = (business.contactPhone ?? "").replace(/\D/g, "");
-  const heroImage = publicBusiness.heroImageUrl ?? business.coverImageUrl ?? business.logoUrl;
-  const theme = publicBusiness.theme;
-
-  const mapQuery = [location?.addressLine1, location?.city].filter(Boolean).join(", ");
-  const pageUrl = `${getAppUrl()}/${business.slug}`;
-
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BarberShop",
-    name: business.name,
-    url: pageUrl,
-    ...(business.description ? { description: business.description } : {}),
-    ...(heroImage && !isHeroVideo(heroImage) ? { image: heroImage } : {}),
-    ...(phoneDigits ? { telephone: `+${phoneDigits}` } : {}),
-    ...(location
-      ? {
-          address: {
-            "@type": "PostalAddress",
-            streetAddress: location.addressLine1 ?? undefined,
-            addressLocality: location.city ?? undefined,
-            postalCode: location.postalCode ?? undefined,
-            addressCountry: location.countryCode ?? "PT",
-          },
-        }
-      : {}),
-    ...(() => {
-      const sameAs = [business.instagramUrl, business.tiktokUrl, business.facebookUrl].filter(
-        (url): url is string => Boolean(url),
-      );
-      return sameAs.length > 0 ? { sameAs } : {};
-    })(),
-  };
-
+export default function HomePage() {
   return (
-    <main
-      data-theme={theme}
-      className="min-h-screen bg-background text-foreground"
-    >
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-
-      {/* 1. Hero — 70vh (mobile) / 100vh (desktop) */}
-      <section className="relative h-[70vh] w-full overflow-hidden bg-muted md:h-screen">
-        {heroImage ? (
-          isHeroVideo(heroImage) ? (
-            <HeroVideo
-              src={heroImage}
-              posterUrl={business.coverImageUrl ?? business.logoUrl}
-              ariaLabel={`${business.name} — vídeo principal`}
-            />
-          ) : (
-            <Image
-              src={heroImage}
-              alt={`${business.name} — imagem principal`}
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover"
-            />
-          )
-        ) : null}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[15%] bg-gradient-to-b from-transparent to-background"
-        />
+    <main className="min-h-screen bg-background text-foreground">
+      <section className="mx-auto flex max-w-3xl flex-col items-center px-6 pt-20 pb-12 text-center sm:pt-28">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+          BUKBARBEARIA.COM
+        </p>
+        <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
+          A tua barbearia, com marcação online em minutos.
+        </h1>
+        <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
+          Cria a tua página pública, partilha o link e começa a receber reservas
+          hoje. Sem instalação, sem comissões.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/dashboard"
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+          >
+            Abrir editor
+            <ArrowRight className="size-4" />
+          </Link>
+          <Link
+            href="/sign-in"
+            className="inline-flex h-10 items-center rounded-lg border border-border bg-background px-5 text-sm font-medium transition hover:bg-muted"
+          >
+            Entrar
+          </Link>
+        </div>
       </section>
 
-      {/* 2. Nome da barbearia */}
-      <section className="mx-auto max-w-[480px] px-5 pt-10 text-center sm:pt-14">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{business.name}</h1>
-        {business.description ? (
-          <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">
-            {business.description}
-          </p>
-        ) : null}
-
-        {/* 3. Redes sociais */}
-        <SocialLinks
-          phoneDigits={phoneDigits}
-          instagramUrl={business.instagramUrl}
-          tiktokUrl={business.tiktokUrl}
-          facebookUrl={business.facebookUrl}
-          className="mt-6"
-        />
+      <section className="mx-auto grid max-w-5xl gap-4 px-6 pb-20 sm:grid-cols-3">
+        {features.map(({ icon: Icon, title, body }) => (
+          <article
+            key={title}
+            className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-6 shadow-sm"
+          >
+            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Icon className="size-5" />
+            </span>
+            <h2 className="text-base font-semibold tracking-tight">{title}</h2>
+            <p className="text-sm text-muted-foreground">{body}</p>
+          </article>
+        ))}
       </section>
 
-      {/* 4. Barbeiros + portfolio */}
-      {publicBusiness.showTeam && publicBusiness.staffMembers.length > 0 ? (
-        <section className="mx-auto max-w-[480px] px-5 py-12 sm:py-16">
-          <header className="mb-6 text-center sm:mb-8">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Os nossos barbeiros</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Seleciona um barbeiro para ver os últimos trabalhos.
-            </p>
-          </header>
-          <PublicStaffGrid staffMembers={publicBusiness.staffMembers} />
-        </section>
-      ) : null}
-
-      {/* 5. Agendamento */}
-      {publicBusiness.onlineBooking ? (
-        <section id="booking" className="mx-auto max-w-[480px] px-5 py-12 sm:py-16">
-          <header className="mb-6 text-center">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Agendar horário</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Escolhe serviço, barbeiro e horário. Confirmação imediata.
-            </p>
-          </header>
-          <PublicBookingFlow business={publicBusiness} />
-        </section>
-      ) : null}
-
-      {/* 6. Google Maps */}
-      {mapQuery ? (
-        <section className="mx-auto max-w-[480px] px-5 py-12 sm:py-16">
-          <header className="mb-6 text-center">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Onde estamos</h2>
-            {location?.addressLine1 ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                {[location.addressLine1, location.city].filter(Boolean).join(" · ")}
-              </p>
-            ) : null}
-          </header>
-          <div className="overflow-hidden rounded-2xl border border-border bg-muted">
-            <iframe
-              src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
-              title={`Mapa de ${location?.addressLine1 ?? location?.city ?? business.name}`}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="aspect-[16/9] w-full border-0"
-              allowFullScreen
-            />
-          </div>
-        </section>
-      ) : null}
-
-      {/* 7. Footer */}
-      <footer className="border-t border-border py-10">
-        <div className="mx-auto flex max-w-[480px] flex-col items-center gap-4 px-5 text-center">
-          <p className="text-lg font-semibold">{business.name}</p>
-          <SocialLinks
-            phoneDigits={phoneDigits}
-            instagramUrl={business.instagramUrl}
-            tiktokUrl={business.tiktokUrl}
-            facebookUrl={business.facebookUrl}
-          />
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} · {business.name}
-          </p>
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:justify-between">
+          <p className="font-medium text-foreground">BUKBARBEARIA.COM</p>
+          <nav className="flex flex-wrap gap-4">
+            <Link href="/termos" className="transition hover:text-foreground">
+              Termos
+            </Link>
+            <Link href="/privacidade" className="transition hover:text-foreground">
+              Privacidade
+            </Link>
+          </nav>
         </div>
       </footer>
     </main>
   );
 }
-
