@@ -7,6 +7,7 @@ import { PublicStaffGrid } from "@/components/public-staff-grid";
 import { SocialLinks } from "@/components/social-links";
 import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
 import { getAppUrl } from "@/lib/app-config";
+import { inferMediaKindFromUrl, isSupportedMediaUrl } from "@/lib/media-url";
 
 export const revalidate = 60;
 
@@ -15,8 +16,7 @@ type PublicPageProps = {
 };
 
 function isHeroVideo(url: string) {
-  const lowered = url.toLowerCase().split("?")[0];
-  return /\.(mp4|webm|mov|m4v|qt)$/.test(lowered);
+  return inferMediaKindFromUrl(url) === "video";
 }
 
 function buildPublicPageMetadata(input: {
@@ -73,9 +73,13 @@ export async function generateMetadata({ params }: PublicPageProps): Promise<Met
     slug: business.slug,
     description,
     imageUrl:
-      business.bookingPage?.heroImageUrl && !isHeroVideo(business.bookingPage.heroImageUrl)
+      business.bookingPage?.heroImageUrl &&
+      isSupportedMediaUrl(business.bookingPage.heroImageUrl) &&
+      !isHeroVideo(business.bookingPage.heroImageUrl)
         ? business.bookingPage.heroImageUrl
-        : business.coverImageUrl || business.logoUrl,
+        : [business.coverImageUrl, business.logoUrl].find(
+            (url): url is string => Boolean(url && isSupportedMediaUrl(url)),
+          ),
   });
 }
 
@@ -90,7 +94,8 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
 
   const location = business.locations[0];
   const phoneDigits = (business.contactPhone ?? "").replace(/\D/g, "");
-  const heroImage = publicBusiness.heroImageUrl ?? business.coverImageUrl ?? business.logoUrl;
+  const heroImage = [publicBusiness.heroImageUrl, business.coverImageUrl, business.logoUrl]
+    .find((url): url is string => Boolean(url && isSupportedMediaUrl(url)));
   const theme = publicBusiness.theme;
 
   const mapQuery = [location?.addressLine1, location?.city].filter(Boolean).join(", ");
@@ -150,6 +155,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
               priority
               sizes="100vw"
               className="object-cover"
+              unoptimized
             />
           )
         ) : null}

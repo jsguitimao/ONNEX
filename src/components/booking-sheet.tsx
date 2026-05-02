@@ -667,6 +667,7 @@ function BarberStep({
                     fill
                     sizes="(max-width: 480px) 50vw, 220px"
                     className="object-cover"
+                    unoptimized
                   />
                 ) : null}
                 <span className="absolute right-2 top-2">

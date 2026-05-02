@@ -1,4 +1,5 @@
 import { getCurrentBusiness } from "@/lib/business-modules/core";
+import { inferMediaKindFromUrl, isSupportedMediaUrl } from "@/lib/media-url";
 import type { EditorDraft, EditorHeroMedia } from "@/lib/page-editor/draft";
 
 function asStringArray(raw: unknown): string[] {
@@ -12,9 +13,10 @@ export async function loadEditorDraft(): Promise<EditorDraft> {
   const page = business.bookingPage;
   const location = business.locations[0];
 
-  const hero: EditorHeroMedia | null = page?.heroImageUrl
+  const heroKind = page?.heroImageUrl ? inferMediaKindFromUrl(page.heroImageUrl) : null;
+  const hero: EditorHeroMedia | null = page?.heroImageUrl && heroKind
     ? {
-        kind: page.heroMediaKind === "video" ? "video" : "image",
+        kind: heroKind,
         url: page.heroImageUrl,
         posterUrl: page.heroPosterUrl ?? null,
       }
@@ -70,9 +72,9 @@ export async function loadEditorDraft(): Promise<EditorDraft> {
       roleTitle: m.roleTitle,
       bio: m.bio,
       avatarUrl: m.avatarUrl,
-      portfolioImages: asStringArray(m.portfolioImages),
+      portfolioImages: asStringArray(m.portfolioImages).filter(isSupportedMediaUrl),
       serviceIds: m.services.map((s) => s.serviceId),
     })),
-    galleryImages: asStringArray(page?.galleryImages),
+    galleryImages: asStringArray(page?.galleryImages).filter(isSupportedMediaUrl),
   };
 }

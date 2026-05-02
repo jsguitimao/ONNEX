@@ -1,16 +1,15 @@
 "use client";
 
 import { upload } from "@vercel/blob/client";
+import { VIDEO_EXTENSIONS } from "@/lib/media-url";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
 
-const VIDEO_EXTENSIONS = ["mp4", "webm", "mov", "m4v", "qt"];
-
 function isVideo(file: File) {
   if ((file.type || "").toLowerCase().startsWith("video/")) return true;
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-  return VIDEO_EXTENSIONS.includes(ext);
+  return VIDEO_EXTENSIONS.some((videoExt) => videoExt === ext);
 }
 
 function pickPathname(file: File) {

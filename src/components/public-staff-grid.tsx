@@ -50,6 +50,7 @@ export function PublicStaffGrid({ staffMembers }: Props) {
                       fill
                       sizes="(min-width: 480px) 160px, 50vw"
                       className="object-cover"
+                      unoptimized
                     />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center text-5xl font-semibold text-muted-foreground">
@@ -133,6 +134,7 @@ function PortfolioCarousel({ staffName, images }: PortfolioCarouselProps) {
                   fill
                   sizes="(min-width: 480px) 280px, 70vw"
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  unoptimized
                 />
               </button>
             );
@@ -255,6 +257,7 @@ function PortfolioLightbox({ images, startIndex, staffName, onClose }: LightboxP
           priority
           className="pointer-events-none object-contain"
           draggable={false}
+          unoptimized
         />
 
         {images.length > 1 ? (

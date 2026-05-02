@@ -14,12 +14,16 @@ type Props = {
 };
 
 export function SectionSeo({ draft, onChange }: Props) {
+  const seoTitle = draft.seoTitle ?? "";
+  const seoDescription = draft.seoDescription ?? "";
+  const headline = draft.headline ?? "";
+  const description = draft.description ?? "";
   const previewTitle =
-    draft.seoTitle.trim() || `${draft.name || "A tua página"} — Marcação online`;
+    seoTitle.trim() || `${draft.name || "A tua página"} — Marcação online`;
   const previewDescription =
-    draft.seoDescription.trim() ||
-    draft.headline.trim() ||
-    draft.description.trim() ||
+    seoDescription.trim() ||
+    headline.trim() ||
+    description.trim() ||
     `Marca online com ${draft.name || "este negócio"}.`;
   const previewUrl = `buk-next.vercel.app/${draft.slug || "slug"}`;
 
@@ -32,10 +36,10 @@ export function SectionSeo({ draft, onChange }: Props) {
       <Field
         label="Título SEO"
         hint="Ideal até 60 caracteres."
-        counter={`${draft.seoTitle.length}/70`}
+        counter={`${seoTitle.length}/70`}
       >
         <Input
-          value={draft.seoTitle}
+          value={seoTitle}
           onChange={(e) => onChange({ seoTitle: e.target.value })}
           maxLength={70}
           placeholder="Studio Lapidar — Barbearia em Lisboa"
@@ -44,10 +48,10 @@ export function SectionSeo({ draft, onChange }: Props) {
       <Field
         label="Descrição SEO"
         hint="Frase de venda em 1-2 linhas."
-        counter={`${draft.seoDescription.length}/160`}
+        counter={`${seoDescription.length}/160`}
       >
         <textarea
-          value={draft.seoDescription}
+          value={seoDescription}
           onChange={(e) => onChange({ seoDescription: e.target.value })}
           maxLength={160}
           rows={3}

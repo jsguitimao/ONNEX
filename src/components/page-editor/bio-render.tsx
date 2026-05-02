@@ -1,7 +1,10 @@
+"use client";
+
 // Renderer da página pública a partir de um EditorDraft.
 // Usado pelo /preview (recebe via postMessage). Mesmo layout do /mock.
 
 import Image from "next/image";
+import { useState } from "react";
 import type { EditorDraft } from "@/lib/page-editor/draft";
 
 const DARK_CARD_SHADOW =
@@ -84,13 +87,20 @@ const PALETTES: Record<Theme, Palette> = {
 };
 
 export function BioRender({ draft }: Props) {
-  const phoneDigits = draft.phone.replace(/\D/g, "");
+  const services = draft.services ?? [];
+  const staffMembers = draft.staffMembers ?? [];
+  const galleryImages = draft.galleryImages ?? [];
+  const phoneDigits = (draft.phone ?? "").replace(/\D/g, "");
   const theme: Theme = draft.theme === "light" ? "light" : "dark";
   const palette = PALETTES[theme];
+  const onlineBooking = draft.onlineBooking !== false;
+  const showTeam = draft.showTeam !== false;
+  const showPrices = draft.showPrices !== false;
+  const showDurations = draft.showDurations !== false;
   const previewTabs = [
     "Serviços",
-    ...(draft.showTeam ? ["Equipa"] : []),
-    ...(draft.onlineBooking ? ["Agendar"] : []),
+    ...(showTeam ? ["Equipa"] : []),
+    ...(onlineBooking ? ["Agendar"] : []),
   ];
 
   return (
@@ -152,23 +162,23 @@ export function BioRender({ draft }: Props) {
             </nav>
 
             {/* 5. Serviços */}
-            {draft.services.length > 0 ? (
+            {services.length > 0 ? (
               <ServicesSection
-                services={draft.services.slice(0, 5)}
+                services={services.slice(0, 5)}
                 palette={palette}
-                showPrices={draft.showPrices}
-                showDurations={draft.showDurations}
+                showPrices={showPrices}
+                showDurations={showDurations}
               />
             ) : null}
 
             {/* 6. Equipa */}
-            {draft.showTeam && draft.staffMembers.length > 0 ? (
-              <TeamSection staff={draft.staffMembers} palette={palette} />
+            {showTeam && staffMembers.length > 0 ? (
+              <TeamSection staff={staffMembers} palette={palette} />
             ) : null}
 
             {/* 7. Galeria */}
-            {draft.galleryImages.length > 0 ? (
-              <GallerySection images={draft.galleryImages} palette={palette} />
+            {galleryImages.length > 0 ? (
+              <GallerySection images={galleryImages} palette={palette} />
             ) : null}
 
             {/* 8. Localização */}
@@ -219,14 +229,12 @@ function HeroBlock({
           aria-label={alt}
         />
       ) : (
-        <Image
+        <SafeImage
           src={hero.url}
           alt={alt}
-          fill
           priority
           sizes="(max-width: 480px) 100vw, 460px"
-          className="object-cover"
-          unoptimized
+          className="absolute inset-0 h-full w-full object-cover"
         />
       )}
       <div
@@ -297,13 +305,11 @@ function TeamSection({
             <article className={`overflow-hidden rounded-lg ${palette.staffCardBg}`}>
               <div className={`relative aspect-square w-full ${palette.staffPlaceholder}`}>
                 {m.avatarUrl ? (
-                  <Image
+                  <SafeImage
                     src={m.avatarUrl}
                     alt={m.fullName}
-                    fill
                     sizes="(max-width: 480px) 50vw, 230px"
-                    className="object-cover"
-                    unoptimized
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
                 ) : null}
               </div>
@@ -339,13 +345,11 @@ function GallerySection({
               <div
                 className={`relative size-44 overflow-hidden rounded-lg ${palette.galleryPlaceholder}`}
               >
-                <Image
+                <SafeImage
                   src={src}
                   alt={idx >= images.length ? "" : `Trabalho ${idx + 1}`}
-                  fill
                   sizes="176px"
-                  className="object-cover"
-                  unoptimized
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
               </div>
             </li>
@@ -353,6 +357,43 @@ function GallerySection({
         </ul>
       </div>
     </section>
+  );
+}
+
+function SafeImage({
+  src,
+  alt,
+  sizes,
+  className,
+  priority = false,
+}: {
+  src: string;
+  alt: string;
+  sizes: string;
+  className: string;
+  priority?: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center px-3 text-center text-xs text-zinc-400">
+        Media indisponível
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      priority={priority}
+      sizes={sizes}
+      className={className}
+      unoptimized
+      onError={() => setFailed(true)}
+    />
   );
 }
 

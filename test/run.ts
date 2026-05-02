@@ -7,6 +7,7 @@ import {
   sanitizeBookingCustomerInput,
 } from "../src/lib/customer-identity.ts";
 import { getPublicBookingTokenExpiresAt, isPublicBookingTokenExpired } from "../src/lib/public-booking-token.ts";
+import { inferMediaKindFromUrl, isSupportedMediaUrl } from "../src/lib/media-url.ts";
 import {
   consumeRateLimit,
   getClientIp,
@@ -271,6 +272,23 @@ const tests: TestCase[] = [
       assert.ok(bounds);
       assert.equal(getZonedDateKey(bounds.start, "Europe/Lisbon"), "2026-04-20");
       assert.equal(getZonedDateKey(new Date(bounds.endExclusive.getTime() - 1), "Europe/Lisbon"), "2026-04-20");
+    },
+  },
+  {
+    name: "timezone helpers reject impossible calendar dates",
+    run: () => {
+      assert.equal(zonedTimeToUtc("2026-02-31", "10:00", "Europe/Lisbon"), null);
+      assert.equal(getZonedDayBounds("2026-02-31", "Europe/Lisbon"), null);
+      assert.equal(getDayOfWeekForDateKey("2026-02-31"), null);
+    },
+  },
+  {
+    name: "media url helpers reject page urls and detect direct media",
+    run: () => {
+      assert.equal(inferMediaKindFromUrl("https://example.com/photo.jpg?size=large"), "image");
+      assert.equal(inferMediaKindFromUrl("https://example.com/media/video.mp4-token"), "video");
+      assert.equal(inferMediaKindFromUrl("https://www.instagram.com/example"), null);
+      assert.equal(isSupportedMediaUrl("https://www.instagram.com/example"), false);
     },
   },
 ];

@@ -11,6 +11,8 @@ type Props = {
 };
 
 export function SectionIdentity({ draft, onChange }: Props) {
+  const description = draft.description ?? "";
+  const headline = draft.headline ?? "";
   return (
     <SectionShell
       step={3}
@@ -33,17 +35,17 @@ export function SectionIdentity({ draft, onChange }: Props) {
       </Field>
       <Field label="Headline (opcional)" hint="Frase curta abaixo do nome.">
         <Input
-          value={draft.headline}
+          value={headline}
           onChange={(e) => onChange({ headline: e.target.value })}
           maxLength={80}
         />
       </Field>
       <Field
         label="Descrição"
-        counter={`${draft.description.length}/280`}
+        counter={`${description.length}/280`}
       >
         <textarea
-          value={draft.description}
+          value={description}
           onChange={(e) => onChange({ description: e.target.value })}
           maxLength={280}
           rows={3}

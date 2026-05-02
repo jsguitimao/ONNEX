@@ -139,6 +139,7 @@ export async function saveEditorDraft(
         data: { deletedAt: new Date(), isActive: false },
       });
     }
+    const serviceIdResolution = new Map<string, string>();
     for (let i = 0; i < draft.services.length; i += 1) {
       const s = draft.services[i];
       if (isPersistedId(s.id)) {
@@ -154,8 +155,9 @@ export async function saveEditorDraft(
             deletedAt: null,
           },
         });
+        serviceIdResolution.set(s.id, s.id);
       } else {
-        await tx.service.create({
+        const created = await tx.service.create({
           data: {
             businessId,
             name: s.name,
@@ -164,7 +166,9 @@ export async function saveEditorDraft(
             priceCents: s.priceCents,
             displayOrder: i,
           },
+          select: { id: true },
         });
+        serviceIdResolution.set(s.id, created.id);
       }
     }
 
@@ -226,17 +230,17 @@ export async function saveEditorDraft(
       const dbStaffId = staffIdResolution.get(m.id);
       if (!dbStaffId) continue;
 
-      // Resolve serviceIds: novos serviços ainda têm UUID v4 (cliente),
-      // ignoramos esses (não dá para fazer assignment a serviço inexistente).
-      // Após save, draft é recarregado com cuids reais.
-      const persistedServiceIds = m.serviceIds.filter(isPersistedId);
+      // Resolve IDs temporários do cliente para os IDs reais criados acima.
+      const resolvedServiceIds = m.serviceIds
+        .map((serviceId) => serviceIdResolution.get(serviceId) ?? null)
+        .filter((serviceId): serviceId is string => Boolean(serviceId));
 
       await tx.staffService.deleteMany({
         where: { staffMemberId: dbStaffId },
       });
-      if (persistedServiceIds.length > 0) {
+      if (resolvedServiceIds.length > 0) {
         await tx.staffService.createMany({
-          data: persistedServiceIds.map((serviceId) => ({
+          data: resolvedServiceIds.map((serviceId) => ({
             staffMemberId: dbStaffId,
             serviceId,
           })),

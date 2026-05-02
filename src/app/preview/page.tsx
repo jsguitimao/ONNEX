@@ -9,12 +9,16 @@ export default function PreviewPage() {
   const [draft, setDraft] = useState<EditorDraft>(() => buildInitialDraftFromMock());
 
   useEffect(() => {
+    const seoTitle = draft.seoTitle ?? "";
+    const seoDescription = draft.seoDescription ?? "";
+    const headline = draft.headline ?? "";
+    const summary = draft.description ?? "";
     const title =
-      draft.seoTitle.trim() || `${draft.name || "A tua página"} — Marcação online`;
+      seoTitle.trim() || `${draft.name || "A tua página"} — Marcação online`;
     const description =
-      draft.seoDescription.trim() ||
-      draft.headline.trim() ||
-      draft.description.trim() ||
+      seoDescription.trim() ||
+      headline.trim() ||
+      summary.trim() ||
       `Marca online com ${draft.name || "este negócio"}.`;
 
     document.title = title;

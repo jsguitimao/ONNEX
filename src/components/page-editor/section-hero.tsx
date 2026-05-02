@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SectionShell } from "@/components/page-editor/section-shell";
 import { uploadMedia } from "@/lib/client-upload";
+import { inferMediaKindFromUrl } from "@/lib/media-url";
 import type { EditorHeroMedia } from "@/lib/page-editor/draft";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -24,10 +25,12 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
   const localObjectUrlRef = useRef<string | null>(null);
   const [busy, setBusy] = useState<null | "image" | "video">(null);
   const [error, setError] = useState<string | null>(null);
+  const [mediaFailed, setMediaFailed] = useState(false);
   const [urlValue, setUrlValue] = useState(hero?.url ?? "");
 
   useEffect(() => {
     setUrlValue(hero?.url ?? "");
+    setMediaFailed(false);
   }, [hero?.url]);
 
   useEffect(() => {
@@ -78,9 +81,14 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
       if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname) {
         throw new Error("invalid");
       }
+      const kind = inferMediaKindFromUrl(trimmed);
+      if (!kind) {
+        setError("O URL deve apontar diretamente para uma imagem ou vídeo suportado.");
+        return;
+      }
       setError(null);
       revokeLocalObjectUrl();
-      onChange({ kind: inferMediaKind(parsed.pathname), url: trimmed, posterUrl: null });
+      onChange({ kind, url: trimmed, posterUrl: null });
     } catch {
       setError("Usa um URL válido que comece por http:// ou https://.");
     }
@@ -100,7 +108,7 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
     >
       <div className="overflow-hidden rounded-lg border border-border bg-muted">
         <div className="relative aspect-square w-full">
-          {hero ? (
+          {hero && !mediaFailed ? (
             hero.kind === "video" ? (
               <video
                 key={hero.url}
@@ -110,6 +118,7 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
                 loop
                 autoPlay
                 className="absolute inset-0 h-full w-full object-cover"
+                onError={() => setMediaFailed(true)}
               />
             ) : (
               <Image
@@ -119,11 +128,12 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
                 sizes="320px"
                 className="object-cover"
                 unoptimized
+                onError={() => setMediaFailed(true)}
               />
             )
           ) : (
             <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-              Sem media
+              {mediaFailed ? "Media indisponível. Carrega outro ficheiro." : "Sem media"}
             </div>
           )}
         </div>
@@ -224,8 +234,4 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
       </div>
     </SectionShell>
   );
-}
-
-function inferMediaKind(pathname: string): "image" | "video" {
-  return /\.(mp4|webm|mov|m4v)$/i.test(pathname) ? "video" : "image";
 }

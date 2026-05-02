@@ -37,6 +37,9 @@ function parseDateKey(dateKey: string) {
 
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
 
+  const roundTrip = new Date(Date.UTC(year, month - 1, day)).toISOString().slice(0, 10);
+  if (roundTrip !== dateKey) return null;
+
   return { year, month, day };
 }
 
@@ -158,4 +161,3 @@ export function getWeekDateKeys(dateKey: string, weekStartsOn = 1) {
     (value): value is string => Boolean(value)
   );
 }
-

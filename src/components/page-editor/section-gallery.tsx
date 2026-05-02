@@ -20,6 +20,7 @@ export function SectionGallery({ images, onChange, readOnly = false }: Props) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Record<string, true>>({});
 
   async function handleFiles(files: FileList) {
     const remaining = MAX_IMAGES - images.length;
@@ -83,14 +84,21 @@ export function SectionGallery({ images, onChange, readOnly = false }: Props) {
         <ul className="grid grid-cols-3 gap-2">
           {images.map((src, index) => (
             <li key={`${index}-${src}`} className="group relative aspect-square overflow-hidden rounded-md bg-muted">
-              <Image
-                src={src}
-                alt={`Trabalho ${index + 1}`}
-                fill
-                sizes="120px"
-                className="object-cover"
-                unoptimized
-              />
+              {failedImages[src] ? (
+                <div className="flex h-full items-center justify-center px-2 text-center text-[11px] text-muted-foreground">
+                  Imagem indisponível
+                </div>
+              ) : (
+                <Image
+                  src={src}
+                  alt={`Trabalho ${index + 1}`}
+                  fill
+                  sizes="120px"
+                  className="object-cover"
+                  unoptimized
+                  onError={() => setFailedImages((prev) => ({ ...prev, [src]: true }))}
+                />
+              )}
               <button
                 type="button"
                 onClick={() => removeAt(index)}
