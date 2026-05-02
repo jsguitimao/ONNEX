@@ -14,7 +14,7 @@ const OPTIONS: Array<{
   value: EditorTheme;
   label: string;
   caption: string;
-  icon: typeof Sun;
+  icon: typeof Moon;
 }> = [
   { value: "dark", label: "Escuro", caption: "Fundo preto", icon: Moon },
   { value: "light", label: "Claro", caption: "Fundo branco", icon: Sun },
@@ -23,11 +23,11 @@ const OPTIONS: Array<{
 export function SectionAppearance({ theme, onChange }: Props) {
   return (
     <SectionShell
-      step={8}
+      step={2}
       title="Aparência"
       description="Escolhe entre tema claro ou escuro para a página pública."
     >
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         {OPTIONS.map((option) => {
           const Icon = option.icon;
           const active = theme === option.value;
@@ -38,18 +38,20 @@ export function SectionAppearance({ theme, onChange }: Props) {
               onClick={() => onChange(option.value)}
               aria-pressed={active}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 rounded-lg border px-3 py-4 text-xs transition",
+                "flex min-h-[86px] flex-col items-center justify-center rounded-xl border px-6 py-4 text-center transition",
                 active
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-background hover:border-foreground/40 text-foreground",
+                  ? "border-zinc-950 bg-zinc-950 text-white shadow-sm dark:border-white dark:bg-white dark:text-zinc-950"
+                  : "border-zinc-300 bg-white text-zinc-950 hover:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:hover:border-zinc-400",
               )}
             >
               <Icon className="size-4" />
-              <span className="font-semibold">{option.label}</span>
+              <span className="mt-1 text-sm font-semibold leading-5">
+                {option.label}
+              </span>
               <span
                 className={cn(
-                  "text-[10px]",
-                  active ? "text-background/70" : "text-muted-foreground",
+                  "mt-0.5 text-xs leading-4",
+                  active ? "text-white/80 dark:text-zinc-950/70" : "text-zinc-600 dark:text-zinc-400",
                 )}
               >
                 {option.caption}

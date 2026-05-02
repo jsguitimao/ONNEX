@@ -42,10 +42,10 @@ export default function MockPublicPage() {
                 />
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute inset-0"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-[9%]"
                   style={{
                     backgroundImage:
-                      "linear-gradient(rgba(250,250,250,0) 0%, #09090b 95.1718%)",
+                      "linear-gradient(to bottom, rgba(250,250,250,0) 0%, #09090b 100%)",
                   }}
                 />
               </div>

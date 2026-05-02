@@ -75,7 +75,7 @@ export function SectionGallery({ images, onChange, readOnly = false }: Props) {
 
   return (
     <SectionShell
-      step={6}
+      step={8}
       title="Galeria"
       description={`Carousel de "últimos trabalhos". Até ${MAX_IMAGES} fotos.`}
     >

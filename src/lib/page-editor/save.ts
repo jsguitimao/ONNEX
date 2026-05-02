@@ -72,6 +72,7 @@ export async function saveEditorDraft(
         instagramUrl: nullableString(draft.instagramUrl),
         tiktokUrl: nullableString(draft.tiktokUrl),
         facebookUrl: nullableString(draft.facebookUrl),
+        onlineBooking: draft.onlineBooking,
       },
     });
 
@@ -101,6 +102,9 @@ export async function saveEditorDraft(
         mapsAddress: nullableString(draft.mapsAddress),
         whatsappEnabled: draft.whatsappEnabled,
         theme: draft.theme,
+        showTeam: draft.showTeam,
+        showPrices: draft.showPrices,
+        showDurations: draft.showDurations,
         galleryImages: draft.galleryImages as Prisma.InputJsonValue,
       },
       update: {
@@ -113,6 +117,9 @@ export async function saveEditorDraft(
         mapsAddress: nullableString(draft.mapsAddress),
         whatsappEnabled: draft.whatsappEnabled,
         theme: draft.theme,
+        showTeam: draft.showTeam,
+        showPrices: draft.showPrices,
+        showDurations: draft.showDurations,
         galleryImages: draft.galleryImages as Prisma.InputJsonValue,
       },
     });

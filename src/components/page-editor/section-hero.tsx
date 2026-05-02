@@ -2,14 +2,14 @@
 
 import Image from "next/image";
 import { ImagePlus, Loader2, Trash2, Video } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SectionShell } from "@/components/page-editor/section-shell";
 import { uploadMedia } from "@/lib/client-upload";
 import type { EditorHeroMedia } from "@/lib/page-editor/draft";
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
-const MAX_VIDEO_BYTES = 8 * 1024 * 1024; // 8 MB
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
 
 type Props = {
   hero: EditorHeroMedia | null;
@@ -21,34 +21,41 @@ type Props = {
 export function SectionHero({ hero, onChange, readOnly = false }: Props) {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const localObjectUrlRef = useRef<string | null>(null);
   const [busy, setBusy] = useState<null | "image" | "video">(null);
   const [error, setError] = useState<string | null>(null);
+  const [urlValue, setUrlValue] = useState(hero?.url ?? "");
+
+  useEffect(() => {
+    setUrlValue(hero?.url ?? "");
+  }, [hero?.url]);
+
+  useEffect(() => {
+    return () => revokeLocalObjectUrl();
+  }, []);
 
   async function handleFile(file: File, kind: "image" | "video") {
     const limit = kind === "video" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
     if (file.size > limit) {
       setError(
-        `Ficheiro grande demais. Máx ${kind === "video" ? "8 MB" : "5 MB"}.`,
+        `Ficheiro grande demais. Máx ${kind === "video" ? "50 MB" : "10 MB"}.`,
       );
       return;
     }
     setError(null);
 
     if (readOnly) {
-      // Demo: mostra localmente (não persiste).
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === "string") {
-          onChange({ kind, url: reader.result, posterUrl: null });
-        }
-      };
-      reader.readAsDataURL(file);
+      revokeLocalObjectUrl();
+      const url = URL.createObjectURL(file);
+      localObjectUrlRef.current = url;
+      onChange({ kind, url, posterUrl: null });
       return;
     }
 
     try {
       setBusy(kind);
       const url = await uploadMedia(file);
+      revokeLocalObjectUrl();
       onChange({ kind, url, posterUrl: null });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no upload.");
@@ -57,11 +64,39 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
     }
   }
 
+  function applyUrl() {
+    const trimmed = urlValue.trim();
+    if (!trimmed) {
+      setError(null);
+      revokeLocalObjectUrl();
+      onChange(null);
+      return;
+    }
+
+    try {
+      const parsed = new URL(trimmed);
+      if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname) {
+        throw new Error("invalid");
+      }
+      setError(null);
+      revokeLocalObjectUrl();
+      onChange({ kind: inferMediaKind(parsed.pathname), url: trimmed, posterUrl: null });
+    } catch {
+      setError("Usa um URL válido que comece por http:// ou https://.");
+    }
+  }
+
+  function revokeLocalObjectUrl() {
+    if (!localObjectUrlRef.current) return;
+    URL.revokeObjectURL(localObjectUrlRef.current);
+    localObjectUrlRef.current = null;
+  }
+
   return (
     <SectionShell
       step={1}
-      title="Hero (vídeo ou imagem)"
-      description="Primeiro elemento visível. Quadrado 1:1. Vídeo até 8 MB, imagem até 5 MB."
+      title="Hero (imagem ou vídeo)"
+      description="Foto ou vídeo grande no topo da página pública. Vídeos tocam em loop, sem som. Imagens até 10 MB, vídeos até 50 MB."
     >
       <div className="overflow-hidden rounded-lg border border-border bg-muted">
         <div className="relative aspect-square w-full">
@@ -92,6 +127,26 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <input
+          type="url"
+          value={urlValue}
+          onChange={(event) => setUrlValue(event.target.value)}
+          onBlur={applyUrl}
+          placeholder="https://... ou carrega um ficheiro"
+          className="h-11 min-w-0 rounded-full border border-border bg-background px-4 text-sm outline-none transition focus:border-foreground/50 focus:ring-2 focus:ring-ring/30"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 rounded-full"
+          onClick={applyUrl}
+          disabled={busy !== null}
+        >
+          Aplicar URL
+        </Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -129,7 +184,10 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
             variant="destructive"
             size="sm"
             disabled={busy !== null}
-            onClick={() => onChange(null)}
+            onClick={() => {
+              revokeLocalObjectUrl();
+              onChange(null);
+            }}
           >
             <Trash2 className="size-3.5" />
             Remover
@@ -155,7 +213,7 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
         <input
           ref={videoInputRef}
           type="file"
-          accept="video/mp4,video/webm"
+          accept="video/mp4,video/webm,video/quicktime,video/x-m4v,.mp4,.webm,.mov,.m4v,.qt"
           hidden
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -166,4 +224,8 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
       </div>
     </SectionShell>
   );
+}
+
+function inferMediaKind(pathname: string): "image" | "video" {
+  return /\.(mp4|webm|mov|m4v)$/i.test(pathname) ? "video" : "image";
 }

@@ -39,6 +39,10 @@ export async function loadEditorDraft(): Promise<EditorDraft> {
     description: business.description ?? "",
 
     theme: page?.theme === "light" ? "light" : "dark",
+    onlineBooking: business.onlineBooking,
+    showTeam: page?.showTeam ?? true,
+    showPrices: page?.showPrices ?? true,
+    showDurations: page?.showDurations ?? true,
 
     hero,
 

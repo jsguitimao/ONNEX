@@ -16,7 +16,7 @@ type Props = {
 export function SectionSocial({ draft, onChange }: Props) {
   return (
     <SectionShell
-      step={3}
+      step={4}
       title="Redes sociais"
       description="Aparecem como ícones por baixo do nome."
     >

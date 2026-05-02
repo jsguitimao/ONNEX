@@ -15,6 +15,10 @@ export function buildInitialDraftFromMock(): EditorDraft {
     description: mockBusiness.description ?? "",
 
     theme: "dark",
+    onlineBooking: mockBusiness.onlineBooking ?? true,
+    showTeam: mockBusiness.showTeam ?? true,
+    showPrices: mockBusiness.showPrices ?? true,
+    showDurations: mockBusiness.showDurations ?? true,
 
     hero: heroUrl ? { kind: "image", url: heroUrl, posterUrl: null } : null,
 

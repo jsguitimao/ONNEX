@@ -13,7 +13,7 @@ type Props = {
 export function SectionLocation({ draft, onChange }: Props) {
   return (
     <SectionShell
-      step={7}
+      step={9}
       title="Localização"
       description="Morada usada no Google Maps embutido."
     >

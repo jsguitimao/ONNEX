@@ -58,6 +58,10 @@ export const editorDraftSchema = z.object({
   description: optionalString(280),
 
   theme: z.enum(["dark", "light"]).default("dark"),
+  onlineBooking: z.boolean().default(true),
+  showTeam: z.boolean().default(true),
+  showPrices: z.boolean().default(true),
+  showDurations: z.boolean().default(true),
 
   hero: heroSchema,
 

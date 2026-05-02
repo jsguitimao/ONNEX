@@ -42,7 +42,7 @@ export function SectionTeam({ staff, onChange, readOnly = false }: Props) {
 
   return (
     <SectionShell
-      step={5}
+      step={7}
       title="Equipa"
       description="Quem aparece no grid de equipa do mobile."
     >

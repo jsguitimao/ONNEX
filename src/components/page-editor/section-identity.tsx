@@ -13,7 +13,7 @@ type Props = {
 export function SectionIdentity({ draft, onChange }: Props) {
   return (
     <SectionShell
-      step={2}
+      step={3}
       title="Identidade"
       description="O nome e a cidade aparecem por baixo do hero."
     >

@@ -34,7 +34,7 @@ export function SectionServices({ services, onChange }: Props) {
 
   return (
     <SectionShell
-      step={4}
+      step={6}
       title="Serviços"
       description="Aparecem na lista do mobile pela ordem em que aqui estão."
     >

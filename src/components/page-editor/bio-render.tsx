@@ -87,6 +87,11 @@ export function BioRender({ draft }: Props) {
   const phoneDigits = draft.phone.replace(/\D/g, "");
   const theme: Theme = draft.theme === "light" ? "light" : "dark";
   const palette = PALETTES[theme];
+  const previewTabs = [
+    "Serviços",
+    ...(draft.showTeam ? ["Equipa"] : []),
+    ...(draft.onlineBooking ? ["Agendar"] : []),
+  ];
 
   return (
     <main
@@ -115,6 +120,16 @@ export function BioRender({ draft }: Props) {
               {draft.city ? (
                 <p className={`mt-1 text-sm ${palette.subtleText}`}>{draft.city}</p>
               ) : null}
+              {draft.headline ? (
+                <p className="mt-4 max-w-[320px] text-base font-semibold leading-6">
+                  {draft.headline}
+                </p>
+              ) : null}
+              {draft.description ? (
+                <p className={`mt-2 max-w-[330px] text-sm leading-6 ${palette.subtleText}`}>
+                  {draft.description}
+                </p>
+              ) : null}
             </header>
 
             {/* 3. Sociais */}
@@ -130,7 +145,7 @@ export function BioRender({ draft }: Props) {
               <ul
                 className={`flex min-w-max items-center justify-center gap-6 pb-1 pt-1 ${palette.subtleText}`}
               >
-                {["Serviços", "Equipa", "Agendar"].map((label) => (
+                {previewTabs.map((label) => (
                   <li key={label} className="text-sm font-medium">{label}</li>
                 ))}
               </ul>
@@ -138,11 +153,16 @@ export function BioRender({ draft }: Props) {
 
             {/* 5. Serviços */}
             {draft.services.length > 0 ? (
-              <ServicesSection services={draft.services.slice(0, 5)} palette={palette} />
+              <ServicesSection
+                services={draft.services.slice(0, 5)}
+                palette={palette}
+                showPrices={draft.showPrices}
+                showDurations={draft.showDurations}
+              />
             ) : null}
 
             {/* 6. Equipa */}
-            {draft.staffMembers.length > 0 ? (
+            {draft.showTeam && draft.staffMembers.length > 0 ? (
               <TeamSection staff={draft.staffMembers} palette={palette} />
             ) : null}
 
@@ -211,9 +231,9 @@ function HeroBlock({
       )}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[9%]"
         style={{
-          backgroundImage: `linear-gradient(rgba(0,0,0,0) 0%, ${fadeColor} 95.1718%)`,
+          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0) 0%, ${fadeColor} 100%)`,
         }}
       />
     </div>
@@ -223,9 +243,13 @@ function HeroBlock({
 function ServicesSection({
   services,
   palette,
+  showPrices,
+  showDurations,
 }: {
   services: EditorDraft["services"];
   palette: Palette;
+  showPrices: boolean;
+  showDurations: boolean;
 }) {
   return (
     <section id="servicos" className="flex flex-col gap-3 px-4 pt-4">
@@ -238,13 +262,17 @@ function ServicesSection({
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{s.name}</p>
-                <p className={`text-xs ${palette.serviceCardSubtle}`}>
-                  {s.durationMinutes} min
-                </p>
+                {showDurations ? (
+                  <p className={`text-xs ${palette.serviceCardSubtle}`}>
+                    {s.durationMinutes} min
+                  </p>
+                ) : null}
               </div>
-              <p className="shrink-0 text-sm font-semibold tabular-nums">
-                {(s.priceCents / 100).toFixed(2)} €
-              </p>
+              {showPrices ? (
+                <p className="shrink-0 text-sm font-semibold tabular-nums">
+                  {(s.priceCents / 100).toFixed(2)} €
+                </p>
+              ) : null}
             </div>
           </li>
         ))}

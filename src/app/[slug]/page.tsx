@@ -16,7 +16,7 @@ type PublicPageProps = {
 
 function isHeroVideo(url: string) {
   const lowered = url.toLowerCase().split("?")[0];
-  return /\.(mp4|webm)$/.test(lowered);
+  return /\.(mp4|webm|mov|m4v|qt)$/.test(lowered);
 }
 
 function buildPublicPageMetadata(input: {
@@ -72,7 +72,10 @@ export async function generateMetadata({ params }: PublicPageProps): Promise<Met
     name: title,
     slug: business.slug,
     description,
-    imageUrl: business.coverImageUrl || business.logoUrl,
+    imageUrl:
+      business.bookingPage?.heroImageUrl && !isHeroVideo(business.bookingPage.heroImageUrl)
+        ? business.bookingPage.heroImageUrl
+        : business.coverImageUrl || business.logoUrl,
   });
 }
 
@@ -152,13 +155,18 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         ) : null}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[15%] bg-gradient-to-b from-transparent to-background"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[9%] bg-gradient-to-b from-transparent to-background"
         />
       </section>
 
       {/* 2. Nome da barbearia */}
       <section className="mx-auto max-w-[480px] px-5 pt-10 text-center sm:pt-14">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{business.name}</h1>
+        {business.bookingPage?.headline ? (
+          <p className="mx-auto mt-4 max-w-xl text-base font-semibold leading-7 sm:text-lg">
+            {business.bookingPage.headline}
+          </p>
+        ) : null}
         {business.description ? (
           <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">
             {business.description}

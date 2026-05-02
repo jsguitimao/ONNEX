@@ -9,6 +9,23 @@ export default function PreviewPage() {
   const [draft, setDraft] = useState<EditorDraft>(() => buildInitialDraftFromMock());
 
   useEffect(() => {
+    const title =
+      draft.seoTitle.trim() || `${draft.name || "A tua página"} — Marcação online`;
+    const description =
+      draft.seoDescription.trim() ||
+      draft.headline.trim() ||
+      draft.description.trim() ||
+      `Marca online com ${draft.name || "este negócio"}.`;
+
+    document.title = title;
+    setMeta("description", description);
+    setMeta("og:title", title, "property");
+    setMeta("og:description", description, "property");
+    setMeta("twitter:title", title);
+    setMeta("twitter:description", description);
+  }, [draft]);
+
+  useEffect(() => {
     function onMessage(event: MessageEvent) {
       // Same-origin only.
       if (event.origin !== window.location.origin) return;
@@ -25,4 +42,16 @@ export default function PreviewPage() {
   }, []);
 
   return <BioRender draft={draft} />;
+}
+
+function setMeta(key: string, content: string, attr: "name" | "property" = "name") {
+  let element = document.head.querySelector<HTMLMetaElement>(
+    `meta[${attr}="${key}"]`,
+  );
+  if (!element) {
+    element = document.createElement("meta");
+    element.setAttribute(attr, key);
+    document.head.appendChild(element);
+  }
+  element.content = content;
 }

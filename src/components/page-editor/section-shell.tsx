@@ -4,18 +4,19 @@ type Props = {
   step: number;
   title: string;
   description?: string;
+  icon?: ReactNode;
   children: ReactNode;
 };
 
-export function SectionShell({ step, title, description, children }: Props) {
+export function SectionShell({ step, title, description, icon, children }: Props) {
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
+    <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
       <header className="mb-4 flex items-start gap-3">
         <span
           aria-hidden
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background"
         >
-          {step}
+          {icon ?? step}
         </span>
         <div className="min-w-0">
           <h3 className="text-sm font-semibold leading-tight text-foreground">{title}</h3>

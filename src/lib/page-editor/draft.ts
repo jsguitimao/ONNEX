@@ -39,6 +39,10 @@ export type EditorDraft = {
 
   // Aparência
   theme: EditorTheme;
+  onlineBooking: boolean;
+  showTeam: boolean;
+  showPrices: boolean;
+  showDurations: boolean;
 
   // Hero (vídeo ou imagem 1:1)
   hero: EditorHeroMedia | null;

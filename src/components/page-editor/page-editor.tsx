@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { ExternalLink, Loader2, Save } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ExternalLink, Loader2, Save, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { IphonePreview } from "@/components/page-editor/iphone-preview";
 import { SectionHero } from "@/components/page-editor/section-hero";
 import { SectionIdentity } from "@/components/page-editor/section-identity";
@@ -12,12 +12,16 @@ import { SectionTeam } from "@/components/page-editor/section-team";
 import { SectionGallery } from "@/components/page-editor/section-gallery";
 import { SectionLocation } from "@/components/page-editor/section-location";
 import { SectionAppearance } from "@/components/page-editor/section-appearance";
+import { SectionOperations } from "@/components/page-editor/section-operations";
 import { SectionSeo } from "@/components/page-editor/section-seo";
+import { DraftPreviewFrame } from "@/components/page-editor/draft-preview-frame";
 import type { EditorDraft } from "@/lib/page-editor/draft";
+
+const DEMO_DRAFT_STORAGE_KEY = "bukly:page-editor-demo-draft";
 
 type Props = {
   initialDraft: EditorDraft;
-  /** Quando true, o botão Guardar não chama API — útil para o scaffold mock. */
+  /** Quando true, o botao Guardar fica local ao navegador. */
   readOnly?: boolean;
 };
 
@@ -31,6 +35,20 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
   const [draft, setDraft] = useState<EditorDraft>(initialDraft);
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(initialDraft));
   const [save, setSave] = useState<SaveState>({ status: "idle" });
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    if (!readOnly) return;
+    const stored = window.localStorage.getItem(DEMO_DRAFT_STORAGE_KEY);
+    if (!stored) return;
+    try {
+      const restored = JSON.parse(stored) as EditorDraft;
+      setDraft(restored);
+      setSavedSnapshot(JSON.stringify(restored));
+    } catch {
+      window.localStorage.removeItem(DEMO_DRAFT_STORAGE_KEY);
+    }
+  }, [readOnly]);
 
   const patch = useCallback((partial: Partial<EditorDraft>) => {
     setDraft((prev) => ({ ...prev, ...partial }));
@@ -42,9 +60,20 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
   );
 
   async function handleSave() {
-    if (readOnly || !isDirty || save.status === "saving") return;
+    if (!isDirty || save.status === "saving") return;
     setSave({ status: "saving" });
     try {
+      if (readOnly) {
+        const draftToStore = stripLocalBlobMedia(draft);
+        window.localStorage.setItem(
+          DEMO_DRAFT_STORAGE_KEY,
+          JSON.stringify(draftToStore),
+        );
+        setSavedSnapshot(JSON.stringify(draft));
+        setSave({ status: "success", at: Date.now() });
+        return;
+      }
+
       const response = await fetch("/api/dashboard", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -56,8 +85,6 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
         } | null;
         throw new Error(data?.error ?? "Erro ao guardar");
       }
-      // Recarrega o draft do servidor para atualizar IDs novos
-      // (uuid cliente → cuid DB) e prevenir duplicação em saves seguintes.
       const refreshed = await fetch("/api/dashboard", { cache: "no-store" });
       if (refreshed.ok) {
         const fresh = (await refreshed.json()) as EditorDraft;
@@ -81,7 +108,7 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
             <h1 className="text-sm font-semibold">Página pública</h1>
             <p className="text-xs text-muted-foreground">
               {readOnly
-                ? "Modo demo · alterações não são guardadas"
+                ? "Modo demo · alterações guardadas neste navegador"
                 : "Edita à esquerda · vê em tempo real à direita"}
             </p>
           </div>
@@ -94,22 +121,20 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
             {save.status === "success" ? (
               <p className="text-xs text-muted-foreground">Guardado.</p>
             ) : null}
-            {!readOnly && draft.slug ? (
-              <a
-                href={`/${draft.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                <ExternalLink className="size-3.5" />
-                Ver página
-              </a>
-            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewOpen(true)}
+            >
+              <ExternalLink className="size-3.5" />
+              Ver página
+            </Button>
             <Button
               type="button"
               size="sm"
               onClick={handleSave}
-              disabled={readOnly || !isDirty || save.status === "saving"}
+              disabled={!isDirty || save.status === "saving"}
             >
               {save.status === "saving" ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -129,6 +154,10 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
             onChange={(hero) => patch({ hero })}
             readOnly={readOnly}
           />
+          <SectionAppearance
+            theme={draft.theme}
+            onChange={(theme) => patch({ theme })}
+          />
           <SectionIdentity
             draft={{
               name: draft.name,
@@ -145,6 +174,15 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
               instagramUrl: draft.instagramUrl,
               tiktokUrl: draft.tiktokUrl,
               facebookUrl: draft.facebookUrl,
+            }}
+            onChange={patch}
+          />
+          <SectionOperations
+            draft={{
+              onlineBooking: draft.onlineBooking,
+              showTeam: draft.showTeam,
+              showPrices: draft.showPrices,
+              showDurations: draft.showDurations,
             }}
             onChange={patch}
           />
@@ -166,12 +204,15 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
             draft={{ mapsAddress: draft.mapsAddress }}
             onChange={patch}
           />
-          <SectionAppearance
-            theme={draft.theme}
-            onChange={(theme) => patch({ theme })}
-          />
           <SectionSeo
-            draft={{ seoTitle: draft.seoTitle, seoDescription: draft.seoDescription }}
+            draft={{
+              name: draft.name,
+              slug: draft.slug,
+              headline: draft.headline,
+              description: draft.description,
+              seoTitle: draft.seoTitle,
+              seoDescription: draft.seoDescription,
+            }}
             onChange={patch}
           />
         </div>
@@ -180,6 +221,38 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
           <IphonePreview draft={draft} />
         </aside>
       </div>
+
+      {previewOpen ? (
+        <div className="fixed inset-0 z-50 bg-background">
+          <header className="flex h-14 items-center justify-between border-b border-border px-4">
+            <div>
+              <p className="text-sm font-semibold">Prévia do consumidor</p>
+              <p className="text-xs text-muted-foreground">
+                Atualiza em tempo real com as alterações do editor.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewOpen(false)}
+            >
+              <X className="size-3.5" />
+              Fechar
+            </Button>
+          </header>
+          <DraftPreviewFrame
+            draft={draft}
+            title="Prévia do consumidor"
+            className="h-[calc(100vh-3.5rem)] w-full border-0 bg-background"
+          />
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function stripLocalBlobMedia(draft: EditorDraft): EditorDraft {
+  if (!draft.hero?.url.startsWith("blob:")) return draft;
+  return { ...draft, hero: null };
 }
