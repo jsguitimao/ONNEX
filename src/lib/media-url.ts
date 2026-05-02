@@ -1,5 +1,5 @@
 export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "avif", "gif", "heic", "heif"] as const;
-export const VIDEO_EXTENSIONS = ["mp4", "webm", "mov", "m4v", "qt"] as const;
+export const VIDEO_EXTENSIONS = ["mp4", "webm"] as const;
 
 export type MediaKind = "image" | "video";
 

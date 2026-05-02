@@ -6,7 +6,7 @@ import { buildRateLimitHeaders, checkRequestRateLimit } from "@/lib/rate-limit";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
 
-const VIDEO_EXTENSIONS = new Set(["mp4", "webm", "mov", "m4v", "qt"]);
+const VIDEO_EXTENSIONS = new Set(["mp4", "webm"]);
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "avif", "gif", "heic", "heif"]);
 
 export const runtime = "nodejs";

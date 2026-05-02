@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SectionShell } from "@/components/page-editor/section-shell";
 import { uploadMedia } from "@/lib/client-upload";
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_IMAGES = 12;
 
 type Props = {
@@ -28,12 +28,16 @@ export function SectionGallery({ images, onChange, readOnly = false }: Props) {
       setError(`Máximo de ${MAX_IMAGES} fotos.`);
       return;
     }
-    const candidates = Array.from(files)
-      .slice(0, remaining)
-      .filter((f) => f.size <= MAX_IMAGE_BYTES);
 
+    const picked = Array.from(files).slice(0, remaining);
+    const tooLarge = picked.filter((file) => file.size > MAX_IMAGE_BYTES);
+    const candidates = picked.filter((file) => file.size <= MAX_IMAGE_BYTES);
+
+    if (tooLarge.length > 0) {
+      setError("Algumas imagens excedem 10 MB e não foram carregadas.");
+    }
     if (candidates.length === 0) return;
-    setError(null);
+    if (tooLarge.length === 0) setError(null);
 
     if (readOnly) {
       try {
@@ -61,7 +65,12 @@ export function SectionGallery({ images, onChange, readOnly = false }: Props) {
 
     try {
       setBusy(true);
-      const urls = await Promise.all(candidates.map((f) => uploadMedia(f)));
+      const urls = await Promise.all(candidates.map((file) => uploadMedia(file)));
+      setFailedImages((prev) => {
+        const next = { ...prev };
+        for (const url of urls) delete next[url];
+        return next;
+      });
       onChange([...images, ...urls]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no upload.");
@@ -83,7 +92,10 @@ export function SectionGallery({ images, onChange, readOnly = false }: Props) {
       {images.length > 0 ? (
         <ul className="grid grid-cols-3 gap-2">
           {images.map((src, index) => (
-            <li key={`${index}-${src}`} className="group relative aspect-square overflow-hidden rounded-md bg-muted">
+            <li
+              key={`${index}-${src}`}
+              className="group relative aspect-square overflow-hidden rounded-md bg-muted"
+            >
               {failedImages[src] ? (
                 <div className="flex h-full items-center justify-center px-2 text-center text-[11px] text-muted-foreground">
                   Imagem indisponível
@@ -145,7 +157,7 @@ export function SectionGallery({ images, onChange, readOnly = false }: Props) {
       />
 
       <p className="text-xs text-muted-foreground">
-        {images.length} / {MAX_IMAGES} fotos · até 5 MB cada
+        {images.length} / {MAX_IMAGES} fotos · até 10 MB cada
       </p>
     </SectionShell>
   );

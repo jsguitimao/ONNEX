@@ -11,6 +11,7 @@ import type { EditorHeroMedia } from "@/lib/page-editor/draft";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
+const PLAYABLE_VIDEO_EXTENSIONS = new Set(["mp4", "webm"]);
 
 type Props = {
   hero: EditorHeroMedia | null;
@@ -43,6 +44,10 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
       setError(
         `Ficheiro grande demais. Máx ${kind === "video" ? "50 MB" : "10 MB"}.`,
       );
+      return;
+    }
+    if (kind === "video" && !isPlayableVideoFile(file)) {
+      setError("Vídeo não suportado. Carrega um ficheiro MP4 ou WEBM.");
       return;
     }
     setError(null);
@@ -117,6 +122,7 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
                 playsInline
                 loop
                 autoPlay
+                controls
                 className="absolute inset-0 h-full w-full object-cover"
                 onError={() => setMediaFailed(true)}
               />
@@ -223,7 +229,7 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
         <input
           ref={videoInputRef}
           type="file"
-          accept="video/mp4,video/webm,video/quicktime,video/x-m4v,.mp4,.webm,.mov,.m4v,.qt"
+          accept="video/mp4,video/webm,.mp4,.webm"
           hidden
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -234,4 +240,11 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
       </div>
     </SectionShell>
   );
+}
+
+function isPlayableVideoFile(file: File) {
+  const type = file.type.toLowerCase();
+  if (type === "video/mp4" || type === "video/webm") return true;
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return PLAYABLE_VIDEO_EXTENSIONS.has(ext);
 }

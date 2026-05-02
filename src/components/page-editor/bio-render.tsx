@@ -216,18 +216,7 @@ function HeroBlock({
   return (
     <div className={`relative aspect-square w-full ${palette.heroBg}`}>
       {hero.kind === "video" ? (
-        <video
-          key={hero.url}
-          src={hero.url}
-          poster={hero.posterUrl ?? undefined}
-          autoPlay
-          muted
-          playsInline
-          loop
-          preload="metadata"
-          className="absolute inset-0 h-full w-full object-cover"
-          aria-label={alt}
-        />
+        <SafeVideo hero={hero} alt={alt} />
       ) : (
         <SafeImage
           src={hero.url}
@@ -392,6 +381,40 @@ function SafeImage({
       sizes={sizes}
       className={className}
       unoptimized
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function SafeVideo({
+  hero,
+  alt,
+}: {
+  hero: NonNullable<EditorDraft["hero"]>;
+  alt: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center px-3 text-center text-xs text-zinc-400">
+        Vídeo indisponível
+      </div>
+    );
+  }
+
+  return (
+    <video
+      key={hero.url}
+      src={hero.url}
+      poster={hero.posterUrl ?? undefined}
+      autoPlay
+      muted
+      playsInline
+      loop
+      preload="metadata"
+      className="absolute inset-0 h-full w-full object-cover"
+      aria-label={alt}
       onError={() => setFailed(true)}
     />
   );
