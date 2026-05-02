@@ -5,6 +5,7 @@ import { VIDEO_EXTENSIONS } from "@/lib/media-url";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+const UPLOAD_TIMEOUT_MS = 120_000;
 
 function isVideo(file: File) {
   if ((file.type || "").toLowerCase().startsWith("video/")) return true;
@@ -54,20 +55,23 @@ export async function uploadMedia(
   }, 5_000);
 
   try {
-    const blob = await upload(pathname, file, {
-      access: "public",
-      handleUploadUrl: "/api/upload",
-      onUploadProgress: (event) => {
-        lastProgressAt = Date.now();
-        if (onProgress) {
-          onProgress({
-            percent: Math.round(event.percentage),
-            loaded: event.loaded,
-            total: event.total,
-          });
-        }
-      },
-    });
+    const blob = await withTimeout(
+      upload(pathname, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+        onUploadProgress: (event) => {
+          lastProgressAt = Date.now();
+          if (onProgress) {
+            onProgress({
+              percent: Math.round(event.percentage),
+              loaded: event.loaded,
+              total: event.total,
+            });
+          }
+        },
+      }),
+      UPLOAD_TIMEOUT_MS,
+    );
 
     return blob.url;
   } catch (error) {
@@ -89,4 +93,23 @@ export async function uploadMedia(
   } finally {
     clearInterval(stallChecker);
   }
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      reject(new Error("Upload demorou demasiado. Tenta novamente."));
+    }, timeoutMs);
+
+    promise.then(
+      (value) => {
+        window.clearTimeout(timeout);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
 }

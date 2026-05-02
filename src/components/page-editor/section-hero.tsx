@@ -24,6 +24,7 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
   const localObjectUrlRef = useRef<string | null>(null);
+  const uploadRunRef = useRef(0);
   const [busy, setBusy] = useState<null | "image" | "video">(null);
   const [error, setError] = useState<string | null>(null);
   const [mediaFailed, setMediaFailed] = useState(false);
@@ -39,6 +40,8 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
   }, []);
 
   async function handleFile(file: File, kind: "image" | "video") {
+    const uploadRun = uploadRunRef.current + 1;
+    uploadRunRef.current = uploadRun;
     const limit = kind === "video" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
     if (file.size > limit) {
       setError(
@@ -51,6 +54,7 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
       return;
     }
     setError(null);
+    setMediaFailed(false);
 
     if (readOnly) {
       revokeLocalObjectUrl();
@@ -63,16 +67,20 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
     try {
       setBusy(kind);
       const url = await uploadMedia(file);
+      if (uploadRunRef.current !== uploadRun) return;
       revokeLocalObjectUrl();
       onChange({ kind, url, posterUrl: null });
     } catch (err) {
+      if (uploadRunRef.current !== uploadRun) return;
       setError(err instanceof Error ? err.message : "Falha no upload.");
     } finally {
-      setBusy(null);
+      if (uploadRunRef.current === uploadRun) setBusy(null);
     }
   }
 
   function applyUrl() {
+    uploadRunRef.current += 1;
+    setBusy(null);
     const trimmed = urlValue.trim();
     if (!trimmed) {
       setError(null);
@@ -92,6 +100,7 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
         return;
       }
       setError(null);
+      setMediaFailed(false);
       revokeLocalObjectUrl();
       onChange({ kind, url: trimmed, posterUrl: null });
     } catch {
@@ -159,7 +168,6 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
           variant="outline"
           className="h-11 rounded-full"
           onClick={applyUrl}
-          disabled={busy !== null}
         >
           Aplicar URL
         </Button>
@@ -170,7 +178,6 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
           type="button"
           variant="outline"
           size="sm"
-          disabled={busy !== null}
           onClick={() => imageInputRef.current?.click()}
         >
           {busy === "image" ? (
@@ -184,7 +191,6 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
           type="button"
           variant="outline"
           size="sm"
-          disabled={busy !== null}
           onClick={() => videoInputRef.current?.click()}
         >
           {busy === "video" ? (
@@ -199,8 +205,10 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
             type="button"
             variant="destructive"
             size="sm"
-            disabled={busy !== null}
             onClick={() => {
+              uploadRunRef.current += 1;
+              setBusy(null);
+              setMediaFailed(false);
               revokeLocalObjectUrl();
               onChange(null);
             }}
