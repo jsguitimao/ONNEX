@@ -6,9 +6,6 @@ import { VIDEO_EXTENSIONS } from "@/lib/media-url";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
 const UPLOAD_TIMEOUT_MS = 120_000;
-// Vercel Blob multipart exige troços ≥5 MB. Abaixo desse tamanho usamos PUT
-// único (multipart com 1 troço pequeno fica preso sem progresso).
-const MULTIPART_THRESHOLD = 5 * 1024 * 1024;
 
 function isVideo(file: File) {
   if ((file.type || "").toLowerCase().startsWith("video/")) return true;
@@ -48,26 +45,24 @@ export async function uploadMedia(
 
   const pathname = pickPathname(file);
 
-  // Detecção de upload preso: se não progredir em 30s, aborta com mensagem útil.
-  let lastProgressAt = Date.now();
-  const stallChecker = setInterval(() => {
-    if (Date.now() - lastProgressAt > 30_000) {
-      clearInterval(stallChecker);
-      console.error("[uploadMedia] stall detected", { pathname, size: file.size });
-    }
-  }, 5_000);
+  console.info("[uploadMedia] start", {
+    pathname,
+    name: file.name,
+    type: file.type,
+    sizeMb: (file.size / 1024 / 1024).toFixed(2),
+  });
 
   try {
     const blob = await withTimeout(
       upload(pathname, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
-        // Multipart só para ficheiros >5 MB: troços paralelos resistentes a
-        // falhas de rede. Para vídeos pequenos (e imagens) PUT único é mais
-        // rápido e evita o bug do multipart com troços abaixo do mínimo.
-        multipart: file.size > MULTIPART_THRESHOLD,
         onUploadProgress: (event) => {
-          lastProgressAt = Date.now();
+          console.debug("[uploadMedia] progress", {
+            percent: Math.round(event.percentage),
+            loaded: event.loaded,
+            total: event.total,
+          });
           if (onProgress) {
             onProgress({
               percent: Math.round(event.percentage),
@@ -80,6 +75,7 @@ export async function uploadMedia(
       UPLOAD_TIMEOUT_MS,
     );
 
+    console.info("[uploadMedia] done", { url: blob.url });
     return blob.url;
   } catch (error) {
     console.error("[uploadMedia] error", error);
@@ -97,8 +93,6 @@ export async function uploadMedia(
       throw error;
     }
     throw new Error("Erro inesperado ao carregar.");
-  } finally {
-    clearInterval(stallChecker);
   }
 }
 
