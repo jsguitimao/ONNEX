@@ -6,6 +6,9 @@ import { VIDEO_EXTENSIONS } from "@/lib/media-url";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
 const UPLOAD_TIMEOUT_MS = 120_000;
+// Vercel Blob multipart exige troços ≥5 MB. Abaixo desse tamanho usamos PUT
+// único (multipart com 1 troço pequeno fica preso sem progresso).
+const MULTIPART_THRESHOLD = 5 * 1024 * 1024;
 
 function isVideo(file: File) {
   if ((file.type || "").toLowerCase().startsWith("video/")) return true;
@@ -59,9 +62,10 @@ export async function uploadMedia(
       upload(pathname, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
-        // Vídeos usam multipart: troços de ~5 MB carregados em paralelo,
-        // resilientes a falhas de rede. Imagens (≤10 MB) ficam em PUT único.
-        multipart: isVideo(file),
+        // Multipart só para ficheiros >5 MB: troços paralelos resistentes a
+        // falhas de rede. Para vídeos pequenos (e imagens) PUT único é mais
+        // rápido e evita o bug do multipart com troços abaixo do mínimo.
+        multipart: file.size > MULTIPART_THRESHOLD,
         onUploadProgress: (event) => {
           lastProgressAt = Date.now();
           if (onProgress) {
