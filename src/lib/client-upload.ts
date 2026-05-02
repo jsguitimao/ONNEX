@@ -59,6 +59,9 @@ export async function uploadMedia(
       upload(pathname, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
+        // Vídeos usam multipart: troços de ~5 MB carregados em paralelo,
+        // resilientes a falhas de rede. Imagens (≤10 MB) ficam em PUT único.
+        multipart: isVideo(file),
         onUploadProgress: (event) => {
           lastProgressAt = Date.now();
           if (onProgress) {

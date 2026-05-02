@@ -26,6 +26,7 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
   const localObjectUrlRef = useRef<string | null>(null);
   const uploadRunRef = useRef(0);
   const [busy, setBusy] = useState<null | "image" | "video">(null);
+  const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mediaFailed, setMediaFailed] = useState(false);
   const [urlValue, setUrlValue] = useState(hero?.url ?? "");
@@ -66,7 +67,11 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
 
     try {
       setBusy(kind);
-      const url = await uploadMedia(file);
+      setProgress(0);
+      const url = await uploadMedia(file, (p) => {
+        if (uploadRunRef.current !== uploadRun) return;
+        setProgress(p.percent);
+      });
       if (uploadRunRef.current !== uploadRun) return;
       revokeLocalObjectUrl();
       onChange({ kind, url, posterUrl: null });
@@ -74,7 +79,10 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
       if (uploadRunRef.current !== uploadRun) return;
       setError(err instanceof Error ? err.message : "Falha no upload.");
     } finally {
-      if (uploadRunRef.current === uploadRun) setBusy(null);
+      if (uploadRunRef.current === uploadRun) {
+        setBusy(null);
+        setProgress(null);
+      }
     }
   }
 
@@ -179,26 +187,32 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
           variant="outline"
           size="sm"
           onClick={() => imageInputRef.current?.click()}
+          disabled={busy !== null}
         >
           {busy === "image" ? (
             <Loader2 className="size-3.5 animate-spin" />
           ) : (
             <ImagePlus className="size-3.5" />
           )}
-          Carregar imagem
+          {busy === "image" && progress !== null
+            ? `A carregar… ${progress}%`
+            : "Carregar imagem"}
         </Button>
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => videoInputRef.current?.click()}
+          disabled={busy !== null}
         >
           {busy === "video" ? (
             <Loader2 className="size-3.5 animate-spin" />
           ) : (
             <Video className="size-3.5" />
           )}
-          Carregar vídeo
+          {busy === "video" && progress !== null
+            ? `A carregar… ${progress}%`
+            : "Carregar vídeo"}
         </Button>
         {hero ? (
           <Button
