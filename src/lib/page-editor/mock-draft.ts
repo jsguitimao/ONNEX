@@ -14,6 +14,8 @@ export function buildInitialDraftFromMock(): EditorDraft {
     headline: mockBusiness.headline ?? "",
     description: mockBusiness.description ?? "",
 
+    theme: "dark",
+
     hero: heroUrl ? { kind: "image", url: heroUrl, posterUrl: null } : null,
 
     phone: mockBusiness.phone ?? "",

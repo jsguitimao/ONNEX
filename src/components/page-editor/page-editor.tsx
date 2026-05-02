@@ -11,6 +11,7 @@ import { SectionServices } from "@/components/page-editor/section-services";
 import { SectionTeam } from "@/components/page-editor/section-team";
 import { SectionGallery } from "@/components/page-editor/section-gallery";
 import { SectionLocation } from "@/components/page-editor/section-location";
+import { SectionAppearance } from "@/components/page-editor/section-appearance";
 import { SectionSeo } from "@/components/page-editor/section-seo";
 import type { EditorDraft } from "@/lib/page-editor/draft";
 
@@ -164,6 +165,10 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
           <SectionLocation
             draft={{ mapsAddress: draft.mapsAddress }}
             onChange={patch}
+          />
+          <SectionAppearance
+            theme={draft.theme}
+            onChange={(theme) => patch({ theme })}
           />
           <SectionSeo
             draft={{ seoTitle: draft.seoTitle, seoDescription: draft.seoDescription }}

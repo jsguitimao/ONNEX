@@ -4,35 +4,116 @@
 import Image from "next/image";
 import type { EditorDraft } from "@/lib/page-editor/draft";
 
-const CARD_SHADOW =
+const DARK_CARD_SHADOW =
   "rgba(250,250,250,0.09) 0.301094px 0.301094px 1.27743px -1px, rgba(250,250,250,0.082) 1.14427px 1.14427px 4.85471px -2px, rgba(250,250,250,0.06) 5px 5px 21.2132px -3px";
+const LIGHT_CARD_SHADOW =
+  "rgba(15,23,42,0.09) 0.301094px 0.301094px 1.27743px -1px, rgba(15,23,42,0.082) 1.14427px 1.14427px 4.85471px -2px, rgba(15,23,42,0.06) 5px 5px 21.2132px -3px";
 
 type Props = { draft: EditorDraft };
 
+type Theme = "dark" | "light";
+
+type Palette = {
+  pageBg: string;
+  pageText: string;
+  cardBg: string;
+  cardShadow: string;
+  heroBg: string;
+  subtleText: string;
+  serviceCardBg: string;
+  serviceCardText: string;
+  serviceCardSubtle: string;
+  staffCardBg: string;
+  staffPlaceholder: string;
+  galleryPlaceholder: string;
+  mapBorder: string;
+  mapBg: string;
+  mapColorScheme: "dark" | "light";
+  buttonBorder: string;
+  buttonBg: string;
+  buttonHoverBorder: string;
+  buttonHoverBg: string;
+  footerSubtle: string;
+};
+
+const PALETTES: Record<Theme, Palette> = {
+  dark: {
+    pageBg: "bg-[#0e0e11]",
+    pageText: "text-[#fafafa]",
+    cardBg: "bg-[#09090b]",
+    cardShadow: DARK_CARD_SHADOW,
+    heroBg: "bg-[#1a1a1d]",
+    subtleText: "text-[#a1a1aa]",
+    serviceCardBg: "bg-[#fafafa]",
+    serviceCardText: "text-[#0a0a0a]",
+    serviceCardSubtle: "text-[#71717a]",
+    staffCardBg: "bg-[#1a1a1d]",
+    staffPlaceholder: "bg-[#27272a]",
+    galleryPlaceholder: "bg-[#27272a]",
+    mapBorder: "border-white/[0.08]",
+    mapBg: "bg-[#1a1a1d]",
+    mapColorScheme: "dark",
+    buttonBorder: "border-white/[0.12]",
+    buttonBg: "bg-white/[0.02]",
+    buttonHoverBorder: "hover:border-white/[0.24]",
+    buttonHoverBg: "hover:bg-white/[0.06]",
+    footerSubtle: "text-[#71717a]",
+  },
+  light: {
+    pageBg: "bg-[#f5f5f7]",
+    pageText: "text-[#0a0a0a]",
+    cardBg: "bg-white",
+    cardShadow: LIGHT_CARD_SHADOW,
+    heroBg: "bg-[#e4e4e7]",
+    subtleText: "text-[#52525b]",
+    serviceCardBg: "bg-[#0a0a0a]",
+    serviceCardText: "text-[#fafafa]",
+    serviceCardSubtle: "text-[#a1a1aa]",
+    staffCardBg: "bg-[#f4f4f5]",
+    staffPlaceholder: "bg-[#e4e4e7]",
+    galleryPlaceholder: "bg-[#e4e4e7]",
+    mapBorder: "border-black/[0.08]",
+    mapBg: "bg-[#f4f4f5]",
+    mapColorScheme: "light",
+    buttonBorder: "border-black/[0.12]",
+    buttonBg: "bg-black/[0.02]",
+    buttonHoverBorder: "hover:border-black/[0.24]",
+    buttonHoverBg: "hover:bg-black/[0.06]",
+    footerSubtle: "text-[#71717a]",
+  },
+};
+
 export function BioRender({ draft }: Props) {
   const phoneDigits = draft.phone.replace(/\D/g, "");
+  const theme: Theme = draft.theme === "light" ? "light" : "dark";
+  const palette = PALETTES[theme];
 
   return (
-    <main className="min-h-screen bg-[#0e0e11] text-[#fafafa]">
+    <main
+      data-theme={theme}
+      className={`min-h-screen ${palette.pageBg} ${palette.pageText}`}
+    >
       <div className="bio-container py-6 sm:py-10">
         <div
-          className="overflow-hidden rounded-2xl bg-[#09090b]"
-          style={{ boxShadow: CARD_SHADOW }}
+          className={`overflow-hidden rounded-2xl ${palette.cardBg}`}
+          style={{ boxShadow: palette.cardShadow }}
         >
           {/* 1. Hero */}
-          {draft.hero ? <HeroBlock hero={draft.hero} alt={draft.name} /> : null}
+          {draft.hero ? (
+            <HeroBlock hero={draft.hero} alt={draft.name} palette={palette} />
+          ) : null}
 
           <div className="flex flex-col gap-4 pb-4 pt-6">
             {/* 2. Nome */}
             <header className="flex flex-col items-center px-4 text-center">
               <h1
-                className="font-bold text-[#fafafa]"
+                className="font-bold"
                 style={{ fontSize: "40px", lineHeight: "56px", letterSpacing: "-1.6px" }}
               >
                 {draft.name || "—"}
               </h1>
               {draft.city ? (
-                <p className="mt-1 text-sm text-[#a1a1aa]">{draft.city}</p>
+                <p className={`mt-1 text-sm ${palette.subtleText}`}>{draft.city}</p>
               ) : null}
             </header>
 
@@ -46,7 +127,9 @@ export function BioRender({ draft }: Props) {
 
             {/* 4. Tabs (estáticas no preview — não navegam) */}
             <nav className="overflow-x-auto px-4">
-              <ul className="flex min-w-max items-center justify-center gap-6 pb-1 pt-1 text-[#a1a1aa]">
+              <ul
+                className={`flex min-w-max items-center justify-center gap-6 pb-1 pt-1 ${palette.subtleText}`}
+              >
                 {["Serviços", "Equipa", "Agendar"].map((label) => (
                   <li key={label} className="text-sm font-medium">{label}</li>
                 ))}
@@ -55,25 +138,27 @@ export function BioRender({ draft }: Props) {
 
             {/* 5. Serviços */}
             {draft.services.length > 0 ? (
-              <ServicesSection services={draft.services.slice(0, 5)} />
+              <ServicesSection services={draft.services.slice(0, 5)} palette={palette} />
             ) : null}
 
             {/* 6. Equipa */}
             {draft.staffMembers.length > 0 ? (
-              <TeamSection staff={draft.staffMembers} />
+              <TeamSection staff={draft.staffMembers} palette={palette} />
             ) : null}
 
             {/* 7. Galeria */}
             {draft.galleryImages.length > 0 ? (
-              <GallerySection images={draft.galleryImages} />
+              <GallerySection images={draft.galleryImages} palette={palette} />
             ) : null}
 
             {/* 8. Localização */}
-            {draft.mapsAddress ? <LocationSection address={draft.mapsAddress} /> : null}
+            {draft.mapsAddress ? (
+              <LocationSection address={draft.mapsAddress} palette={palette} />
+            ) : null}
 
             {/* 9. Footer */}
             <footer className="flex flex-col items-center gap-1 px-4 py-6 text-center">
-              <p className="text-xs text-[#71717a]">
+              <p className={`text-xs ${palette.footerSubtle}`}>
                 © {new Date().getFullYear()} · {draft.name || "—"}
               </p>
             </footer>
@@ -87,12 +172,19 @@ export function BioRender({ draft }: Props) {
 function HeroBlock({
   hero,
   alt,
+  palette,
 }: {
   hero: NonNullable<EditorDraft["hero"]>;
   alt: string;
+  palette: Palette;
 }) {
+  // Gradient final color matches the card background per theme.
+  const fadeColor = palette.cardBg.includes("white")
+    ? "#ffffff"
+    : "#09090b";
+
   return (
-    <div className="relative aspect-square w-full bg-[#1a1a1d]">
+    <div className={`relative aspect-square w-full ${palette.heroBg}`}>
       {hero.kind === "video" ? (
         <video
           key={hero.url}
@@ -121,25 +213,34 @@ function HeroBlock({
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          backgroundImage:
-            "linear-gradient(rgba(250,250,250,0) 0%, #09090b 95.1718%)",
+          backgroundImage: `linear-gradient(rgba(0,0,0,0) 0%, ${fadeColor} 95.1718%)`,
         }}
       />
     </div>
   );
 }
 
-function ServicesSection({ services }: { services: EditorDraft["services"] }) {
+function ServicesSection({
+  services,
+  palette,
+}: {
+  services: EditorDraft["services"];
+  palette: Palette;
+}) {
   return (
     <section id="servicos" className="flex flex-col gap-3 px-4 pt-4">
       <h2 className="text-base font-semibold">Os nossos serviços</h2>
       <ul className="flex flex-col gap-2">
         {services.map((s) => (
           <li key={s.id}>
-            <div className="flex h-14 items-center gap-3 rounded-lg bg-[#fafafa] px-4 text-[#0a0a0a]">
+            <div
+              className={`flex h-14 items-center gap-3 rounded-lg px-4 ${palette.serviceCardBg} ${palette.serviceCardText}`}
+            >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{s.name}</p>
-                <p className="text-xs text-[#71717a]">{s.durationMinutes} min</p>
+                <p className={`text-xs ${palette.serviceCardSubtle}`}>
+                  {s.durationMinutes} min
+                </p>
               </div>
               <p className="shrink-0 text-sm font-semibold tabular-nums">
                 {(s.priceCents / 100).toFixed(2)} €
@@ -152,15 +253,21 @@ function ServicesSection({ services }: { services: EditorDraft["services"] }) {
   );
 }
 
-function TeamSection({ staff }: { staff: EditorDraft["staffMembers"] }) {
+function TeamSection({
+  staff,
+  palette,
+}: {
+  staff: EditorDraft["staffMembers"];
+  palette: Palette;
+}) {
   return (
     <section id="equipa" className="flex flex-col gap-3 px-4 pt-4">
       <h2 className="text-base font-semibold">A nossa equipa</h2>
       <ul className="grid grid-cols-2 gap-2">
         {staff.map((m) => (
           <li key={m.id}>
-            <article className="overflow-hidden rounded-lg bg-[#1a1a1d]">
-              <div className="relative aspect-square w-full bg-[#27272a]">
+            <article className={`overflow-hidden rounded-lg ${palette.staffCardBg}`}>
+              <div className={`relative aspect-square w-full ${palette.staffPlaceholder}`}>
                 {m.avatarUrl ? (
                   <Image
                     src={m.avatarUrl}
@@ -173,9 +280,7 @@ function TeamSection({ staff }: { staff: EditorDraft["staffMembers"] }) {
                 ) : null}
               </div>
               <div className="px-3 py-3">
-                <p className="truncate text-sm font-semibold text-[#fafafa]">
-                  {m.fullName}
-                </p>
+                <p className="truncate text-sm font-semibold">{m.fullName}</p>
               </div>
             </article>
           </li>
@@ -185,7 +290,13 @@ function TeamSection({ staff }: { staff: EditorDraft["staffMembers"] }) {
   );
 }
 
-function GallerySection({ images }: { images: string[] }) {
+function GallerySection({
+  images,
+  palette,
+}: {
+  images: string[];
+  palette: Palette;
+}) {
   return (
     <section className="flex flex-col gap-3 px-4 pt-4">
       <h2 className="text-base font-semibold">Últimos trabalhos</h2>
@@ -197,7 +308,9 @@ function GallerySection({ images }: { images: string[] }) {
               className="shrink-0"
               aria-hidden={idx >= images.length || undefined}
             >
-              <div className="relative size-44 overflow-hidden rounded-lg bg-[#27272a]">
+              <div
+                className={`relative size-44 overflow-hidden rounded-lg ${palette.galleryPlaceholder}`}
+              >
                 <Image
                   src={src}
                   alt={idx >= images.length ? "" : `Trabalho ${idx + 1}`}
@@ -215,12 +328,25 @@ function GallerySection({ images }: { images: string[] }) {
   );
 }
 
-function LocationSection({ address }: { address: string }) {
+function LocationSection({
+  address,
+  palette,
+}: {
+  address: string;
+  palette: Palette;
+}) {
   const encoded = encodeURIComponent(address);
+  const wazeUrl = `https://waze.com/ul?q=${encoded}&navigate=yes`;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+  const buttonClass = `inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border ${palette.buttonBorder} ${palette.buttonBg} text-sm font-medium transition ${palette.buttonHoverBorder} ${palette.buttonHoverBg}`;
+
   return (
     <section id="onde-estamos" className="flex flex-col gap-3 px-4 pt-4">
       <h2 className="text-base font-semibold">Onde estamos</h2>
-      <div className="overflow-hidden rounded-lg border border-white/[0.08] bg-[#1a1a1d]">
+
+      <p className={`text-xs leading-relaxed ${palette.subtleText}`}>{address}</p>
+
+      <div className={`overflow-hidden rounded-lg border ${palette.mapBorder} ${palette.mapBg}`}>
         <iframe
           title={`Mapa de ${address}`}
           src={`https://www.google.com/maps?q=${encoded}&output=embed`}
@@ -228,10 +354,70 @@ function LocationSection({ address }: { address: string }) {
           referrerPolicy="no-referrer-when-downgrade"
           allowFullScreen
           className="aspect-[5/3] w-full border-0"
-          style={{ colorScheme: "dark" }}
+          style={{ colorScheme: palette.mapColorScheme }}
         />
       </div>
+
+      <div className="flex w-full gap-2">
+        <a
+          href={wazeUrl}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Abrir morada no Waze: ${address}`}
+          className={buttonClass}
+        >
+          <WazeIcon />
+          Abrir com Waze
+        </a>
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Abrir morada no Google Maps: ${address}`}
+          className={buttonClass}
+        >
+          <GoogleMapsIcon />
+          Abrir no Maps
+        </a>
+      </div>
     </section>
+  );
+}
+
+function WazeIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polygon points="3 11 22 2 13 21 11 13 3 11" />
+    </svg>
+  );
+}
+
+function GoogleMapsIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
   );
 }
 
@@ -299,7 +485,7 @@ function SocialIcons({
         <span
           key={item.label}
           aria-label={item.label}
-          className="text-[#fafafa] transition hover:opacity-70"
+          className="transition hover:opacity-70"
         >
           {item.icon}
         </span>

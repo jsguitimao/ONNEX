@@ -57,6 +57,8 @@ export const editorDraftSchema = z.object({
   headline: optionalString(80),
   description: optionalString(280),
 
+  theme: z.enum(["dark", "light"]).default("dark"),
+
   hero: heroSchema,
 
   phone: optionalString(30),

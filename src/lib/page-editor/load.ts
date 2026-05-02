@@ -38,6 +38,8 @@ export async function loadEditorDraft(): Promise<EditorDraft> {
     headline: page?.headline ?? "",
     description: business.description ?? "",
 
+    theme: page?.theme === "light" ? "light" : "dark",
+
     hero,
 
     phone: business.contactPhone ?? "",

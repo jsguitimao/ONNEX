@@ -27,6 +27,8 @@ export type EditorStaff = {
   serviceIds: string[];
 };
 
+export type EditorTheme = "dark" | "light";
+
 export type EditorDraft = {
   // Identidade
   name: string;
@@ -34,6 +36,9 @@ export type EditorDraft = {
   city: string;
   headline: string;
   description: string;
+
+  // Aparência
+  theme: EditorTheme;
 
   // Hero (vídeo ou imagem 1:1)
   hero: EditorHeroMedia | null;

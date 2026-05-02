@@ -100,6 +100,7 @@ export async function saveEditorDraft(
         seoDescription: nullableString(draft.seoDescription),
         mapsAddress: nullableString(draft.mapsAddress),
         whatsappEnabled: draft.whatsappEnabled,
+        theme: draft.theme,
         galleryImages: draft.galleryImages as Prisma.InputJsonValue,
       },
       update: {
@@ -111,6 +112,7 @@ export async function saveEditorDraft(
         seoDescription: nullableString(draft.seoDescription),
         mapsAddress: nullableString(draft.mapsAddress),
         whatsappEnabled: draft.whatsappEnabled,
+        theme: draft.theme,
         galleryImages: draft.galleryImages as Prisma.InputJsonValue,
       },
     });
