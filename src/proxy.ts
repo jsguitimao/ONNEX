@@ -4,9 +4,13 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 // faz um internal rewrite para /clerk_<ts> quando não autenticado, o que cai
 // no catch-all /[slug] da app e quebra o routing. As próprias pages já
 // redirecionam para /sign-in no try/catch (defense at the page boundary).
+//
+// /api/upload TAMBÉM não pode estar aqui: o webhook `onUploadCompleted` do
+// Vercel Blob faz POST de volta sem cookies de utilizador. Se for bloqueado
+// pelo Clerk, o cliente `upload()` fica preso até ao timeout de 120s. A própria
+// route já valida auth via `getCurrentBusiness()` em `onBeforeGenerateToken`.
 const isProtectedRoute = createRouteMatcher([
   "/api/dashboard(.*)",
-  "/api/upload(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
