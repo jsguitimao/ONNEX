@@ -164,7 +164,7 @@ export function BioRender({ draft }: Props) {
             {/* 5. Serviços */}
             {services.length > 0 ? (
               <ServicesSection
-                services={services.slice(0, 5)}
+                services={services}
                 palette={palette}
                 showPrices={showPrices}
                 showDurations={showDurations}
@@ -258,7 +258,7 @@ function ServicesSection({
               className={`flex h-14 items-center gap-3 rounded-lg px-4 ${palette.serviceCardBg} ${palette.serviceCardText}`}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{s.name}</p>
+                <p className="truncate text-sm font-semibold">{s.name.trim() || "Novo serviço"}</p>
                 {showDurations ? (
                   <p className={`text-xs ${palette.serviceCardSubtle}`}>
                     {s.durationMinutes} min

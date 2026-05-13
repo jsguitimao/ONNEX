@@ -823,7 +823,7 @@ function ContactStep({
         />
       </label>
       <p className="text-xs text-[#71717a]">
-        Vamos enviar a confirmação por SMS para este número.
+        Vamos enviar a confirmação por WhatsApp para este número.
       </p>
     </div>
   );

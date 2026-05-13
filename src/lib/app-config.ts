@@ -12,10 +12,6 @@ export function getAppUrl() {
   return normalizeUrl(process.env.NEXT_PUBLIC_APP_URL);
 }
 
-export function getEmailFrom() {
-  return process.env.EMAIL_FROM?.trim() || process.env.RESEND_FROM_EMAIL?.trim() || "";
-}
-
 export function getCronSecret() {
   return process.env.CRON_SECRET?.trim() || "";
 }

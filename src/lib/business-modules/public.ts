@@ -2,7 +2,12 @@ import { getBookableRange, getBookingPolicySettings, getCancellationDeadline } f
 import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
 import { db } from "@/lib/db";
 import { assertSlotAvailable, runBookingTransaction } from "@/lib/booking-transaction";
-import { sendBookingNotification, sendRepresentativeBookingNotification } from "@/lib/notifications";
+import {
+  sendBookingNotification,
+  sendRepresentativeBookingNotification,
+  sendStaffBookingNotification,
+} from "@/lib/notifications";
+import { captureException } from "@/lib/observability";
 import {
   createPublicBookingToken,
   getPublicBookingTokenExpiresAt,
@@ -473,6 +478,20 @@ export async function createPublicBooking(input: {
     await sendBookingNotification(booking.id, "BOOKING_CONFIRMED");
   } else {
     await sendBookingNotification(booking.id, "BOOKING_CREATED");
+  }
+
+  if (booking.staffMember) {
+    try {
+      await sendStaffBookingNotification(
+        booking.id,
+        autoAccept ? "BOOKING_STAFF_NEW_BOOKING" : "BOOKING_STAFF_PENDING_REQUEST",
+      );
+    } catch (error) {
+      captureException("public.create_booking.staff_notification_failed", error, {
+        bookingId: booking.id,
+        autoAccept,
+      });
+    }
   }
 
   return booking;

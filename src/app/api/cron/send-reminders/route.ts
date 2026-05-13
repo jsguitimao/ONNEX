@@ -3,7 +3,6 @@ import { authorizeCronRequest } from "@/lib/cron-auth";
 import {
   autoCancelUnconfirmedBookings,
   logReminderRunExecution,
-  sendConfirmationRequests,
   sendUpcomingBookingReminders,
 } from "@/lib/notifications";
 import { captureException, logWarning } from "@/lib/observability";
@@ -43,16 +42,12 @@ async function handleCronReminderRequest(req: Request) {
   }
 
   try {
-    const [confirmationResult, cancelResult, reminderResult] = await Promise.all([
-      sendConfirmationRequests(),
+    const [cancelResult, reminderResult] = await Promise.all([
       autoCancelUnconfirmedBookings(),
       sendUpcomingBookingReminders(),
     ]);
 
-    const totalSent = confirmationResult.sent + reminderResult.sent;
-    const totalFailed = confirmationResult.failed + reminderResult.failed;
-    const totalScanned = confirmationResult.scanned + cancelResult.scanned + reminderResult.scanned;
-    const totalSkipped = confirmationResult.skipped + reminderResult.skipped;
+    const totalScanned = cancelResult.scanned + reminderResult.scanned;
 
     await logReminderRunExecution({
       source: "CRON",
@@ -60,20 +55,19 @@ async function handleCronReminderRequest(req: Request) {
       authorizationSource: authorization.source,
       userAgent,
       scanned: totalScanned,
-      sent: totalSent,
-      skipped: totalSkipped,
-      failed: totalFailed,
+      sent: reminderResult.sent,
+      skipped: reminderResult.skipped,
+      failed: reminderResult.failed,
     });
 
     return NextResponse.json({
-      confirmations: confirmationResult,
       cancellations: cancelResult,
       reminders: reminderResult,
       totals: {
         scanned: totalScanned,
-        sent: totalSent,
-        skipped: totalSkipped,
-        failed: totalFailed,
+        sent: reminderResult.sent,
+        skipped: reminderResult.skipped,
+        failed: reminderResult.failed,
         cancelled: cancelResult.cancelled,
         advancementsSent: cancelResult.advancementsSent,
       },

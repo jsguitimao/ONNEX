@@ -1,8 +1,13 @@
 import { Prisma } from "@prisma/client";
 import { addMinutes, format } from "date-fns";
-import { getAppUrl, getEmailFrom } from "./app-config";
+import { getAppUrl } from "./app-config";
+import {
+  DEFAULT_AUTOMATION,
+  getBusinessAutomation,
+  getBusinessAutomationMap,
+  type CrmAutomationConfig,
+} from "./crm/automation";
 import { db } from "./db";
-import { escapeHtml } from "./html";
 import { captureException } from "./observability";
 
 type NotificationKind =
@@ -12,10 +17,11 @@ type NotificationKind =
   | "BOOKING_CANCELLED_INTERNAL"
   | "BOOKING_RESCHEDULED"
   | "BOOKING_REMINDER"
-  | "BOOKING_CONFIRMATION_REQUEST"
-  | "BOOKING_ADVANCEMENT";
+  | "BOOKING_ADVANCEMENT"
+  | "BOOKING_STAFF_NEW_BOOKING"
+  | "BOOKING_STAFF_PENDING_REQUEST";
 
-type NotificationChannel = "EMAIL" | "SMS";
+type NotificationChannel = "EMAIL" | "WHATSAPP";
 type ReminderRunSource = "CRON" | "DASHBOARD";
 type ReminderRunStatus = "SUCCESS" | "FAILED" | "UNAUTHORIZED" | "MISCONFIGURED";
 
@@ -51,14 +57,10 @@ type BookingNotificationPayload = {
   };
   staffMember: {
     fullName: string;
+    email: string | null;
+    phone: string | null;
+    autoAcceptBookings: boolean;
   } | null;
-};
-
-type NotificationTemplate = {
-  subject: string;
-  preview: string;
-  html: string;
-  text: string;
 };
 
 function buildManageUrl(booking: BookingNotificationPayload) {
@@ -69,346 +71,23 @@ function buildPublicPageUrl(booking: BookingNotificationPayload) {
   return `${getAppUrl()}/${booking.business.slug}`;
 }
 
-function getRepresentativeEmailRecipient(booking: BookingNotificationPayload) {
-  return booking.business.owner.email;
-}
-
-function getRepresentativeSmsRecipient(booking: BookingNotificationPayload) {
+function getRepresentativeWhatsappRecipient(booking: BookingNotificationPayload) {
   return booking.business.contactPhone;
 }
 
-function buildEmailShell(input: {
-  preview: string;
-  eyebrow: string;
-  title: string;
-  body: string[];
-  ctaLabel?: string;
-  ctaUrl?: string;
-  muted?: string;
-  footer?: string[];
-}) {
-  const bodyHtml = input.body
-    .map((paragraph) =>
-      `<p style="margin:0 0 14px;line-height:1.7;">${escapeHtml(paragraph)
-        .replace(/&lt;(\/?strong)&gt;/g, "<$1>")
-        .replace(/&lt;br \/&gt;/g, "<br />")}</p>`
-    )
-    .join("");
-  const ctaHtml =
-    input.ctaLabel && input.ctaUrl
-      ? `<p style="margin:24px 0 0;"><a href="${escapeHtml(input.ctaUrl)}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:600;">${escapeHtml(input.ctaLabel)}</a></p>`
-      : "";
-  const mutedHtml = input.muted
-    ? `<p style="margin:18px 0 0;color:#6b7280;font-size:13px;line-height:1.6;">${escapeHtml(input.muted)}</p>`
-    : "";
-  const footerHtml =
-    input.footer && input.footer.length > 0
-      ? `<div style="margin-top:24px;padding-top:18px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:13px;line-height:1.7;">${input.footer
-          .map((line) => `<p style="margin:0 0 8px;">${escapeHtml(line)}</p>`)
-          .join("")}</div>`
-      : "";
+type MessageContext = {
+  // Para BOOKING_ADVANCEMENT: hora exacta que ficou livre na agenda.
+  freedSlotAt?: Date;
+  // Para BOOKING_CANCELLED_INTERNAL: nome do próximo cliente convidado a adiantar.
+  nextCustomerName?: string;
+};
 
-  return `
-    <div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0;">
-      ${escapeHtml(input.preview)}
-    </div>
-    <div style="background:#f5f7fb;padding:32px 16px;font-family:Arial,sans-serif;color:#111827;">
-      <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:24px;overflow:hidden;">
-        <div style="padding:28px 28px 18px;background:linear-gradient(135deg,#111827 0%,#1f2937 100%);color:#ffffff;">
-          <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;opacity:0.76;">${escapeHtml(input.eyebrow)}</p>
-          <h1 style="margin:0;font-size:28px;line-height:1.2;">${escapeHtml(input.title)}</h1>
-        </div>
-        <div style="padding:24px 28px 28px;">
-          ${bodyHtml}
-          ${ctaHtml}
-          ${mutedHtml}
-          ${footerHtml}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function buildTextTemplate(input: {
-  title: string;
-  body: string[];
-  ctaLabel?: string;
-  ctaUrl?: string;
-  footer?: string[];
-}) {
-  const sections = [input.title, "", ...input.body];
-
-  if (input.ctaLabel && input.ctaUrl) {
-    sections.push("", `${input.ctaLabel}: ${input.ctaUrl}`);
-  }
-
-  if (input.footer && input.footer.length > 0) {
-    sections.push("", ...input.footer);
-  }
-
-  return sections.join("\n");
-}
-
-function buildTemplate(kind: NotificationKind, booking: BookingNotificationPayload): NotificationTemplate {
-  const when = `${format(booking.startsAt, "dd/MM/yyyy")} às ${format(booking.startsAt, "HH:mm")}`;
-  const manageUrl = buildManageUrl(booking);
-  const publicPageUrl = buildPublicPageUrl(booking);
-  const professional = booking.staffMember?.fullName ?? "equipa";
-  const representativeName = booking.business.owner.firstName || booking.business.name;
-  const contactLines = booking.business.contactPhone
-    ? [`Telefone: ${booking.business.contactPhone}`]
-    : [];
-
-  switch (kind) {
-    case "BOOKING_CREATED":
-      return {
-        subject: `Recebemos a tua reserva em ${booking.business.name}`,
-        preview: `${booking.service.name} a ${when} com ${professional}.`,
-        html: buildEmailShell({
-          preview: `${booking.service.name} a ${when} com ${professional}.`,
-          eyebrow: "Nova reserva",
-          title: "Recebemos a tua reserva",
-          body: [
-            `Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi registada com sucesso.`,
-            `<strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
-            "Se precisares, podes acompanhar, confirmar ou cancelar no link abaixo.",
-          ],
-          ctaLabel: "Gerir reserva",
-          ctaUrl: manageUrl,
-          muted: `Barbearia: ${booking.business.name}`,
-          footer: contactLines,
-        }),
-        text: buildTextTemplate({
-          title: "Recebemos a tua reserva",
-          body: [
-            `Olá ${booking.customerName}, a tua reserva para ${booking.service.name} foi registada com sucesso.`,
-            `Quando: ${when}`,
-            `Profissional: ${professional}`,
-            "Se precisares, podes acompanhar, confirmar ou cancelar no link abaixo.",
-          ],
-          ctaLabel: "Gerir reserva",
-          ctaUrl: manageUrl,
-          footer: contactLines,
-        }),
-      };
-    case "BOOKING_CONFIRMED":
-      return {
-        subject: `Reserva confirmada em ${booking.business.name}`,
-        preview: `${booking.service.name} confirmada para ${when}.`,
-        html: buildEmailShell({
-          preview: `${booking.service.name} confirmada para ${when}.`,
-          eyebrow: "Reserva confirmada",
-          title: "Está tudo confirmado",
-          body: [
-            `Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> está confirmada.`,
-            `<strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
-            "Guarda este link para consultar os detalhes sempre que precisares.",
-          ],
-          ctaLabel: "Ver reserva",
-          ctaUrl: manageUrl,
-          muted: `Barbearia: ${booking.business.name}`,
-          footer: contactLines,
-        }),
-        text: buildTextTemplate({
-          title: "Está tudo confirmado",
-          body: [
-            `Olá ${booking.customerName}, a tua reserva para ${booking.service.name} está confirmada.`,
-            `Quando: ${when}`,
-            `Profissional: ${professional}`,
-            "Guarda este link para consultar os detalhes sempre que precisares.",
-          ],
-          ctaLabel: "Ver reserva",
-          ctaUrl: manageUrl,
-          footer: contactLines,
-        }),
-      };
-    case "BOOKING_CANCELLED":
-      return {
-        subject: `Reserva cancelada em ${booking.business.name}`,
-        preview: `A tua reserva de ${booking.service.name} foi cancelada.`,
-        html: buildEmailShell({
-          preview: `A tua reserva de ${booking.service.name} foi cancelada.`,
-          eyebrow: "Reserva cancelada",
-          title: "A tua reserva foi cancelada",
-          body: [
-            `Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi cancelada.`,
-            "Se quiseres marcar novamente, a página pública da barbearia continua disponível.",
-          ],
-          ctaLabel: "Marcar novo horário",
-          ctaUrl: publicPageUrl,
-          muted: `Barbearia: ${booking.business.name}`,
-          footer: contactLines,
-        }),
-        text: buildTextTemplate({
-          title: "A tua reserva foi cancelada",
-          body: [
-            `Olá ${booking.customerName}, a tua reserva para ${booking.service.name} foi cancelada.`,
-            "Se quiseres marcar novamente, a página pública da barbearia continua disponível.",
-          ],
-          ctaLabel: "Marcar novo horário",
-          ctaUrl: publicPageUrl,
-          footer: contactLines,
-        }),
-      };
-    case "BOOKING_CANCELLED_INTERNAL":
-      return {
-        subject: `Cancelamento recebido: ${booking.customerName}`,
-        preview: `${booking.customerName} cancelou ${booking.service.name} de ${when}.`,
-        html: buildEmailShell({
-          preview: `${booking.customerName} cancelou ${booking.service.name} de ${when}.`,
-          eyebrow: "Operação",
-          title: "Cancelamento de reserva",
-          body: [
-            `Olá ${representativeName}, a reserva abaixo foi cancelada pelo cliente ou pelo painel.`,
-            `<strong>Cliente:</strong> ${booking.customerName}<br /><strong>Serviço:</strong> ${booking.service.name}<br /><strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
-            "Podes reabrir a agenda ou acompanhar a reserva no link abaixo.",
-          ],
-          ctaLabel: "Ver reserva",
-          ctaUrl: manageUrl,
-          muted: `Barbearia: ${booking.business.name}`,
-          footer: contactLines,
-        }),
-        text: buildTextTemplate({
-          title: "Cancelamento de reserva",
-          body: [
-            `Olá ${representativeName}, a reserva abaixo foi cancelada pelo cliente ou pelo painel.`,
-            `Cliente: ${booking.customerName}`,
-            `Serviço: ${booking.service.name}`,
-            `Quando: ${when}`,
-            `Profissional: ${professional}`,
-          ],
-          ctaLabel: "Ver reserva",
-          ctaUrl: manageUrl,
-          footer: contactLines,
-        }),
-      };
-    case "BOOKING_RESCHEDULED":
-      return {
-        subject: `Reserva remarcada em ${booking.business.name}`,
-        preview: `Novo horário definido para ${when}.`,
-        html: buildEmailShell({
-          preview: `Novo horário definido para ${when}.`,
-          eyebrow: "Reserva remarcada",
-          title: "Atualizámos a tua reserva",
-          body: [
-            `Olá ${booking.customerName}, a tua reserva para <strong>${booking.service.name}</strong> foi atualizada.`,
-            `<strong>Novo horário:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
-            "Podes rever os detalhes sempre que precisares.",
-          ],
-          ctaLabel: "Ver reserva",
-          ctaUrl: manageUrl,
-          muted: `Barbearia: ${booking.business.name}`,
-          footer: contactLines,
-        }),
-        text: buildTextTemplate({
-          title: "Atualizámos a tua reserva",
-          body: [
-            `Olá ${booking.customerName}, a tua reserva para ${booking.service.name} foi atualizada.`,
-            `Novo horário: ${when}`,
-            `Profissional: ${professional}`,
-            "Podes rever os detalhes sempre que precisares.",
-          ],
-          ctaLabel: "Ver reserva",
-          ctaUrl: manageUrl,
-          footer: contactLines,
-        }),
-      };
-    case "BOOKING_REMINDER":
-      return {
-        subject: "Lembrete: faltam 30 minutos para a tua reserva",
-        preview: `${booking.service.name} começa em cerca de 30 minutos.`,
-        html: buildEmailShell({
-          preview: `${booking.service.name} começa em cerca de 30 minutos.`,
-          eyebrow: "Lembrete",
-          title: "Está quase na hora",
-          body: [
-            `Olá ${booking.customerName}, faltam cerca de 30 minutos para a tua reserva de <strong>${booking.service.name}</strong>.`,
-            `<strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
-            "Se precisares de rever os detalhes, usa este link.",
-          ],
-          ctaLabel: "Gerir reserva",
-          ctaUrl: manageUrl,
-          muted: `Barbearia: ${booking.business.name}`,
-          footer: contactLines,
-        }),
-        text: buildTextTemplate({
-          title: "Está quase na hora",
-          body: [
-            `Olá ${booking.customerName}, faltam cerca de 30 minutos para a tua reserva de ${booking.service.name}.`,
-            `Quando: ${when}`,
-            `Profissional: ${professional}`,
-            "Se precisares de rever os detalhes, usa este link.",
-          ],
-          ctaLabel: "Gerir reserva",
-          ctaUrl: manageUrl,
-          footer: contactLines,
-        }),
-      };
-    case "BOOKING_CONFIRMATION_REQUEST":
-      return {
-        subject: `Confirma a tua presença em ${booking.business.name}`,
-        preview: `Faltam 40 minutos para ${booking.service.name}. Confirma a tua presença.`,
-        html: buildEmailShell({
-          preview: `Faltam 40 minutos para ${booking.service.name}. Confirma a tua presença.`,
-          eyebrow: "Confirmação necessária",
-          title: "Confirma a tua presença",
-          body: [
-            `Olá ${booking.customerName}, faltam cerca de <strong>40 minutos</strong> para a tua reserva de <strong>${booking.service.name}</strong>.`,
-            `<strong>Quando:</strong> ${when}<br /><strong>Profissional:</strong> ${professional}`,
-            "<strong>Tens 10 minutos para confirmar.</strong> Sem confirmação, a reserva será cancelada automaticamente.",
-          ],
-          ctaLabel: "Confirmar presença",
-          ctaUrl: manageUrl,
-          muted: `Barbearia: ${booking.business.name}`,
-          footer: contactLines,
-        }),
-        text: buildTextTemplate({
-          title: "Confirma a tua presença",
-          body: [
-            `Olá ${booking.customerName}, faltam cerca de 40 minutos para a tua reserva de ${booking.service.name}.`,
-            `Quando: ${when}`,
-            `Profissional: ${professional}`,
-            "Tens 10 minutos para confirmar. Sem confirmação, a reserva será cancelada automaticamente.",
-          ],
-          ctaLabel: "Confirmar presença",
-          ctaUrl: manageUrl,
-          footer: contactLines,
-        }),
-      };
-    case "BOOKING_ADVANCEMENT":
-      return {
-        subject: `Disponibilidade antecipada em ${booking.business.name}`,
-        preview: `Pode adiantar a sua reserva de ${booking.service.name}.`,
-        html: buildEmailShell({
-          preview: `Pode adiantar a sua reserva de ${booking.service.name}.`,
-          eyebrow: "Disponibilidade",
-          title: "Pode antecipar o seu horário",
-          body: [
-            `Olá ${booking.customerName}, houve uma disponibilidade antes do seu horário.`,
-            `A sua reserva de <strong>${booking.service.name}</strong> está marcada para ${when} com ${professional}.`,
-            "Se quiser, pode entrar em contacto para adiantar o seu horário.",
-          ],
-          ctaLabel: "Ver reserva",
-          ctaUrl: manageUrl,
-          muted: `Barbearia: ${booking.business.name}`,
-          footer: contactLines,
-        }),
-        text: buildTextTemplate({
-          title: "Pode antecipar o seu horário",
-          body: [
-            `Olá ${booking.customerName}, houve uma disponibilidade antes do seu horário.`,
-            `A sua reserva de ${booking.service.name} está marcada para ${when} com ${professional}.`,
-            "Se quiser, pode entrar em contacto para adiantar.",
-          ],
-          ctaLabel: "Ver reserva",
-          ctaUrl: manageUrl,
-          footer: contactLines,
-        }),
-      };
-  }
-}
-
-function buildSmsMessage(kind: NotificationKind, booking: BookingNotificationPayload) {
+function buildWhatsappMessage(
+  kind: NotificationKind,
+  booking: BookingNotificationPayload,
+  automation?: CrmAutomationConfig,
+  context?: MessageContext,
+) {
   const when = format(booking.startsAt, "dd/MM HH:mm");
   const professional = booking.staffMember?.fullName ?? "equipa";
   const manageUrl = buildManageUrl(booking);
@@ -421,15 +100,26 @@ function buildSmsMessage(kind: NotificationKind, booking: BookingNotificationPay
     case "BOOKING_CANCELLED":
       return `A tua reserva em ${booking.business.name} foi cancelada. Se quiseres marcar novamente: ${buildPublicPageUrl(booking)}`;
     case "BOOKING_CANCELLED_INTERNAL":
+      if (context?.nextCustomerName) {
+        return `${booking.business.name}: ${booking.customerName} não confirmou ${booking.service.name} de ${when} e foi cancelado. Já convidámos ${context.nextCustomerName} a adiantar — aguardamos resposta. Ver: ${manageUrl}`;
+      }
       return `Cancelamento recebido: ${booking.customerName} cancelou ${booking.service.name} a ${when}. Ver: ${manageUrl}`;
     case "BOOKING_RESCHEDULED":
       return `Reserva remarcada em ${booking.business.name}: novo horário ${when} com ${professional}. ${manageUrl}`;
-    case "BOOKING_REMINDER":
-      return `Lembrete: faltam cerca de 30 minutos para ${booking.service.name} em ${booking.business.name}. ${manageUrl}`;
-    case "BOOKING_CONFIRMATION_REQUEST":
-      return `${booking.business.name}: Confirma a tua presença para ${booking.service.name} a ${when}. Tens 10 min ou será cancelada. Confirmar: ${manageUrl}`;
+    case "BOOKING_REMINDER": {
+      const cfg = automation ?? DEFAULT_AUTOMATION;
+      return `Lembrete: faltam ~${cfg.reminderMinutesBefore} min para ${booking.service.name} em ${booking.business.name}. Confirma a tua presença aqui — sem confirmação, cancelamos automaticamente em ${cfg.confirmationToleranceMinutes} min: ${manageUrl}`;
+    }
     case "BOOKING_ADVANCEMENT":
+      if (context?.freedSlotAt) {
+        const freed = format(context.freedSlotAt, "HH:mm");
+        return `${booking.business.name}: boa notícia — abriu vaga às ${freed}. A tua reserva de ${booking.service.name} está marcada para ${when}. Queres adiantar para as ${freed}? Confirma aqui: ${manageUrl}`;
+      }
       return `${booking.business.name}: Houve uma disponibilidade! Podes adiantar a tua reserva de ${booking.service.name} a ${when}. Ver: ${manageUrl}`;
+    case "BOOKING_STAFF_NEW_BOOKING":
+      return `${booking.business.name}: Novo agendamento confirmado - ${booking.customerName}, ${booking.service.name} a ${when}. Ver: ${getAppUrl()}/crm`;
+    case "BOOKING_STAFF_PENDING_REQUEST":
+      return `${booking.business.name}: Pedido pendente - ${booking.customerName}, ${booking.service.name} a ${when}. Aceita ou recusa: ${getAppUrl()}/crm`;
   }
 }
 
@@ -526,7 +216,7 @@ async function createSkippedNotification(
   channel: NotificationChannel,
   kind: NotificationKind,
   reason: string,
-  recipient = ""
+  recipient = "",
 ) {
   await createNotificationLog({
     bookingId: booking.id,
@@ -558,10 +248,7 @@ function wait(ms: number) {
 async function fetchWithProviderRetry(
   input: RequestInfo | URL,
   init: RequestInit,
-  options: {
-    attempts?: number;
-    baseDelayMs?: number;
-  } = {}
+  options: { attempts?: number; baseDelayMs?: number } = {},
 ) {
   const attempts = options.attempts ?? 3;
   const baseDelayMs = options.baseDelayMs ?? 600;
@@ -585,125 +272,68 @@ async function fetchWithProviderRetry(
   throw new Error("PROVIDER_REQUEST_FAILED");
 }
 
-async function sendEmailForKind(booking: BookingNotificationPayload, kind: NotificationKind, recipient: string) {
-  const reservation = await reserveNotificationDelivery({
-    bookingId: booking.id,
-    businessId: booking.business.id,
-    channel: "EMAIL",
-    kind,
-    recipient,
-  });
-
-  if (reservation.duplicate) {
-    return { channel: "EMAIL", status: "duplicate" } satisfies DeliveryResult;
-  }
-
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = getEmailFrom();
-  const template = buildTemplate(kind, booking);
-
-  if (!apiKey || !from) {
-    await db.notificationLog.update({
-      where: { id: reservation.logId },
-      data: {
-        status: "SKIPPED",
-        errorMessage: "EMAIL_PROVIDER_NOT_CONFIGURED",
-      },
-    });
-    return { channel: "EMAIL", status: "skipped", reason: "EMAIL_PROVIDER_NOT_CONFIGURED" } satisfies DeliveryResult;
-  }
-
-  try {
-    const response = await fetchWithProviderRetry("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: recipient,
-        subject: template.subject,
-        html: template.html,
-        text: template.text,
-      }),
-    });
-
-    const payload = await safeReadJson(response);
-
-    if (!response.ok) {
-      await db.notificationLog.update({
-        where: { id: reservation.logId },
-        data: {
-        status: "FAILED",
-        errorMessage: String(payload.message ?? payload.name ?? "EMAIL_SEND_FAILED"),
-        payload: payload as Prisma.InputJsonValue,
-        },
-      });
-
-      return { channel: "EMAIL", status: "failed", reason: String(payload.message ?? "EMAIL_SEND_FAILED") } satisfies DeliveryResult;
-    }
-
-    await db.notificationLog.update({
-      where: { id: reservation.logId },
-      data: {
-      status: "SENT",
-      providerMessageId: typeof payload.id === "string" ? payload.id : undefined,
-      payload: payload as Prisma.InputJsonValue,
-      sentAt: new Date(),
-      },
-    });
-
-    return { channel: "EMAIL", status: "sent" } satisfies DeliveryResult;
-  } catch (error) {
-    captureException("notification.email_failed", error, {
-      bookingId: booking.id,
-      kind,
-      recipient,
-    });
-
-    await db.notificationLog.update({
-      where: { id: reservation.logId },
-      data: {
-      status: "FAILED",
-      errorMessage: error instanceof Error ? error.message : "EMAIL_SEND_FAILED",
-      },
-    });
-
-    return {
-      channel: "EMAIL",
-      status: "failed",
-      reason: error instanceof Error ? error.message : "EMAIL_SEND_FAILED",
-    } satisfies DeliveryResult;
-  }
+function normalizeWhatsappAddress(value: string) {
+  const trimmed = value.trim();
+  return trimmed.startsWith("whatsapp:") ? trimmed : `whatsapp:${trimmed}`;
 }
 
-async function sendSmsForKind(booking: BookingNotificationPayload, kind: NotificationKind, recipient: string) {
+// Aceita números no formato E.164 (`+CCNNNN...`) ou já com prefixo `whatsapp:`.
+// Sem `+`, o Twilio interpreta mal e marca a mensagem como SENT no nosso log
+// mesmo quando falha a entrega (vimos isso em 2026-05-12 com `924057914`).
+function isValidWhatsappRecipient(value: string) {
+  const trimmed = value.trim().replace(/^whatsapp:/, "");
+  return /^\+[1-9]\d{6,14}$/.test(trimmed);
+}
+
+async function sendWhatsappForKind(
+  booking: BookingNotificationPayload,
+  kind: NotificationKind,
+  recipient: string,
+  automation?: CrmAutomationConfig,
+  context?: MessageContext,
+) {
+  if (!isValidWhatsappRecipient(recipient)) {
+    await createNotificationLog({
+      bookingId: booking.id,
+      businessId: booking.business.id,
+      channel: "WHATSAPP",
+      kind,
+      recipient,
+      status: "SKIPPED",
+      errorMessage: "WHATSAPP_RECIPIENT_INVALID_FORMAT",
+    });
+    return {
+      channel: "WHATSAPP",
+      status: "skipped",
+      reason: "WHATSAPP_RECIPIENT_INVALID_FORMAT",
+    } satisfies DeliveryResult;
+  }
+
   const reservation = await reserveNotificationDelivery({
     bookingId: booking.id,
     businessId: booking.business.id,
-    channel: "SMS",
+    channel: "WHATSAPP",
     kind,
     recipient,
   });
 
   if (reservation.duplicate) {
-    return { channel: "SMS", status: "duplicate" } satisfies DeliveryResult;
+    return { channel: "WHATSAPP", status: "duplicate" } satisfies DeliveryResult;
   }
 
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER?.trim();
+  const fromNumber = process.env.TWILIO_WHATSAPP_FROM?.trim();
 
   if (!accountSid || !authToken || !fromNumber) {
     await db.notificationLog.update({
       where: { id: reservation.logId },
       data: {
         status: "SKIPPED",
-        errorMessage: "SMS_PROVIDER_NOT_CONFIGURED",
+        errorMessage: "WHATSAPP_PROVIDER_NOT_CONFIGURED",
       },
     });
-    return { channel: "SMS", status: "skipped", reason: "SMS_PROVIDER_NOT_CONFIGURED" } satisfies DeliveryResult;
+    return { channel: "WHATSAPP", status: "skipped", reason: "WHATSAPP_PROVIDER_NOT_CONFIGURED" } satisfies DeliveryResult;
   }
 
   try {
@@ -714,9 +344,9 @@ async function sendSmsForKind(booking: BookingNotificationPayload, kind: Notific
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        To: recipient,
-        From: fromNumber,
-        Body: buildSmsMessage(kind, booking),
+        To: normalizeWhatsappAddress(recipient),
+        From: normalizeWhatsappAddress(fromNumber),
+        Body: buildWhatsappMessage(kind, booking, automation, context),
       }).toString(),
     });
 
@@ -726,28 +356,28 @@ async function sendSmsForKind(booking: BookingNotificationPayload, kind: Notific
       await db.notificationLog.update({
         where: { id: reservation.logId },
         data: {
-        status: "FAILED",
-        errorMessage: String(payload.message ?? payload.code ?? "SMS_SEND_FAILED"),
-        payload: payload as Prisma.InputJsonValue,
+          status: "FAILED",
+          errorMessage: String(payload.message ?? payload.code ?? "WHATSAPP_SEND_FAILED"),
+          payload: payload as Prisma.InputJsonValue,
         },
       });
 
-      return { channel: "SMS", status: "failed", reason: String(payload.message ?? "SMS_SEND_FAILED") } satisfies DeliveryResult;
+      return { channel: "WHATSAPP", status: "failed", reason: String(payload.message ?? "WHATSAPP_SEND_FAILED") } satisfies DeliveryResult;
     }
 
     await db.notificationLog.update({
       where: { id: reservation.logId },
       data: {
-      status: "SENT",
-      providerMessageId: typeof payload.sid === "string" ? payload.sid : undefined,
-      payload: payload as Prisma.InputJsonValue,
-      sentAt: new Date(),
+        status: "SENT",
+        providerMessageId: typeof payload.sid === "string" ? payload.sid : undefined,
+        payload: payload as Prisma.InputJsonValue,
+        sentAt: new Date(),
       },
     });
 
-    return { channel: "SMS", status: "sent" } satisfies DeliveryResult;
+    return { channel: "WHATSAPP", status: "sent" } satisfies DeliveryResult;
   } catch (error) {
-    captureException("notification.sms_failed", error, {
+    captureException("notification.whatsapp_failed", error, {
       bookingId: booking.id,
       kind,
       recipient,
@@ -756,66 +386,85 @@ async function sendSmsForKind(booking: BookingNotificationPayload, kind: Notific
     await db.notificationLog.update({
       where: { id: reservation.logId },
       data: {
-      status: "FAILED",
-      errorMessage: error instanceof Error ? error.message : "SMS_SEND_FAILED",
+        status: "FAILED",
+        errorMessage: error instanceof Error ? error.message : "WHATSAPP_SEND_FAILED",
       },
     });
 
     return {
-      channel: "SMS",
+      channel: "WHATSAPP",
       status: "failed",
-      reason: error instanceof Error ? error.message : "SMS_SEND_FAILED",
+      reason: error instanceof Error ? error.message : "WHATSAPP_SEND_FAILED",
     } satisfies DeliveryResult;
   }
 }
 
 function summarizeDeliveries(results: DeliveryResult[]) {
   if (results.some((result) => result.status === "sent")) {
-    return {
-      status: "sent" as const,
-      channels: results,
-    };
+    return { status: "sent" as const, channels: results };
   }
-
   if (results.some((result) => result.status === "failed")) {
-    return {
-      status: "failed" as const,
-      channels: results,
-    };
+    return { status: "failed" as const, channels: results };
   }
-
   if (results.some((result) => result.status === "duplicate")) {
-    return {
-      status: "duplicate" as const,
-      channels: results,
-    };
+    return { status: "duplicate" as const, channels: results };
   }
-
-  return {
-    status: "skipped" as const,
-    channels: results,
-  };
+  return { status: "skipped" as const, channels: results };
 }
 
-export async function sendBookingNotification(bookingId: string, kind: Exclude<NotificationKind, "BOOKING_CANCELLED_INTERNAL">) {
+export async function sendBookingNotification(
+  bookingId: string,
+  kind: Exclude<
+    NotificationKind,
+    "BOOKING_CANCELLED_INTERNAL" | "BOOKING_STAFF_NEW_BOOKING" | "BOOKING_STAFF_PENDING_REQUEST"
+  >,
+  automation?: CrmAutomationConfig,
+  context?: MessageContext,
+) {
   const booking = await loadBookingNotificationPayload(bookingId);
 
   if (!booking) {
     return { status: "missing" as const, channels: [] as DeliveryResult[] };
   }
 
+  // BOOKING_REMINDER usa o template dinâmico (X min, tolerância Y). Quando o
+  // chamador (cron) já carregou a config do business, reaproveitamos — caso
+  // contrário (ações pontuais), vamos buscar uma vez.
+  const cfg =
+    automation ?? (kind === "BOOKING_REMINDER" ? await getBusinessAutomation(booking.business.id) : undefined);
+
   const deliveries: DeliveryResult[] = [];
 
-  if (booking.customerEmail) {
-    deliveries.push(await sendEmailForKind(booking, kind, booking.customerEmail));
+  if (booking.customerPhone) {
+    deliveries.push(await sendWhatsappForKind(booking, kind, booking.customerPhone, cfg, context));
   } else {
-    await createSkippedNotification(booking, "EMAIL", kind, "CUSTOMER_EMAIL_MISSING");
+    await createSkippedNotification(booking, "WHATSAPP", kind, "CUSTOMER_PHONE_MISSING");
   }
 
-  if (booking.customerPhone) {
-    deliveries.push(await sendSmsForKind(booking, kind, booking.customerPhone));
+  return summarizeDeliveries(deliveries);
+}
+
+export async function sendStaffBookingNotification(
+  bookingId: string,
+  kind: Extract<NotificationKind, "BOOKING_STAFF_NEW_BOOKING" | "BOOKING_STAFF_PENDING_REQUEST">,
+) {
+  const booking = await loadBookingNotificationPayload(bookingId);
+
+  if (!booking) {
+    return { status: "missing" as const, channels: [] as DeliveryResult[] };
+  }
+
+  if (!booking.staffMember) {
+    return { status: "skipped" as const, channels: [] as DeliveryResult[] };
+  }
+
+  const deliveries: DeliveryResult[] = [];
+  const staffPhone = booking.staffMember.phone?.trim() || null;
+
+  if (staffPhone) {
+    deliveries.push(await sendWhatsappForKind(booking, kind, staffPhone));
   } else {
-    await createSkippedNotification(booking, "SMS", kind, "CUSTOMER_PHONE_MISSING");
+    await createSkippedNotification(booking, "WHATSAPP", kind, "STAFF_PHONE_MISSING");
   }
 
   return summarizeDeliveries(deliveries);
@@ -823,7 +472,8 @@ export async function sendBookingNotification(bookingId: string, kind: Exclude<N
 
 export async function sendRepresentativeBookingNotification(
   bookingId: string,
-  kind: Extract<NotificationKind, "BOOKING_CANCELLED_INTERNAL">
+  kind: Extract<NotificationKind, "BOOKING_CANCELLED_INTERNAL">,
+  context?: MessageContext,
 ) {
   const booking = await loadBookingNotificationPayload(bookingId);
 
@@ -832,72 +482,15 @@ export async function sendRepresentativeBookingNotification(
   }
 
   const deliveries: DeliveryResult[] = [];
-  const emailRecipient = getRepresentativeEmailRecipient(booking);
-  const smsRecipient = getRepresentativeSmsRecipient(booking);
+  const whatsappRecipient = getRepresentativeWhatsappRecipient(booking);
 
-  if (emailRecipient) {
-    deliveries.push(await sendEmailForKind(booking, kind, emailRecipient));
+  if (whatsappRecipient) {
+    deliveries.push(await sendWhatsappForKind(booking, kind, whatsappRecipient, undefined, context));
   } else {
-    await createSkippedNotification(booking, "EMAIL", kind, "REPRESENTATIVE_EMAIL_MISSING");
-  }
-
-  if (smsRecipient) {
-    deliveries.push(await sendSmsForKind(booking, kind, smsRecipient));
-  } else {
-    await createSkippedNotification(booking, "SMS", kind, "REPRESENTATIVE_PHONE_MISSING");
+    await createSkippedNotification(booking, "WHATSAPP", kind, "REPRESENTATIVE_PHONE_MISSING");
   }
 
   return summarizeDeliveries(deliveries);
-}
-
-export async function retryNotificationDelivery(input: {
-  bookingId: string;
-  channel: NotificationChannel;
-  kind: NotificationKind;
-}) {
-  const booking = await loadBookingNotificationPayload(input.bookingId);
-
-  if (!booking) {
-    return { status: "missing" as const };
-  }
-
-  if (input.kind === "BOOKING_CANCELLED_INTERNAL") {
-    if (input.channel === "EMAIL") {
-      const recipient = getRepresentativeEmailRecipient(booking);
-
-      if (!recipient) {
-        await createSkippedNotification(booking, "EMAIL", input.kind, "REPRESENTATIVE_EMAIL_MISSING");
-        return { status: "skipped" as const, channel: "EMAIL" as const };
-      }
-
-      return await sendEmailForKind(booking, input.kind, recipient);
-    }
-
-    const recipient = getRepresentativeSmsRecipient(booking);
-
-    if (!recipient) {
-      await createSkippedNotification(booking, "SMS", input.kind, "REPRESENTATIVE_PHONE_MISSING");
-      return { status: "skipped" as const, channel: "SMS" as const };
-    }
-
-    return await sendSmsForKind(booking, input.kind, recipient);
-  }
-
-  if (input.channel === "EMAIL") {
-    if (!booking.customerEmail) {
-      await createSkippedNotification(booking, "EMAIL", input.kind, "CUSTOMER_EMAIL_MISSING");
-      return { status: "skipped" as const, channel: "EMAIL" as const };
-    }
-
-    return await sendEmailForKind(booking, input.kind, booking.customerEmail);
-  }
-
-  if (!booking.customerPhone) {
-    await createSkippedNotification(booking, "SMS", input.kind, "CUSTOMER_PHONE_MISSING");
-    return { status: "skipped" as const, channel: "SMS" as const };
-  }
-
-  return await sendSmsForKind(booking, input.kind, booking.customerPhone);
 }
 
 export async function logReminderRunExecution(input: {
@@ -930,104 +523,123 @@ export async function logReminderRunExecution(input: {
   });
 }
 
-export async function sendUpcomingBookingReminders(input?: {
-  reminderStartMinutes?: number;
-  reminderEndMinutes?: number;
-}) {
-  const reminderStartMinutes = input?.reminderStartMinutes ?? 25;
-  const reminderEndMinutes = input?.reminderEndMinutes ?? 35;
-  const windowStart = addMinutes(new Date(), reminderStartMinutes);
-  const windowEnd = addMinutes(new Date(), reminderEndMinutes);
+// Janela máxima que vamos varrer em cada cron run. Cobre qualquer combinação
+// razoável de reminderMinutesBefore (max 240 = 4h) + confirmationToleranceMinutes
+// (max 120). Mantém a query única e barata para Bukly scale.
+const MAX_LOOKAHEAD_MINUTES = 240;
 
-  const bookings = await db.booking.findMany({
-    where: {
-      startsAt: {
-        gte: windowStart,
-        lte: windowEnd,
-      },
-      status: {
-        in: ["PENDING", "CONFIRMED"],
-      },
-      OR: [{ customerEmail: { not: null } }, { customerPhone: { not: null } }],
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  const results = await Promise.all(bookings.map((booking) => sendBookingNotification(booking.id, "BOOKING_REMINDER")));
-
-  return {
-    scanned: bookings.length,
-    sent: results.filter((result) => result.status === "sent").length,
-    skipped: results.filter((result) => result.status === "skipped" || result.status === "duplicate").length,
-    failed: results.filter((result) => result.status === "failed").length,
-    reminderStartMinutes,
-    reminderEndMinutes,
-  };
+function minutesFromNow(date: Date) {
+  return (date.getTime() - Date.now()) / 60_000;
 }
 
-export async function sendConfirmationRequests() {
-  const windowStart = addMinutes(new Date(), 38);
-  const windowEnd = addMinutes(new Date(), 42);
+function isWithinTarget(startsAt: Date, targetMinutes: number, halfWidthMinutes: number) {
+  return Math.abs(minutesFromNow(startsAt) - targetMinutes) <= halfWidthMinutes;
+}
 
-  const bookings = await db.booking.findMany({
+type UpcomingBooking = {
+  id: string;
+  businessId: string;
+  startsAt: Date;
+  staffMemberId: string | null;
+};
+
+async function fetchUpcomingBookings(opts: {
+  unconfirmedOnly?: boolean;
+  requireReminderSent?: boolean;
+} = {}): Promise<UpcomingBooking[]> {
+  return db.booking.findMany({
     where: {
-      startsAt: { gte: windowStart, lte: windowEnd },
+      startsAt: {
+        gte: new Date(),
+        lte: addMinutes(new Date(), MAX_LOOKAHEAD_MINUTES),
+      },
       status: { in: ["PENDING", "CONFIRMED"] },
-      customerConfirmedAt: null,
-      OR: [{ customerEmail: { not: null } }, { customerPhone: { not: null } }],
+      customerPhone: { not: null },
+      ...(opts.unconfirmedOnly ? { customerConfirmedAt: null } : {}),
+      ...(opts.requireReminderSent
+        ? {
+            notifications: {
+              some: { kind: "BOOKING_REMINDER", status: "SENT" },
+            },
+          }
+        : {}),
     },
-    select: { id: true },
+    select: { id: true, businessId: true, startsAt: true, staffMemberId: true },
   });
+}
 
-  const results = await Promise.all(
-    bookings.map((booking) => sendBookingNotification(booking.id, "BOOKING_CONFIRMATION_REQUEST"))
-  );
+async function loadAutomationFor(bookings: UpcomingBooking[]) {
+  return getBusinessAutomationMap(Array.from(new Set(bookings.map((b) => b.businessId))));
+}
 
+function getConfig(map: Map<string, CrmAutomationConfig>, businessId: string) {
+  return map.get(businessId) ?? DEFAULT_AUTOMATION;
+}
+
+function summarize(scanned: number, results: ReadonlyArray<{ status: string }>) {
   return {
-    scanned: bookings.length,
+    scanned,
     sent: results.filter((r) => r.status === "sent").length,
     skipped: results.filter((r) => r.status === "skipped" || r.status === "duplicate").length,
     failed: results.filter((r) => r.status === "failed").length,
   };
 }
 
-export async function autoCancelUnconfirmedBookings() {
-  const windowStart = addMinutes(new Date(), 28);
-  const windowEnd = addMinutes(new Date(), 32);
+export async function sendUpcomingBookingReminders() {
+  const all = await fetchUpcomingBookings();
+  const automationMap = await loadAutomationFor(all);
 
-  const bookings = await db.booking.findMany({
-    where: {
-      startsAt: { gte: windowStart, lte: windowEnd },
-      status: { in: ["PENDING", "CONFIRMED"] },
-      customerConfirmedAt: null,
-      notifications: {
-        some: {
-          kind: "BOOKING_CONFIRMATION_REQUEST",
-          status: "SENT",
-        },
-      },
-    },
-    select: { id: true, staffMemberId: true, startsAt: true, businessId: true },
+  const eligible = all.filter((booking) => {
+    const config = getConfig(automationMap, booking.businessId);
+    if (!config.reminderEnabled) return false;
+    return isWithinTarget(booking.startsAt, config.reminderMinutesBefore, 5);
+  });
+
+  const results = await Promise.all(
+    eligible.map((booking) =>
+      sendBookingNotification(
+        booking.id,
+        "BOOKING_REMINDER",
+        getConfig(automationMap, booking.businessId),
+      ),
+    ),
+  );
+
+  return summarize(eligible.length, results);
+}
+
+export async function autoCancelUnconfirmedBookings() {
+  const candidates = await fetchUpcomingBookings({
+    unconfirmedOnly: true,
+    requireReminderSent: true,
+  });
+  const automationMap = await loadAutomationFor(candidates);
+
+  const toCancel = candidates.filter((booking) => {
+    const config = getConfig(automationMap, booking.businessId);
+    if (!config.reminderEnabled) return false;
+    // Auto-cancel corre `confirmationToleranceMinutes` depois do lembrete:
+    // se lembrete foi a T-30 com 10 min de tolerância, cancela a T-20.
+    const target = config.reminderMinutesBefore - config.confirmationToleranceMinutes;
+    if (target <= 0) return false;
+    return isWithinTarget(booking.startsAt, target, 2);
   });
 
   let cancelled = 0;
   let advancementsSent = 0;
 
-  for (const booking of bookings) {
+  for (const booking of toCancel) {
     await db.booking.update({
       where: { id: booking.id },
       data: { status: "CANCELLED" },
     });
 
-    await Promise.all([
-      sendBookingNotification(booking.id, "BOOKING_CANCELLED"),
-      sendRepresentativeBookingNotification(booking.id, "BOOKING_CANCELLED_INTERNAL"),
-    ]);
-
+    // 1. Avisa o cliente cancelado.
+    await sendBookingNotification(booking.id, "BOOKING_CANCELLED");
     cancelled++;
 
+    // 2. Procura próximo cliente da agenda do mesmo barbeiro e convida a adiantar.
+    let nextCustomerName: string | undefined;
     if (booking.staffMemberId) {
       const nextBooking = await db.booking.findFirst({
         where: {
@@ -1038,15 +650,28 @@ export async function autoCancelUnconfirmedBookings() {
           id: { not: booking.id },
         },
         orderBy: { startsAt: "asc" },
-        select: { id: true },
+        select: { id: true, customerName: true },
       });
 
       if (nextBooking) {
-        await sendBookingNotification(nextBooking.id, "BOOKING_ADVANCEMENT");
+        await sendBookingNotification(
+          nextBooking.id,
+          "BOOKING_ADVANCEMENT",
+          undefined,
+          { freedSlotAt: booking.startsAt },
+        );
+        nextCustomerName = nextBooking.customerName;
         advancementsSent++;
       }
     }
+
+    // 3. Avisa o dono — uma única mensagem que combina cancelamento + convite ao próximo.
+    await sendRepresentativeBookingNotification(
+      booking.id,
+      "BOOKING_CANCELLED_INTERNAL",
+      nextCustomerName ? { nextCustomerName } : undefined,
+    );
   }
 
-  return { scanned: bookings.length, cancelled, advancementsSent };
+  return { scanned: toCancel.length, cancelled, advancementsSent };
 }

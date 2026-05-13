@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ExternalLink, Loader2, Save, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, ExternalLink, Loader2, Save, X } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { IphonePreview } from "@/components/page-editor/iphone-preview";
 import { SectionHero } from "@/components/page-editor/section-hero";
 import { SectionIdentity } from "@/components/page-editor/section-identity";
@@ -121,6 +122,10 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
             {save.status === "success" ? (
               <p className="text-xs text-muted-foreground">Guardado.</p>
             ) : null}
+            <Link href="/crm" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <ArrowLeft className="size-3.5" />
+              Gestão comercial
+            </Link>
             <Button
               type="button"
               variant="outline"
