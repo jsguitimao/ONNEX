@@ -1041,10 +1041,10 @@ export async function triggerRemindersCronAction(): Promise<TriggerRemindersResu
     // valida que o utilizador tem negócio (mesma garantia do guard /crm)
     await getCurrentBusiness();
 
-    const [cancelResult, reminderResult] = await Promise.all([
-      autoCancelUnconfirmedBookings(),
-      sendUpcomingBookingReminders(),
-    ]);
+    // Sequencial: auto-cancel primeiro (pode libertar slots), depois lembretes.
+    // Evita race do mesmo booking ser lembrado enquanto outro fluxo o cancela.
+    const cancelResult = await autoCancelUnconfirmedBookings();
+    const reminderResult = await sendUpcomingBookingReminders();
 
     const totalScanned = cancelResult.scanned + reminderResult.scanned;
 

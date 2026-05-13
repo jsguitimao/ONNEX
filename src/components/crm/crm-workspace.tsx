@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { LayoutDashboard, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PageEditor } from "@/components/page-editor/page-editor";
+import type { EditorDraft } from "@/lib/page-editor/draft";
 import type { CrmCustomerKpis, CrmCustomerRowDto } from "@/lib/crm/customers";
 import type { CrmStaffRow } from "@/lib/crm/staff";
 import type { CrmBookingRowDto, CrmPendingBookingDto } from "@/lib/crm/bookings";
@@ -40,6 +41,7 @@ type Props = {
   initialFinancialSummary: CrmFinancialSummary;
   services: CrmServiceOption[];
   automation: CrmAutomationConfig;
+  editorDraft: EditorDraft;
 };
 
 export function CrmWorkspace({
@@ -56,8 +58,9 @@ export function CrmWorkspace({
   initialFinancialSummary,
   services,
   automation,
+  editorDraft,
 }: Props) {
-  const [active, setActive] = useState<CrmSectionId>("clientes");
+  const [active, setActive] = useState<CrmSectionId>("painel-visual");
   const [actionPanel, setActionPanel] = useState<CrmActionKind | null>(null);
   const [customerList, setCustomerList] = useState(customers);
   const [staffList, setStaffList] = useState(staff);
@@ -144,20 +147,6 @@ export function CrmWorkspace({
 
       <div className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="flex flex-col gap-2">
-          <Link
-            href="/dashboard"
-            className="flex min-h-20 w-full items-center gap-3 rounded-lg border border-border bg-card px-3 text-left transition hover:border-foreground/40"
-          >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
-              <LayoutDashboard className="size-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold">Painel Visual</span>
-              <span className="mt-0.5 line-clamp-2 block text-xs leading-5 text-muted-foreground">
-                Continua a edição da página pública.
-              </span>
-            </span>
-          </Link>
           {sections.map((section) => {
             const SectionIcon = section.icon;
             const selected = section.id === active;
@@ -211,21 +200,27 @@ export function CrmWorkspace({
             />
           ) : null}
 
-          <div className="rounded-lg border border-border bg-card">
-            <div className="border-b border-border p-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                  <Icon className="size-5" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-lg font-semibold">{activeSection.label}</h2>
-                  <p className="text-sm text-muted-foreground">{activeSection.description}</p>
+          {active === "painel-visual" ? null : (
+            <div className="rounded-lg border border-border bg-card">
+              <div className="border-b border-border p-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                    <Icon className="size-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold">{activeSection.label}</h2>
+                    <p className="text-sm text-muted-foreground">{activeSection.description}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {active === "clientes" ? (
+          {active === "painel-visual" ? (
+            <div className="rounded-lg border border-border bg-card">
+              <PageEditor initialDraft={editorDraft} embedded />
+            </div>
+          ) : active === "clientes" ? (
             <CustomersPanel
               customers={customerList}
               kpis={customerKpis}

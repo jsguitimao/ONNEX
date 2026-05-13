@@ -22,6 +22,7 @@ import {
 } from "@/lib/crm/schedule-blocks";
 import { computeFinancialSummary } from "@/lib/crm/finance";
 import { getBusinessAutomation } from "@/lib/crm/automation";
+import { loadEditorDraft } from "@/lib/page-editor/load";
 import { captureException } from "@/lib/observability";
 
 export const metadata = {
@@ -58,6 +59,7 @@ export default async function CrmPage() {
     scheduleBlocks,
     financialSummary,
     automation,
+    editorDraft,
   ] = await Promise.all([
     listCustomers(business.id),
     computeCustomerKpis(business.id),
@@ -72,6 +74,7 @@ export default async function CrmPage() {
       timezone: business.timezone,
     }),
     getBusinessAutomation(business.id),
+    loadEditorDraft(),
   ]);
 
   const availabilityByStaff: Record<string, CrmDayAvailability[]> = {};
@@ -103,6 +106,7 @@ export default async function CrmPage() {
       initialFinancialSummary={financialSummary}
       services={services}
       automation={automation}
+      editorDraft={editorDraft}
     />
   );
 }

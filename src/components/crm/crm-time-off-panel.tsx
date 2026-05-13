@@ -176,6 +176,7 @@ export function TimeOffPanel({
             <FormField label={form.kind === "all_day" ? "Início" : "Dia"}>
               <Input
                 type="date"
+                min={todayDateKey()}
                 value={form.startDateKey}
                 onChange={(event) => update("startDateKey", event.target.value)}
               />
@@ -184,6 +185,7 @@ export function TimeOffPanel({
               <FormField label="Fim">
                 <Input
                   type="date"
+                  min={form.startDateKey || todayDateKey()}
                   value={form.endDateKey}
                   onChange={(event) => update("endDateKey", event.target.value)}
                 />

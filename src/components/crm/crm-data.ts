@@ -1,7 +1,13 @@
-import { CalendarDays, UsersRound, WalletCards } from "lucide-react";
+import { CalendarDays, LayoutDashboard, UsersRound, WalletCards } from "lucide-react";
 import type { SectionConfig } from "./crm-types";
 
 export const sections: SectionConfig[] = [
+  {
+    id: "painel-visual",
+    label: "Painel Visual",
+    description: "Edita a página pública da barbearia.",
+    icon: LayoutDashboard,
+  },
   {
     id: "clientes",
     label: "Cliente",

@@ -24,6 +24,8 @@ type Props = {
   initialDraft: EditorDraft;
   /** Quando true, o botao Guardar fica local ao navegador. */
   readOnly?: boolean;
+  /** Quando true, renderiza embutido dentro de outro layout (CRM): sem `min-h-screen`, sem link "Gestao comercial" (ja la estas). */
+  embedded?: boolean;
 };
 
 type SaveState =
@@ -32,7 +34,7 @@ type SaveState =
   | { status: "success"; at: number }
   | { status: "error"; message: string };
 
-export function PageEditor({ initialDraft, readOnly = false }: Props) {
+export function PageEditor({ initialDraft, readOnly = false, embedded = false }: Props) {
   const [draft, setDraft] = useState<EditorDraft>(initialDraft);
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(initialDraft));
   const [save, setSave] = useState<SaveState>({ status: "idle" });
@@ -102,8 +104,14 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
+    <div className={embedded ? "bg-background text-foreground" : "min-h-screen bg-background text-foreground"}>
+      <header
+        className={
+          embedded
+            ? "border-b border-border bg-background/80"
+            : "sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur"
+        }
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-3">
           <div>
             <h1 className="text-sm font-semibold">Página pública</h1>
@@ -122,10 +130,12 @@ export function PageEditor({ initialDraft, readOnly = false }: Props) {
             {save.status === "success" ? (
               <p className="text-xs text-muted-foreground">Guardado.</p>
             ) : null}
-            <Link href="/crm" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              <ArrowLeft className="size-3.5" />
-              Gestão comercial
-            </Link>
+            {embedded ? null : (
+              <Link href="/crm" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <ArrowLeft className="size-3.5" />
+                Gestão comercial
+              </Link>
+            )}
             <Button
               type="button"
               variant="outline"

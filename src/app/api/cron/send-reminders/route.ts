@@ -42,10 +42,11 @@ async function handleCronReminderRequest(req: Request) {
   }
 
   try {
-    const [cancelResult, reminderResult] = await Promise.all([
-      autoCancelUnconfirmedBookings(),
-      sendUpcomingBookingReminders(),
-    ]);
+    // Sequencial: auto-cancel primeiro (pode libertar slots) e so depois
+    // os lembretes. Evita race em que o mesmo booking seria lembrado
+    // enquanto outro fluxo o esta a cancelar.
+    const cancelResult = await autoCancelUnconfirmedBookings();
+    const reminderResult = await sendUpcomingBookingReminders();
 
     const totalScanned = cancelResult.scanned + reminderResult.scanned;
 

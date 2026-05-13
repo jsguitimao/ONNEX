@@ -315,6 +315,7 @@ function ManualBookingForm({
         <FormField label="Data" error={fieldErrors.dateKey}>
           <Input
             type="date"
+            min={todayDateKey()}
             value={form.dateKey}
             onChange={(event) => update("dateKey", event.target.value)}
           />

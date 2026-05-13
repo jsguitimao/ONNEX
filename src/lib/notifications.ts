@@ -629,10 +629,18 @@ export async function autoCancelUnconfirmedBookings() {
   let advancementsSent = 0;
 
   for (const booking of toCancel) {
-    await db.booking.update({
-      where: { id: booking.id },
+    // Update condicional: se o cliente confirmou (ou alguem cancelou) entre o
+    // findMany e este update, count=0 e saltamos. Evita cancelar marcacoes
+    // que ja foram confirmadas durante o tempo de iteracao do cron.
+    const updated = await db.booking.updateMany({
+      where: {
+        id: booking.id,
+        status: { in: ["PENDING", "CONFIRMED"] },
+        customerConfirmedAt: null,
+      },
       data: { status: "CANCELLED" },
     });
+    if (updated.count === 0) continue;
 
     // 1. Avisa o cliente cancelado.
     await sendBookingNotification(booking.id, "BOOKING_CANCELLED");
