@@ -1,4 +1,4 @@
-const DEFAULT_APP_URL = "https://buk-next.vercel.app";
+const DEFAULT_APP_URL = "https://www.onnex.pt";
 
 function normalizeUrl(value: string | undefined | null) {
   if (!value) {

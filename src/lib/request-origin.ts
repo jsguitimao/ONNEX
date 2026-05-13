@@ -3,7 +3,7 @@ type OriginValidationResult = {
   reason: "ORIGIN_NOT_ALLOWED" | "REFERER_NOT_ALLOWED" | "FETCH_SITE_NOT_ALLOWED" | null;
 };
 
-const DEFAULT_APP_URL = "https://buk-next.vercel.app";
+const DEFAULT_APP_URL = "https://www.onnex.pt";
 
 function normalizeOrigin(value: string | null | undefined) {
   if (!value) return null;

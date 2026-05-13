@@ -3,7 +3,16 @@
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/page-editor/field";
 import { SectionShell } from "@/components/page-editor/section-shell";
+import { getAppUrl } from "@/lib/app-config";
 import type { EditorDraft } from "@/lib/page-editor/draft";
+
+function getAppHost() {
+  try {
+    return new URL(getAppUrl()).host;
+  } catch {
+    return "onnex.pt";
+  }
+}
 
 type Props = {
   draft: Pick<
@@ -25,7 +34,7 @@ export function SectionSeo({ draft, onChange }: Props) {
     headline.trim() ||
     description.trim() ||
     `Marca online com ${draft.name || "este negócio"}.`;
-  const previewUrl = `buk-next.vercel.app/${draft.slug || "slug"}`;
+  const previewUrl = `${getAppHost()}/${draft.slug || "slug"}`;
 
   return (
     <SectionShell
