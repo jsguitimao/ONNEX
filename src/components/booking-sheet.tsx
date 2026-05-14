@@ -36,6 +36,11 @@ export function useBookingSheet(): BookingSheetContextValue {
   return ctx;
 }
 
+// Versão segura — devolve null se nao houver provider (ex: preview do editor).
+export function useBookingSheetOptional(): BookingSheetContextValue | null {
+  return useContext(BookingSheetContext);
+}
+
 type ProviderProps = {
   business: PublicBusinessPayload;
   mockMode?: boolean;

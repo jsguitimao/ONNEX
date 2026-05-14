@@ -8,6 +8,7 @@ import {
   sendStaffBookingNotification,
 } from "@/lib/notifications";
 import { captureException } from "@/lib/observability";
+import { isSupportedMediaUrl } from "@/lib/media-url";
 import {
   createPublicBookingToken,
   getPublicBookingTokenExpiresAt,
@@ -312,7 +313,9 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
       bio: member.bio,
       avatarUrl: member.avatarUrl ?? null,
       portfolioImages: Array.isArray(member.portfolioImages)
-        ? (member.portfolioImages as unknown[]).filter((v): v is string => typeof v === "string")
+        ? (member.portfolioImages as unknown[]).filter(
+            (v): v is string => typeof v === "string" && isSupportedMediaUrl(v),
+          )
         : [],
       serviceIds: member.services.map((assignment) => assignment.serviceId),
     })),
