@@ -444,6 +444,7 @@ function BookingSheet({
                     onPick={pickSlot}
                     loading={loadingSlots}
                     hasFilters={!!date && !!serviceId && !!staffMemberId}
+                    errorMessage={!loadingSlots && error && slots.length === 0 ? error : ""}
                   />
                 </StepRow>
 
@@ -735,17 +736,26 @@ function TimeStep({
   onPick,
   loading,
   hasFilters,
+  errorMessage,
 }: {
   slots: BookingSlot[];
   selected: string;
   onPick: (iso: string) => void;
   loading: boolean;
   hasFilters: boolean;
+  errorMessage?: string;
 }) {
   if (loading) {
     return (
       <p className="flex items-center gap-2 text-sm text-[#a1a1aa]">
         <Loader2 className="size-4 animate-spin" /> A carregar horários…
+      </p>
+    );
+  }
+  if (errorMessage) {
+    return (
+      <p role="alert" className="text-sm text-rose-300">
+        {errorMessage}
       </p>
     );
   }
