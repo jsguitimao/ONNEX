@@ -380,7 +380,19 @@ export async function createPublicBooking(input: {
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
+  idempotencyKey?: string;
 }) {
+  // Idempotency: se o cliente envia uma chave (retries de rede), procuramos
+  // primeiro um booking ja criado com essa chave. Se existir, devolvemos esse
+  // sem criar segunda marcacao nem disparar nova notificacao.
+  if (input.idempotencyKey) {
+    const existing = await db.booking.findUnique({
+      where: { idempotencyKey: input.idempotencyKey },
+      include: { service: true, staffMember: true },
+    });
+    if (existing) return existing;
+  }
+
   const business = await getBusinessBySlug(input.slug);
   if (!business) {
     throw new Error("NEGOCIO_NAO_ENCONTRADO");
@@ -462,6 +474,7 @@ export async function createPublicBooking(input: {
         source: "ONLINE",
         paymentStatus: "UNPAID",
         publicToken,
+        idempotencyKey: input.idempotencyKey ?? null,
         startsAt,
         endsAt,
         priceCents: service.priceCents,
@@ -474,6 +487,22 @@ export async function createPublicBooking(input: {
         staffMember: true,
       },
     });
+  }).catch(async (err: unknown) => {
+    // Race: 2 requests com a mesma idempotencyKey podem chegar ao tx
+    // ao mesmo tempo; o segundo falha com P2002 no unique. Nesse caso,
+    // re-fetch o booking original e devolve.
+    const isUniqueViolation =
+      typeof err === "object" &&
+      err !== null &&
+      (err as { code?: string }).code === "P2002";
+    if (isUniqueViolation && input.idempotencyKey) {
+      const existing = await db.booking.findUnique({
+        where: { idempotencyKey: input.idempotencyKey },
+        include: { service: true, staffMember: true },
+      });
+      if (existing) return existing;
+    }
+    throw err;
   });
 
   const autoAccept = booking.staffMember?.autoAcceptBookings || business.autoAcceptBookings;

@@ -69,6 +69,17 @@ export async function POST(req: Request, { params }: RouteProps) {
       staffMemberId: result.data.staffMemberId,
     };
 
+    // Idempotency-Key header (RFC draft): se o cliente envia, dedupe-se a
+    // criacao. Aceita-se UUID v4 (36 chars com hifens) ou qualquer string
+    // alfanumerica curta razoavel. Validacao leve para evitar abuso.
+    const rawIdempotencyKey = req.headers.get("idempotency-key")?.trim() ?? "";
+    const idempotencyKey =
+      rawIdempotencyKey.length > 0 &&
+      rawIdempotencyKey.length <= 64 &&
+      /^[A-Za-z0-9_-]+$/.test(rawIdempotencyKey)
+        ? rawIdempotencyKey
+        : undefined;
+
     const booking = await createPublicBooking({
       slug,
       serviceId: result.data.serviceId,
@@ -77,6 +88,7 @@ export async function POST(req: Request, { params }: RouteProps) {
       customerName: result.data.customerName,
       customerEmail: result.data.customerEmail || undefined,
       customerPhone: result.data.customerPhone || undefined,
+      idempotencyKey,
     });
 
     return NextResponse.json(

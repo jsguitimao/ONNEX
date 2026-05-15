@@ -248,6 +248,7 @@ model Customer {
 model Booking {
   id               String          @id @default(cuid())
   publicToken      String?         @unique
+  idempotencyKey   String?         @unique
   businessId       String
   locationId       String?
   serviceId        String
