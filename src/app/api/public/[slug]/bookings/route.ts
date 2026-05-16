@@ -112,7 +112,9 @@ export async function POST(req: Request, { params }: RouteProps) {
         ? { status: 400, error: "Corpo JSON inválido." }
         : message === "HORARIO_OCUPADO"
           ? { status: 409, error: "Este horário acabou de ficar indisponível." }
-          : message === "ONLINE_BOOKING_DISABLED"
+          : message === "CLIENTE_JA_TEM_MARCACAO"
+            ? { status: 409, error: "Já tens uma marcação activa nesta barbearia. Cancela a anterior antes de criar uma nova." }
+            : message === "ONLINE_BOOKING_DISABLED"
             ? { status: 403, error: "As reservas online estão desativadas para esta página." }
             : message === "DATA_INVALIDA"
               ? { status: 400, error: "Escolhe um horário dentro da antecedência e da janela permitidas." }

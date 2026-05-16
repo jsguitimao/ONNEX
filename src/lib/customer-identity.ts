@@ -8,6 +8,9 @@ export function normalizeCustomerEmail(value?: string | null) {
   return normalized || null;
 }
 
+// E.164: '+' seguido de 7-15 digitos. Aceita qualquer pais.
+// Se o input nao tem '+', assumimos Portugal (+351) como default — cobre a
+// maioria dos clientes. Estrangeiros tem de incluir o seu prefixo (+34, +33, etc).
 export function normalizeCustomerPhone(value?: string | null) {
   const trimmed = value?.trim();
   if (!trimmed) return null;
@@ -17,7 +20,12 @@ export function normalizeCustomerPhone(value?: string | null) {
 
   if (!digits) return null;
 
-  return `${hasPlusPrefix ? "+" : ""}${digits}`;
+  const normalized = hasPlusPrefix ? `+${digits}` : `+351${digits}`;
+
+  // E.164 valido: + + 7-15 digitos
+  if (!/^\+\d{7,15}$/.test(normalized)) return null;
+
+  return normalized;
 }
 
 export function sanitizeBookingCustomerInput(input: {

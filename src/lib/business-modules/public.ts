@@ -444,6 +444,25 @@ export async function createPublicBooking(input: {
     phone: input.customerPhone,
   });
 
+  // Guard "1 marcacao activa por cliente nesta barbearia": se o telefone do
+  // cliente ja tem uma marcacao PENDING/CONFIRMED no futuro nesta mesma
+  // barbearia, rejeitamos para evitar duplicado silencioso. CANCELLED ou
+  // COMPLETED nao contam (cliente pode marcar de novo).
+  if (customerInput.phone) {
+    const existing = await db.booking.findFirst({
+      where: {
+        businessId: business.id,
+        customerPhone: customerInput.phone,
+        status: { in: ["PENDING", "CONFIRMED"] },
+        startsAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new Error("CLIENTE_JA_TEM_MARCACAO");
+    }
+  }
+
   const booking = await runBookingTransaction(async (tx) => {
     await assertSlotAvailable(tx, {
       businessId: business.id,

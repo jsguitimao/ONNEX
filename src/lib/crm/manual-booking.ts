@@ -34,7 +34,8 @@ export type CrmManualBookingErrorCode =
   | "LOCATION_NOT_FOUND"
   | "INVALID_DATETIME"
   | "SLOT_TAKEN"
-  | "SLOT_BLOCKED";
+  | "SLOT_BLOCKED"
+  | "CUSTOMER_HAS_ACTIVE_BOOKING";
 
 export class CrmManualBookingError extends Error {
   constructor(public code: CrmManualBookingErrorCode, message: string) {
@@ -103,6 +104,26 @@ export async function createManualBooking(
     email: input.customerEmail,
     phone: input.customerPhone,
   });
+
+  // Guard "1 marcacao activa por cliente nesta barbearia" — mesma regra do
+  // booking publico. Evita o dono criar duplicado para o mesmo telefone.
+  if (customerInput.phone) {
+    const existing = await db.booking.findFirst({
+      where: {
+        businessId,
+        customerPhone: customerInput.phone,
+        status: { in: ["PENDING", "CONFIRMED"] },
+        startsAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new CrmManualBookingError(
+        "CUSTOMER_HAS_ACTIVE_BOOKING",
+        "Este cliente já tem uma marcação activa nesta barbearia. Cancela a anterior antes de criar uma nova.",
+      );
+    }
+  }
 
   const internalNotes = input.notes?.trim() || null;
 
