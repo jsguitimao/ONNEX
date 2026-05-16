@@ -3,7 +3,7 @@ import { LegalPageShell } from "@/components/legal-page-shell";
 
 export const metadata: Metadata = {
   title: "Termos",
-  description: "Condicoes gerais de utilizacao da plataforma BUKBARBEARIA.COM.",
+  description: "Condicoes gerais de utilizacao da plataforma ONNEX.PT.",
   alternates: {
     canonical: "/termos",
   },
@@ -20,7 +20,7 @@ export default function TermsPage() {
       <section className="grid gap-3">
         <h2>1. Objeto do servico</h2>
         <p>
-          O BUKBARBEARIA.COM disponibiliza uma plataforma para gestao de agenda, pagina publica,
+          O ONNEX.PT disponibiliza uma plataforma para gestao de agenda, pagina publica,
           equipa, clientes e comunicacao operacional de barbearias.
         </p>
       </section>

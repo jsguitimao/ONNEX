@@ -25,7 +25,7 @@ export type DemoBusiness = {
 };
 
 export const demoBusiness: DemoBusiness = {
-  name: "BUKBARBEARIA.COM Studio",
+  name: "ONNEX.PT Studio",
   slug: "barbearia-sample",
   city: "Porto",
   headline: "Marcações simples para uma barbearia moderna.",

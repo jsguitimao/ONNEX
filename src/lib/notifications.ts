@@ -525,7 +525,7 @@ export async function logReminderRunExecution(input: {
 
 // Janela máxima que vamos varrer em cada cron run. Cobre qualquer combinação
 // razoável de reminderMinutesBefore (max 240 = 4h) + confirmationToleranceMinutes
-// (max 120). Mantém a query única e barata para Bukly scale.
+// (max 120). Mantém a query única e barata para Onnex scale.
 const MAX_LOOKAHEAD_MINUTES = 240;
 
 function minutesFromNow(date: Date) {

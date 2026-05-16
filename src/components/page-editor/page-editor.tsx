@@ -18,7 +18,7 @@ import { SectionSeo } from "@/components/page-editor/section-seo";
 import { DraftPreviewFrame } from "@/components/page-editor/draft-preview-frame";
 import type { EditorDraft } from "@/lib/page-editor/draft";
 
-const DEMO_DRAFT_STORAGE_KEY = "bukly:page-editor-demo-draft";
+const DEMO_DRAFT_STORAGE_KEY = "onnex:page-editor-demo-draft";
 
 type Props = {
   initialDraft: EditorDraft;

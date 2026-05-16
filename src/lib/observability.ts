@@ -6,7 +6,7 @@ type LogContext = Record<string, unknown>;
 
 function writeLog(level: LogLevel, event: string, context: LogContext = {}) {
   const payload = JSON.stringify({
-    scope: "bukbarbearia",
+    scope: "onnex",
     event,
     level,
     timestamp: new Date().toISOString(),

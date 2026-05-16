@@ -1,6 +1,6 @@
-# BUKBARBEARIA.COM
+# ONNEX.PT
 
-BUKBARBEARIA.COM e uma plataforma de agendamentos para barbearias, com area privada para operacao e pagina publica estilo link-in-bio para converter visitas em reservas.
+ONNEX.PT e uma plataforma de agendamentos para barbearias, com area privada para operacao e pagina publica estilo link-in-bio para converter visitas em reservas.
 
 ## O que ja existe
 
@@ -134,7 +134,7 @@ Para ativar os lembretes automaticos em producao:
 
 1. Define `CRON_SECRET` na Vercel.
 2. Cria o secret `REMINDER_CRON_SECRET` no repositorio GitHub com exatamente o mesmo valor.
-3. Opcionalmente, cria a variable `REMINDER_CRON_URL` no GitHub se quiseres usar um dominio/URL diferente de `https://buk-next.vercel.app/api/cron/send-reminders`.
+3. Opcionalmente, cria a variable `REMINDER_CRON_URL` no GitHub se quiseres usar um dominio/URL diferente de `https://www.onnex.pt/api/cron/send-reminders`.
 
 O workflow chama o endpoint de 10 em 10 minutos com a janela `start=25` e `end=35`, o que fecha o lembrete "30 minutos antes" de forma robusta.
 

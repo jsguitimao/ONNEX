@@ -40,7 +40,7 @@ export default function PreviewPage() {
     window.addEventListener("message", onMessage);
 
     // Sinaliza ao parent que está pronto a receber drafts.
-    window.parent?.postMessage({ type: "bukly:editor-ready" }, window.location.origin);
+    window.parent?.postMessage({ type: "onnex:editor-ready" }, window.location.origin);
 
     return () => window.removeEventListener("message", onMessage);
   }, []);

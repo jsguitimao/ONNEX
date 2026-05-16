@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Calendar, Layers, Smartphone } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "BUKBARBEARIA.COM — Marca a tua barbearia online",
+  title: "ONNEX.PT — Marca a tua barbearia online",
   description:
     "Plataforma de marcações online para barbearias: página pública, agenda, equipa e clientes num só editor.",
 };
@@ -31,7 +31,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-background text-foreground">
       <section className="mx-auto flex max-w-3xl flex-col items-center px-6 pt-20 pb-12 text-center sm:pt-28">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-          BUKBARBEARIA.COM
+          ONNEX.PT
         </p>
         <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
           A tua barbearia, com marcação online em minutos.
@@ -74,7 +74,7 @@ export default function HomePage() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:justify-between">
-          <p className="font-medium text-foreground">BUKBARBEARIA.COM</p>
+          <p className="font-medium text-foreground">ONNEX.PT</p>
           <nav className="flex flex-wrap gap-4">
             <Link href="/termos" className="transition hover:text-foreground">
               Termos
