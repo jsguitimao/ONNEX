@@ -67,7 +67,7 @@ export type EditorDraft = {
   galleryImages: string[];
 };
 
-export const POSTMESSAGE_TYPE = "bukly:editor-draft" as const;
+export const POSTMESSAGE_TYPE = "onnex:editor-draft" as const;
 
 export type EditorPostMessage = {
   type: typeof POSTMESSAGE_TYPE;

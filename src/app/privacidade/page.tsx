@@ -3,7 +3,7 @@ import { LegalPageShell } from "@/components/legal-page-shell";
 
 export const metadata: Metadata = {
   title: "Privacidade",
-  description: "Informacao sobre recolha, utilizacao e conservacao de dados na plataforma BUKBARBEARIA.COM.",
+  description: "Informacao sobre recolha, utilizacao e conservacao de dados na plataforma ONNEX.PT.",
   alternates: {
     canonical: "/privacidade",
   },
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <section className="grid gap-3">
         <h2>1. Que dados recolhemos</h2>
         <p>
-          O BUKBARBEARIA.COM trata os dados necessarios para operar a agenda online das
+          O ONNEX.PT trata os dados necessarios para operar a agenda online das
           barbearias, incluindo nome, email, telefone, servicos marcados, historico de reservas e
           dados internos de configuracao do negocio.
         </p>
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
         <h2>3. Papel da plataforma e da barbearia</h2>
         <p>
           Cada barbearia e responsavel pelos dados dos seus clientes e pela informacao publicada na
-          sua pagina. O BUKBARBEARIA.COM atua como plataforma de suporte tecnico e operacional para
+          sua pagina. O ONNEX.PT atua como plataforma de suporte tecnico e operacional para
           disponibilizar reservas online, acessos autenticados e comunicacao transacional.
         </p>
       </section>

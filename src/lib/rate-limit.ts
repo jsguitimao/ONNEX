@@ -8,9 +8,9 @@ type RateLimitEntry = {
 type RateLimitStore = Map<string, RateLimitEntry>;
 
 type RateLimitStoreGlobal = typeof globalThis & {
-  __bukRateLimitStore?: RateLimitStore;
-  __bukRateLimitSweepAt?: number;
-  __bukRateLimitRedis?: Redis | null;
+  __onnexRateLimitStore?: RateLimitStore;
+  __onnexRateLimitSweepAt?: number;
+  __onnexRateLimitRedis?: Redis | null;
 };
 
 export type RateLimitOptions = {
@@ -34,41 +34,41 @@ export type RateLimitResult = {
 
 function getStore() {
   const globalStore = globalThis as RateLimitStoreGlobal;
-  if (!globalStore.__bukRateLimitStore) {
-    globalStore.__bukRateLimitStore = new Map<string, RateLimitEntry>();
+  if (!globalStore.__onnexRateLimitStore) {
+    globalStore.__onnexRateLimitStore = new Map<string, RateLimitEntry>();
   }
 
-  return globalStore.__bukRateLimitStore;
+  return globalStore.__onnexRateLimitStore;
 }
 
 function getRedis(): Redis | null {
   const globalStore = globalThis as RateLimitStoreGlobal;
 
-  if (globalStore.__bukRateLimitRedis !== undefined) {
-    return globalStore.__bukRateLimitRedis;
+  if (globalStore.__onnexRateLimitRedis !== undefined) {
+    return globalStore.__onnexRateLimitRedis;
   }
 
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token) {
-    globalStore.__bukRateLimitRedis = null;
+    globalStore.__onnexRateLimitRedis = null;
     return null;
   }
 
-  globalStore.__bukRateLimitRedis = new Redis({ url, token });
-  return globalStore.__bukRateLimitRedis;
+  globalStore.__onnexRateLimitRedis = new Redis({ url, token });
+  return globalStore.__onnexRateLimitRedis;
 }
 
 function sweepExpiredEntries(now: number) {
   const globalStore = globalThis as RateLimitStoreGlobal;
-  const lastSweep = globalStore.__bukRateLimitSweepAt ?? 0;
+  const lastSweep = globalStore.__onnexRateLimitSweepAt ?? 0;
 
   if (now - lastSweep < 30_000) {
     return;
   }
 
-  globalStore.__bukRateLimitSweepAt = now;
+  globalStore.__onnexRateLimitSweepAt = now;
   const store = getStore();
 
   for (const [key, value] of store.entries()) {
@@ -191,6 +191,6 @@ export function buildRateLimitHeaders(result: RateLimitResult) {
 export function resetRateLimitStoreForTests() {
   const globalStore = globalThis as RateLimitStoreGlobal;
   getStore().clear();
-  globalStore.__bukRateLimitSweepAt = 0;
-  globalStore.__bukRateLimitRedis = null;
+  globalStore.__onnexRateLimitSweepAt = 0;
+  globalStore.__onnexRateLimitRedis = null;
 }

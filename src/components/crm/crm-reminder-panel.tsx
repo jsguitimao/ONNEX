@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { BellRing, Loader2, MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,13 +30,23 @@ export function ReminderAutomationPanel({ automation, onAutomationUpdated }: Pro
 
   const [timingsError, setTimingsError] = useState<string | null>(null);
   const [isSavingTimings, startTimingsTransition] = useTransition();
+  // Derived state pattern: ressincroniza inputs locais quando o prop externo
+  // (automation) muda — sem chamar setState em useEffect (proibido por
+  // react-hooks/set-state-in-effect). Padrao recomendado pelo React:
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [prevReminder, setPrevReminder] = useState(automation.reminderMinutesBefore);
+  const [prevTolerance, setPrevTolerance] = useState(automation.confirmationToleranceMinutes);
   const [reminderInput, setReminderInput] = useState(String(automation.reminderMinutesBefore));
   const [toleranceInput, setToleranceInput] = useState(String(automation.confirmationToleranceMinutes));
 
-  useEffect(() => {
+  if (prevReminder !== automation.reminderMinutesBefore) {
+    setPrevReminder(automation.reminderMinutesBefore);
     setReminderInput(String(automation.reminderMinutesBefore));
+  }
+  if (prevTolerance !== automation.confirmationToleranceMinutes) {
+    setPrevTolerance(automation.confirmationToleranceMinutes);
     setToleranceInput(String(automation.confirmationToleranceMinutes));
-  }, [automation.reminderMinutesBefore, automation.confirmationToleranceMinutes]);
+  }
 
   function handleTriggerNow() {
     if (isTriggering) return;

@@ -203,13 +203,13 @@ const tests: TestCase[] = [
   {
     name: "validatePublicMutationOrigin accepts same-origin browser requests",
     run: () => {
-      process.env.NEXT_PUBLIC_APP_URL = "https://buk-next.vercel.app";
+      process.env.NEXT_PUBLIC_APP_URL = "https://www.onnex.pt";
 
-      const request = new Request("https://buk-next.vercel.app/api/public/demo/bookings", {
+      const request = new Request("https://www.onnex.pt/api/public/demo/bookings", {
         method: "POST",
         headers: {
-          origin: "https://buk-next.vercel.app",
-          referer: "https://buk-next.vercel.app/demo",
+          origin: "https://www.onnex.pt",
+          referer: "https://www.onnex.pt/demo",
           "sec-fetch-site": "same-origin",
         },
       });
@@ -223,9 +223,9 @@ const tests: TestCase[] = [
   {
     name: "validatePublicMutationOrigin rejects cross-site mutation attempts",
     run: () => {
-      process.env.NEXT_PUBLIC_APP_URL = "https://buk-next.vercel.app";
+      process.env.NEXT_PUBLIC_APP_URL = "https://www.onnex.pt";
 
-      const request = new Request("https://buk-next.vercel.app/api/public/demo/bookings", {
+      const request = new Request("https://www.onnex.pt/api/public/demo/bookings", {
         method: "POST",
         headers: {
           origin: "https://evil.example",

@@ -10,7 +10,7 @@ export function PublicSiteFooter() {
     <footer className="border-t bg-background/95">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-medium text-foreground">BUKBARBEARIA.COM</p>
+          <p className="font-medium text-foreground">ONNEX.PT</p>
           <p>Agendamento online, agenda operacional e CRM para barbearias.</p>
         </div>
 

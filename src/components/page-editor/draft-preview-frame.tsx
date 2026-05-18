@@ -21,7 +21,7 @@ export function DraftPreviewFrame({ draft, ...iframeProps }: Props) {
     function onReady(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
       const data = event.data as { type?: string } | null;
-      if (data?.type === "bukly:editor-ready") {
+      if (data?.type === "onnex:editor-ready") {
         sendDraft(draft);
       }
     }

@@ -6,7 +6,7 @@ import { demoBusiness } from "@/lib/demo-data";
 
 const DEMO_OWNER = {
   clerkUserId: "local-demo-owner",
-  email: "owner@bukbarbearia.local",
+  email: "owner@onnex.local",
   firstName: "Guilherme",
   lastName: "Owner",
 };
@@ -67,7 +67,7 @@ function getPrimaryEmailAddress(user: Awaited<ReturnType<typeof currentUser>>) {
 
 function getInternalUserEmailFallback(clerkUserId: string) {
   const safeLocalPart = clerkUserId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  return `${safeLocalPart || "user"}@users.bukbarbearia.local`;
+  return `${safeLocalPart || "user"}@users.onnex.local`;
 }
 
 function buildDemoStaffBio(specialties: string[]) {
@@ -461,7 +461,7 @@ export async function hydrateOperationalData(
         endsAt: end,
         priceCents: service.priceCents,
         customerName: "Cliente Demo",
-        customerEmail: "cliente.demo@bukbarbearia.local",
+        customerEmail: "cliente.demo@onnex.local",
         customerPhone: "+351 910 000 000",
       },
     });

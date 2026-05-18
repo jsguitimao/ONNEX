@@ -14,8 +14,8 @@ const fontSans = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "BUKBARBEARIA.COM",
-    template: "%s | BUKBARBEARIA.COM",
+    default: "ONNEX.PT",
+    template: "%s | ONNEX.PT",
   },
   description:
     "Plataforma de agendamentos para barbearias com página pública, agenda operacional, equipa, CRM e lembretes.",

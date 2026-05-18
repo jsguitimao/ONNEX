@@ -128,7 +128,7 @@ export function CrmWorkspace({
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              Bukly CRM
+              Onnex CRM
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
               Gestão comercial

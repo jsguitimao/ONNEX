@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: PublicPageProps): Promise<Met
 
   if (!business) {
     return {
-      title: "Pagina nao encontrada | BUKBARBEARIA.COM",
+      title: "Pagina nao encontrada | ONNEX.PT",
       description: "A pagina publica pedida nao esta disponivel.",
     };
   }

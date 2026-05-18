@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Cookie } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const STORAGE_KEY = "bukly.cookieConsent.v1";
+const STORAGE_KEY = "onnex.cookieConsent.v1";
 
 type Decision = "accepted" | "rejected";
 
