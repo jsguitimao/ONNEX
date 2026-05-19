@@ -64,8 +64,22 @@ export async function POST(req: Request) {
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack?.split("\n").slice(0, 3).join(" | ") : undefined,
     });
-    const message =
-      error instanceof Error ? error.message : "Erro ao carregar ficheiro.";
-    return NextResponse.json({ error: message }, { status: 400 });
+
+    // Whitelist de mensagens user-facing explicitamente lancadas em
+    // onBeforeGenerateToken. Qualquer outra coisa (Vercel Blob internals,
+    // Prisma, AUTH_REQUIRED, JSON parse, etc.) e tratada com mensagem
+    // generica para nao vazar detalhes internos ao client.
+    if (error instanceof Error && error.message.startsWith("Formato não suportado")) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (error instanceof Error && error.message === "AUTH_REQUIRED") {
+      return NextResponse.json({ error: "Autenticação requerida." }, { status: 401 });
+    }
+
+    return NextResponse.json(
+      { error: "Não foi possível carregar o ficheiro." },
+      { status: 500 },
+    );
   }
 }
