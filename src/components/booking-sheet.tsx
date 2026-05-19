@@ -290,6 +290,12 @@ function BookingSheet({
     customerPhone.trim().length > 0 &&
     !submitting;
 
+  // Idempotency: gerada na 1a tentativa, reutilizada se a chamada falhar e
+  // o cliente tentar de novo (rede / refresh do botao). Limpa apos sucesso
+  // ou quando o utilizador volta atras a editar dados — assim cada submit
+  // novo tem chave nova.
+  const idempotencyKeyRef = useRef<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
@@ -304,10 +310,17 @@ function BookingSheet({
       return;
     }
 
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+
     try {
       const res = await fetch(`/api/public/${business.slug}/bookings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKeyRef.current,
+        },
         body: JSON.stringify({
           serviceId,
           staffMemberId,
@@ -328,6 +341,7 @@ function BookingSheet({
         startsAt: data.startsAt ?? "",
       });
       setManageUrl(data.manageUrl ?? "");
+      idempotencyKeyRef.current = null;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao criar reserva.");
     } finally {

@@ -69,6 +69,17 @@ export async function POST(req: Request, { params }: RouteProps) {
       staffMemberId: result.data.staffMemberId,
     };
 
+    // Idempotency-Key header (RFC draft): se o cliente envia, dedupe-se a
+    // criacao. Aceita-se UUID v4 (36 chars com hifens) ou qualquer string
+    // alfanumerica curta razoavel. Validacao leve para evitar abuso.
+    const rawIdempotencyKey = req.headers.get("idempotency-key")?.trim() ?? "";
+    const idempotencyKey =
+      rawIdempotencyKey.length > 0 &&
+      rawIdempotencyKey.length <= 64 &&
+      /^[A-Za-z0-9_-]+$/.test(rawIdempotencyKey)
+        ? rawIdempotencyKey
+        : undefined;
+
     const booking = await createPublicBooking({
       slug,
       serviceId: result.data.serviceId,
@@ -77,6 +88,7 @@ export async function POST(req: Request, { params }: RouteProps) {
       customerName: result.data.customerName,
       customerEmail: result.data.customerEmail || undefined,
       customerPhone: result.data.customerPhone || undefined,
+      idempotencyKey,
     });
 
     return NextResponse.json(
@@ -100,7 +112,9 @@ export async function POST(req: Request, { params }: RouteProps) {
         ? { status: 400, error: "Corpo JSON inválido." }
         : message === "HORARIO_OCUPADO"
           ? { status: 409, error: "Este horário acabou de ficar indisponível." }
-          : message === "ONLINE_BOOKING_DISABLED"
+          : message === "CLIENTE_JA_TEM_MARCACAO"
+            ? { status: 409, error: "Já tens uma marcação activa nesta barbearia. Cancela a anterior antes de criar uma nova." }
+            : message === "ONLINE_BOOKING_DISABLED"
             ? { status: 403, error: "As reservas online estão desativadas para esta página." }
             : message === "DATA_INVALIDA"
               ? { status: 400, error: "Escolhe um horário dentro da antecedência e da janela permitidas." }
