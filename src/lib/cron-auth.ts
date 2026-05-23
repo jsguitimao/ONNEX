@@ -3,7 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 export type CronAuthorizationResult = {
   ok: boolean;
   configured: boolean;
-  source: "header" | "bearer" | "query" | null;
+  source: "header" | "bearer" | null;
   isVercelCronUserAgent: boolean;
 };
 
@@ -22,7 +22,6 @@ export function authorizeCronRequest(request: Request): CronAuthorizationResult 
   const secret = process.env.CRON_SECRET?.trim() || "";
   const headerToken = request.headers.get("x-cron-secret")?.trim() || "";
   const bearerToken = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim() || "";
-  const queryToken = new URL(request.url).searchParams.get("secret")?.trim() || "";
   const userAgent = request.headers.get("user-agent") || "";
   const configured = secret.length > 0;
 
@@ -49,15 +48,6 @@ export function authorizeCronRequest(request: Request): CronAuthorizationResult 
       ok: true,
       configured: true,
       source: "bearer",
-      isVercelCronUserAgent: /vercel-cron/i.test(userAgent),
-    };
-  }
-
-  if (queryToken && secureEquals(queryToken, secret)) {
-    return {
-      ok: true,
-      configured: true,
-      source: "query",
       isVercelCronUserAgent: /vercel-cron/i.test(userAgent),
     };
   }

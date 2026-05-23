@@ -8,191 +8,191 @@ datasource db {
 }
 
 model User {
-  id              String               @id @default(cuid())
-  clerkUserId     String               @unique
-  email           String               @unique
-  firstName       String?
-  lastName        String?
-  avatarUrl       String?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique
+  email       String   @unique
+  firstName   String?
+  lastName    String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   ownedBusinesses Business[]           @relation("BusinessOwner")
   memberships     BusinessMembership[]
 }
 
 model Business {
-  id               String               @id @default(cuid())
-  ownerId          String
-  name             String
-  slug             String               @unique
-  description      String?
-  contactPhone     String?
-  instagramUrl     String?
-  tiktokUrl        String?
-  facebookUrl      String?
-  timezone         String               @default("Europe/Lisbon")
-  locale           String               @default("pt-PT")
-  status           BusinessStatus       @default(DRAFT)
-  plan             PlanTier             @default(FREE)
-  logoUrl          String?
-  coverImageUrl    String?
-  primaryColor     String?
-  accentColor      String?
-  onlineBooking    Boolean              @default(true)
-  bookingLeadTimeHours Int              @default(1)
-  bookingWindowDays Int                 @default(30)
-  slotIntervalMinutes Int               @default(30)
-  cancellationWindowHours Int           @default(2)
-  autoAcceptBookings Boolean            @default(false)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  id                      String         @id @default(cuid())
+  ownerId                 String
+  name                    String
+  slug                    String         @unique
+  description             String?
+  contactPhone            String?
+  instagramUrl            String?
+  tiktokUrl               String?
+  facebookUrl             String?
+  timezone                String         @default("Europe/Lisbon")
+  locale                  String         @default("pt-PT")
+  status                  BusinessStatus @default(DRAFT)
+  plan                    PlanTier       @default(FREE)
+  logoUrl                 String?
+  coverImageUrl           String?
+  primaryColor            String?
+  accentColor             String?
+  onlineBooking           Boolean        @default(true)
+  bookingLeadTimeHours    Int            @default(1)
+  bookingWindowDays       Int            @default(30)
+  slotIntervalMinutes     Int            @default(30)
+  cancellationWindowHours Int            @default(2)
+  autoAcceptBookings      Boolean        @default(false)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
 
-  owner            User                 @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  bookingPage      BookingPage?
-  memberships      BusinessMembership[]
-  locations        Location[]
-  staffMembers     StaffMember[]
-  services         Service[]
-  customers        Customer[]
-  bookings         Booking[]
-  scheduleBlocks   ScheduleBlock[]
-  notifications    NotificationLog[]
-  subscription     Subscription?
-  automation       BusinessAutomation?
+  owner          User                 @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  bookingPage    BookingPage?
+  memberships    BusinessMembership[]
+  locations      Location[]
+  staffMembers   StaffMember[]
+  services       Service[]
+  customers      Customer[]
+  bookings       Booking[]
+  scheduleBlocks ScheduleBlock[]
+  notifications  NotificationLog[]
+  subscription   Subscription?
+  automation     BusinessAutomation?
 
   @@index([ownerId])
 }
 
 model BusinessAutomation {
-  id                            String   @id @default(cuid())
-  businessId                    String   @unique
-  reminderEnabled               Boolean  @default(true)
-  reminderMinutesBefore         Int      @default(30)
-  confirmationToleranceMinutes  Int      @default(10)
-  createdAt                     DateTime @default(now())
-  updatedAt                     DateTime @updatedAt
+  id                           String   @id @default(cuid())
+  businessId                   String   @unique
+  reminderEnabled              Boolean  @default(true)
+  reminderMinutesBefore        Int      @default(30)
+  confirmationToleranceMinutes Int      @default(10)
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
 
-  business                      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 model BusinessMembership {
-  id          String         @id @default(cuid())
-  businessId  String
-  userId      String
-  role        MembershipRole @default(ADMIN)
-  createdAt   DateTime       @default(now())
+  id         String         @id @default(cuid())
+  businessId String
+  userId     String
+  role       MembershipRole @default(ADMIN)
+  createdAt  DateTime       @default(now())
 
-  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, userId])
 }
 
 model BookingPage {
-  id                String   @id @default(cuid())
-  businessId        String   @unique
-  headline          String?
-  heroImageUrl      String?
-  heroPosterUrl     String?
-  heroMediaKind     String?
-  theme             String?
-  showTeam          Boolean  @default(true)
-  showPrices        Boolean  @default(true)
-  showDurations     Boolean  @default(true)
-  customDomain      String?  @unique
-  seoTitle          String?
-  seoDescription    String?
-  galleryImages     Json?
-  mapsAddress       String?
-  whatsappEnabled   Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id              String   @id @default(cuid())
+  businessId      String   @unique
+  headline        String?
+  heroImageUrl    String?
+  heroPosterUrl   String?
+  heroMediaKind   String?
+  theme           String?
+  showTeam        Boolean  @default(true)
+  showPrices      Boolean  @default(true)
+  showDurations   Boolean  @default(true)
+  customDomain    String?  @unique
+  seoTitle        String?
+  seoDescription  String?
+  galleryImages   Json?
+  mapsAddress     String?
+  whatsappEnabled Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  business          Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 model Location {
-  id              String      @id @default(cuid())
-  businessId      String
-  name            String
-  addressLine1    String?
-  addressLine2    String?
-  city            String?
-  postalCode      String?
-  countryCode     String?     @default("PT")
-  isDefault       Boolean     @default(false)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id           String   @id @default(cuid())
+  businessId   String
+  name         String
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  postalCode   String?
+  countryCode  String?  @default("PT")
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  business        Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  staffMembers    StaffMember[]
-  bookings        Booking[]
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staffMembers StaffMember[]
+  bookings     Booking[]
 
   @@index([businessId])
 }
 
 model StaffMember {
-  id              String              @id @default(cuid())
-  businessId      String
-  locationId      String?
-  fullName        String
-  slug            String?
-  roleTitle       String?
-  bio             String?
-  avatarUrl       String?
-  portfolioImages Json?
-  email           String?
-  phone           String?
-  isActive            Boolean             @default(true)
-  autoAcceptBookings  Boolean             @default(false)
-  displayOrder        Int                 @default(0)
-  deletedAt           DateTime?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  id                 String    @id @default(cuid())
+  businessId         String
+  locationId         String?
+  fullName           String
+  slug               String?
+  roleTitle          String?
+  bio                String?
+  avatarUrl          String?
+  portfolioImages    Json?
+  email              String?
+  phone              String?
+  isActive           Boolean   @default(true)
+  autoAcceptBookings Boolean   @default(false)
+  displayOrder       Int       @default(0)
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  business        Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  location        Location?           @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  services        StaffService[]
-  availabilities  WeeklyAvailability[]
-  bookings        Booking[]
-  scheduleBlocks  ScheduleBlock[]
+  business       Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location       Location?            @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  services       StaffService[]
+  availabilities WeeklyAvailability[]
+  bookings       Booking[]
+  scheduleBlocks ScheduleBlock[]
 
   @@index([businessId])
   @@index([businessId, deletedAt])
 }
 
 model ScheduleBlock {
-  id             String      @id @default(cuid())
-  businessId     String
-  staffMemberId  String?
-  startsAt       DateTime
-  endsAt         DateTime
-  reason         String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id            String   @id @default(cuid())
+  businessId    String
+  staffMemberId String?
+  startsAt      DateTime
+  endsAt        DateTime
+  reason        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  business       Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  staffMember    StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+  business    Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staffMember StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
 
   @@index([businessId, startsAt])
   @@index([staffMemberId, startsAt])
 }
 
 model Service {
-  id               String         @id @default(cuid())
-  businessId       String
-  name             String
-  slug             String?
-  description      String?
-  durationMinutes  Int
-  priceCents       Int
-  color            String?
-  isActive         Boolean        @default(true)
-  displayOrder     Int            @default(0)
-  deletedAt        DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id              String    @id @default(cuid())
+  businessId      String
+  name            String
+  slug            String?
+  description     String?
+  durationMinutes Int
+  priceCents      Int
+  color           String?
+  isActive        Boolean   @default(true)
+  displayOrder    Int       @default(0)
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   business         Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
   staffAssignments StaffService[]
@@ -203,99 +203,100 @@ model Service {
 }
 
 model StaffService {
-  staffMemberId   String
-  serviceId       String
+  staffMemberId String
+  serviceId     String
 
-  staffMember     StaffMember @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
-  service         Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  staffMember StaffMember @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+  service     Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   @@id([staffMemberId, serviceId])
 }
 
 model WeeklyAvailability {
-  id             String      @id @default(cuid())
-  staffMemberId  String
-  dayOfWeek      Int
-  startTime      String
-  endTime        String
-  isActive       Boolean     @default(true)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id            String   @id @default(cuid())
+  staffMemberId String
+  dayOfWeek     Int
+  startTime     String
+  endTime       String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  staffMember    StaffMember @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+  staffMember StaffMember @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
 
   @@index([staffMemberId, dayOfWeek])
 }
 
 model Customer {
-  id               String      @id @default(cuid())
-  businessId       String
-  fullName         String
-  email            String?
-  phone            String?
-  notes            String?
-  marketingOptIn   Boolean     @default(false)
-  lastBookedAt     DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id             String    @id @default(cuid())
+  businessId     String
+  fullName       String
+  email          String?
+  phone          String?
+  notes          String?
+  marketingOptIn Boolean   @default(false)
+  lastBookedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  business         Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  bookings         Booking[]
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  bookings Booking[]
 
   @@index([businessId])
 }
 
 model Booking {
-  id               String          @id @default(cuid())
-  publicToken      String?         @unique
-  idempotencyKey   String?         @unique
-  businessId       String
-  locationId       String?
-  serviceId        String
-  staffMemberId    String?
-  customerId       String?
-  status           BookingStatus   @default(PENDING)
-  source           BookingSource   @default(ONLINE)
-  paymentStatus    PaymentStatus   @default(UNPAID)
-  startsAt         DateTime
-  endsAt           DateTime
-  priceCents       Int
-  customerName     String
-  customerEmail    String?
-  customerPhone    String?
-  internalNotes    String?
+  id                  String        @id @default(cuid())
+  publicToken         String?       @unique
+  idempotencyKey      String?
+  businessId          String
+  locationId          String?
+  serviceId           String
+  staffMemberId       String?
+  customerId          String?
+  status              BookingStatus @default(PENDING)
+  source              BookingSource @default(ONLINE)
+  paymentStatus       PaymentStatus @default(UNPAID)
+  startsAt            DateTime
+  endsAt              DateTime
+  priceCents          Int
+  customerName        String
+  customerEmail       String?
+  customerPhone       String?
+  internalNotes       String?
   customerConfirmedAt DateTime?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
-  business         Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  location         Location?       @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  service          Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  staffMember      StaffMember?    @relation(fields: [staffMemberId], references: [id], onDelete: SetNull)
-  customer         Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  notifications    NotificationLog[]
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location      Location?         @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  service       Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  staffMember   StaffMember?      @relation(fields: [staffMemberId], references: [id], onDelete: SetNull)
+  customer      Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  notifications NotificationLog[]
 
+  @@unique([businessId, idempotencyKey])
   @@index([businessId, startsAt])
   @@index([staffMemberId, startsAt])
 }
 
 model NotificationLog {
-  id                String             @id @default(cuid())
+  id                String              @id @default(cuid())
   bookingId         String
   businessId        String
   channel           NotificationChannel
   kind              NotificationKind
-  status            NotificationStatus @default(PENDING)
+  status            NotificationStatus  @default(PENDING)
   recipient         String
   providerMessageId String?
   errorMessage      String?
   payload           Json?
   sentAt            DateTime?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
-  booking           Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  business          Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  booking  Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@index([businessId, createdAt])
   @@index([bookingId, kind, channel])
@@ -321,22 +322,22 @@ model ReminderRunLog {
 }
 
 model Subscription {
-  id                   String             @id @default(cuid())
-  businessId           String             @unique
-  tier                 PlanTier           @default(FREE)
-  status               SubscriptionStatus @default(TRIALING)
-  seats                Int                @default(1)
-  billingCycle         BillingCycle       @default(MONTHLY)
-  provider             String?
-  providerCustomerId   String?
-  providerPriceId      String?
-  currentPeriodStart   DateTime?
-  currentPeriodEnd     DateTime?
-  cancelAtPeriodEnd    Boolean            @default(false)
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  id                 String             @id @default(cuid())
+  businessId         String             @unique
+  tier               PlanTier           @default(FREE)
+  status             SubscriptionStatus @default(TRIALING)
+  seats              Int                @default(1)
+  billingCycle       BillingCycle       @default(MONTHLY)
+  provider           String?
+  providerCustomerId String?
+  providerPriceId    String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
-  business             Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 enum NotificationChannel {

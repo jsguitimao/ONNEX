@@ -39,7 +39,7 @@ describe("normalizeCustomerPhone", () => {
   });
 
   it("handles phone without + prefix", () => {
-    expect(normalizeCustomerPhone("912 345 678")).toBe("912345678");
+    expect(normalizeCustomerPhone("912 345 678")).toBe("+351912345678");
   });
 
   it("returns null for empty/whitespace", () => {

@@ -91,7 +91,14 @@ async function handleCronReminderRequest(req: Request) {
 }
 
 export async function GET(req: Request) {
-  return handleCronReminderRequest(req);
+  logWarning("cron_send_reminders.method_not_allowed", {
+    route: "/api/cron/send-reminders",
+    method: req.method,
+  });
+  return NextResponse.json(
+    { error: "Metodo nao permitido. Usa POST com o segredo no header." },
+    { status: 405, headers: { Allow: "POST" } },
+  );
 }
 
 export async function POST(req: Request) {

@@ -2,6 +2,7 @@ import { getBookableRange, getBookingPolicySettings, getCancellationDeadline } f
 import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
 import { db } from "@/lib/db";
 import { assertSlotAvailable, runBookingTransaction } from "@/lib/booking-transaction";
+import { after } from "next/server";
 import {
   sendBookingNotification,
   sendRepresentativeBookingNotification,
@@ -25,6 +26,47 @@ import {
 import { upsertBookingCustomer } from "./customers";
 import { getBusinessBySlug } from "./core";
 import type { BookingSlot, PublicBookingDetails, PublicBusinessPayload } from "./types";
+
+type CreatedPublicBooking = {
+  id: string;
+  staffMember: unknown | null;
+};
+
+function runAfterResponse(task: () => Promise<void>) {
+  try {
+    after(task);
+  } catch {
+    void task();
+  }
+}
+
+async function sendPostBookingNotifications(booking: CreatedPublicBooking, autoAccept: boolean) {
+  try {
+    await sendBookingNotification(
+      booking.id,
+      autoAccept ? "BOOKING_CONFIRMED" : "BOOKING_CREATED",
+    );
+  } catch (error) {
+    captureException("public.create_booking.customer_notification_failed", error, {
+      bookingId: booking.id,
+      autoAccept,
+    });
+  }
+
+  if (!booking.staffMember) return;
+
+  try {
+    await sendStaffBookingNotification(
+      booking.id,
+      autoAccept ? "BOOKING_STAFF_NEW_BOOKING" : "BOOKING_STAFF_PENDING_REQUEST",
+    );
+  } catch (error) {
+    captureException("public.create_booking.staff_notification_failed", error, {
+      bookingId: booking.id,
+      autoAccept,
+    });
+  }
+}
 
 async function listBookingSlots(input: {
   businessId: string;
@@ -382,23 +424,31 @@ export async function createPublicBooking(input: {
   customerPhone?: string;
   idempotencyKey?: string;
 }) {
-  // Idempotency: se o cliente envia uma chave (retries de rede), procuramos
-  // primeiro um booking ja criado com essa chave. Se existir, devolvemos esse
-  // sem criar segunda marcacao nem disparar nova notificacao.
-  if (input.idempotencyKey) {
-    const existing = await db.booking.findUnique({
-      where: { idempotencyKey: input.idempotencyKey },
-      include: { service: true, staffMember: true },
-    });
-    if (existing) return existing;
-  }
-
   const business = await getBusinessBySlug(input.slug);
   if (!business) {
     throw new Error("NEGOCIO_NAO_ENCONTRADO");
   }
   if (!business.onlineBooking) {
     throw new Error("ONLINE_BOOKING_DISABLED");
+  }
+
+  // Idempotency: se o cliente envia uma chave (retries de rede), procuramos
+  // um booking ja criado com essa chave. Se existir, devolvemos esse sem criar
+  // segunda marcacao nem disparar nova notificacao. O lookup TEM de ser scoped
+  // ao negocio (businessId + idempotencyKey): a mesma chave pode existir noutro
+  // negocio e devolver a reserva alheia (com o publicToken) seria um takeover
+  // cross-tenant.
+  if (input.idempotencyKey) {
+    const existing = await db.booking.findUnique({
+      where: {
+        businessId_idempotencyKey: {
+          businessId: business.id,
+          idempotencyKey: input.idempotencyKey,
+        },
+      },
+      include: { service: true, staffMember: true },
+    });
+    if (existing) return existing;
   }
 
   const { minBookableAt, maxBookableAt } = getBookableRange(business);
@@ -516,7 +566,12 @@ export async function createPublicBooking(input: {
       (err as { code?: string }).code === "P2002";
     if (isUniqueViolation && input.idempotencyKey) {
       const existing = await db.booking.findUnique({
-        where: { idempotencyKey: input.idempotencyKey },
+        where: {
+          businessId_idempotencyKey: {
+            businessId: business.id,
+            idempotencyKey: input.idempotencyKey,
+          },
+        },
         include: { service: true, staffMember: true },
       });
       if (existing) return existing;
@@ -525,25 +580,7 @@ export async function createPublicBooking(input: {
   });
 
   const autoAccept = booking.staffMember?.autoAcceptBookings || business.autoAcceptBookings;
-  if (autoAccept) {
-    await sendBookingNotification(booking.id, "BOOKING_CONFIRMED");
-  } else {
-    await sendBookingNotification(booking.id, "BOOKING_CREATED");
-  }
-
-  if (booking.staffMember) {
-    try {
-      await sendStaffBookingNotification(
-        booking.id,
-        autoAccept ? "BOOKING_STAFF_NEW_BOOKING" : "BOOKING_STAFF_PENDING_REQUEST",
-      );
-    } catch (error) {
-      captureException("public.create_booking.staff_notification_failed", error, {
-        bookingId: booking.id,
-        autoAccept,
-      });
-    }
-  }
+  runAfterResponse(() => sendPostBookingNotifications(booking, autoAccept));
 
   return booking;
 }
