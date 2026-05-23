@@ -10,6 +10,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 // pelo Clerk, o cliente `upload()` fica preso até ao timeout de 120s. A própria
 // route já valida auth via `getCurrentBusiness()` em `onBeforeGenerateToken`.
 const isProtectedRoute = createRouteMatcher([
+  "/api/account(.*)",
   "/api/dashboard(.*)",
 ]);
 
