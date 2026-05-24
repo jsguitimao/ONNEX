@@ -1,3 +1,13 @@
+import type { ErrorEvent } from "@sentry/nextjs";
+import { scrubPii } from "./scrub-pii";
+
+// Net final: o evento completo (message, extra, contexts, breadcrumbs, request)
+// passa pelo scrub antes de sair para o Sentry. Cobre tudo o que escapou às
+// camadas acima (ex.: telefones/emails embutidos em mensagens de erro).
+function beforeSend(event: ErrorEvent): ErrorEvent {
+  return scrubPii(event);
+}
+
 function parseNumber(value: string | undefined, fallback: number) {
   if (!value) {
     return fallback;
@@ -19,7 +29,8 @@ export function getServerSentryOptions() {
     enabled: Boolean(dsn),
     environment: getEnvironmentName(),
     tracesSampleRate: parseNumber(process.env.SENTRY_TRACES_SAMPLE_RATE, 0.2),
-    sendDefaultPii: true,
+    sendDefaultPii: false,
+    beforeSend,
   };
 }
 
@@ -33,5 +44,7 @@ export function getClientSentryOptions() {
     tracesSampleRate: parseNumber(process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE, 0.1),
     replaysSessionSampleRate: parseNumber(process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE, 0),
     replaysOnErrorSampleRate: parseNumber(process.env.NEXT_PUBLIC_SENTRY_REPLAY_ERROR_SAMPLE_RATE, 1),
+    sendDefaultPii: false,
+    beforeSend,
   };
 }

@@ -189,6 +189,19 @@ const tests: TestCase[] = [
     },
   },
   {
+    name: "authorizeCronRequest rejects secrets in query string",
+    run: () => {
+      process.env.CRON_SECRET = "super-secret";
+
+      const request = new Request("https://example.com/api/cron/send-reminders?secret=super-secret");
+      const result = authorizeCronRequest(request);
+
+      assert.equal(result.ok, false);
+      assert.equal(result.configured, true);
+      assert.equal(result.source, null);
+    },
+  },
+  {
     name: "authorizeCronRequest reports missing configuration",
     run: () => {
       delete process.env.CRON_SECRET;

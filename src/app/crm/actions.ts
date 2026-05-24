@@ -1039,12 +1039,16 @@ export async function triggerRemindersCronAction(): Promise<TriggerRemindersResu
 
   try {
     // valida que o utilizador tem negócio (mesma garantia do guard /crm)
-    await getCurrentBusiness();
+    const business = await getCurrentBusiness();
 
+    // Trigger manual do CRM: SEMPRE scoped ao negócio da sessão. Sem isto, um
+    // utilizador autenticado dispararia lembretes/cancelamentos para TODOS os
+    // negócios (CVE cross-tenant). O cron global (rota /api/cron) continua a
+    // chamar estas funções sem businessId.
     // Sequencial: auto-cancel primeiro (pode libertar slots), depois lembretes.
     // Evita race do mesmo booking ser lembrado enquanto outro fluxo o cancela.
-    const cancelResult = await autoCancelUnconfirmedBookings();
-    const reminderResult = await sendUpcomingBookingReminders();
+    const cancelResult = await autoCancelUnconfirmedBookings(business.id);
+    const reminderResult = await sendUpcomingBookingReminders(business.id);
 
     const totalScanned = cancelResult.scanned + reminderResult.scanned;
 

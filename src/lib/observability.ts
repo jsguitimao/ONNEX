@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { scrubPii } from "./scrub-pii";
 
 type LogLevel = "info" | "warn" | "error";
 
@@ -27,23 +28,25 @@ function writeLog(level: LogLevel, event: string, context: LogContext = {}) {
 }
 
 export function logEvent(event: string, context?: LogContext) {
+  const safeContext = context ? scrubPii(context) : context;
   Sentry.addBreadcrumb({
     category: "app",
     message: event,
     level: "info",
-    data: context,
+    data: safeContext,
   });
-  writeLog("info", event, context);
+  writeLog("info", event, safeContext);
 }
 
 export function logWarning(event: string, context?: LogContext) {
+  const safeContext = context ? scrubPii(context) : context;
   Sentry.addBreadcrumb({
     category: "app",
     message: event,
     level: "warning",
-    data: context,
+    data: safeContext,
   });
-  writeLog("warn", event, context);
+  writeLog("warn", event, safeContext);
 }
 
 export function captureException(event: string, error: unknown, context: LogContext = {}) {
@@ -58,14 +61,17 @@ export function captureException(event: string, error: unknown, context: LogCont
           message: typeof error === "string" ? error : "Unknown error",
         };
 
-  const enrichedContext = {
+  // Scrub uma vez no merge: apanha tanto o `context` do chamador como a
+  // `message`/`stack` do erro (que podem trazer telefone/email do provider).
+  const safeContext = scrubPii(context);
+  const enrichedContext = scrubPii({
     ...context,
     error: normalizedError,
-  };
+  });
 
   Sentry.withScope((scope) => {
     scope.setTag("app.event", event);
-    for (const [key, value] of Object.entries(context)) {
+    for (const [key, value] of Object.entries(safeContext)) {
       scope.setContext(key, {
         value: typeof value === "string" ? value : JSON.stringify(value),
       });

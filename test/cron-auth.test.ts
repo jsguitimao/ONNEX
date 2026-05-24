@@ -34,12 +34,13 @@ describe("authorizeCronRequest", () => {
     expect(result.source).toBe("bearer");
   });
 
-  it("accepts valid secret in query parameter", () => {
+  it("rejects valid secret in query parameter", () => {
     process.env.CRON_SECRET = "my-secret";
     const req = new Request("https://example.com/api/cron/send-reminders?secret=my-secret");
     const result = authorizeCronRequest(req);
-    expect(result.ok).toBe(true);
-    expect(result.source).toBe("query");
+    expect(result.ok).toBe(false);
+    expect(result.configured).toBe(true);
+    expect(result.source).toBeNull();
   });
 
   it("rejects invalid secrets", () => {

@@ -173,39 +173,64 @@ async function reserveNotificationDelivery(input: {
   kind: NotificationKind;
   recipient: string;
 }) {
-  return db.$transaction(async (tx) => {
-    const pendingCutoff = new Date(Date.now() - 10 * 60_000);
-    const existing = await tx.notificationLog.findFirst({
+  const findActiveDelivery = (tx: Prisma.TransactionClient) =>
+    tx.notificationLog.findFirst({
       where: {
         bookingId: input.bookingId,
         channel: input.channel,
         kind: input.kind,
         recipient: input.recipient,
-        OR: [
-          { status: "SENT" },
-          { status: "PENDING", createdAt: { gt: pendingCutoff } },
-        ],
+        status: { in: ["PENDING", "SENT"] },
       },
       orderBy: { createdAt: "desc" },
+      select: { id: true },
     });
 
-    if (existing) {
-      return { duplicate: true as const, logId: existing.id };
-    }
-
-    const log = await tx.notificationLog.create({
-      data: {
+  return db.$transaction(async (tx) => {
+    const pendingCutoff = new Date(Date.now() - 10 * 60_000);
+    await tx.notificationLog.updateMany({
+      where: {
         bookingId: input.bookingId,
-        businessId: input.businessId,
         channel: input.channel,
         kind: input.kind,
         recipient: input.recipient,
         status: "PENDING",
+        createdAt: { lte: pendingCutoff },
       },
-      select: { id: true },
+      data: {
+        status: "FAILED",
+        errorMessage: "PENDING_DELIVERY_EXPIRED",
+      },
     });
 
-    return { duplicate: false as const, logId: log.id };
+    const existing = await findActiveDelivery(tx);
+    if (existing) return { duplicate: true as const, logId: existing.id };
+
+    try {
+      const log = await tx.notificationLog.create({
+        data: {
+          bookingId: input.bookingId,
+          businessId: input.businessId,
+          channel: input.channel,
+          kind: input.kind,
+          recipient: input.recipient,
+          status: "PENDING",
+        },
+        select: { id: true },
+      });
+
+      return { duplicate: false as const, logId: log.id };
+    } catch (error) {
+      const isUniqueViolation =
+        typeof error === "object" &&
+        error !== null &&
+        (error as { code?: string }).code === "P2002";
+      if (!isUniqueViolation) throw error;
+
+      const duplicate = await findActiveDelivery(tx);
+      if (duplicate) return { duplicate: true as const, logId: duplicate.id };
+      throw error;
+    }
   }, {
     isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   });
@@ -546,9 +571,14 @@ type UpcomingBooking = {
 async function fetchUpcomingBookings(opts: {
   unconfirmedOnly?: boolean;
   requireReminderSent?: boolean;
+  // Quando definido, restringe a varredura a um único negócio. O cron global
+  // chama sem este campo (varre todos); o trigger manual do CRM passa sempre o
+  // business.id da sessão para não tocar em reservas de outros negócios.
+  businessId?: string;
 } = {}): Promise<UpcomingBooking[]> {
   return db.booking.findMany({
     where: {
+      ...(opts.businessId ? { businessId: opts.businessId } : {}),
       startsAt: {
         gte: new Date(),
         lte: addMinutes(new Date(), MAX_LOOKAHEAD_MINUTES),
@@ -585,8 +615,8 @@ function summarize(scanned: number, results: ReadonlyArray<{ status: string }>) 
   };
 }
 
-export async function sendUpcomingBookingReminders() {
-  const all = await fetchUpcomingBookings();
+export async function sendUpcomingBookingReminders(businessId?: string) {
+  const all = await fetchUpcomingBookings(businessId ? { businessId } : {});
   const automationMap = await loadAutomationFor(all);
 
   const eligible = all.filter((booking) => {
@@ -608,10 +638,11 @@ export async function sendUpcomingBookingReminders() {
   return summarize(eligible.length, results);
 }
 
-export async function autoCancelUnconfirmedBookings() {
+export async function autoCancelUnconfirmedBookings(businessId?: string) {
   const candidates = await fetchUpcomingBookings({
     unconfirmedOnly: true,
     requireReminderSent: true,
+    ...(businessId ? { businessId } : {}),
   });
   const automationMap = await loadAutomationFor(candidates);
 

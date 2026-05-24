@@ -120,8 +120,8 @@ As notificacoes sao disparadas a partir de `src/lib/notifications.ts`.
 - email usa Resend
 - SMS usa Twilio
 - emails incluem versao HTML e `text/plain`
-- lembretes sao enviados pelo endpoint `GET/POST /api/cron/send-reminders`
-- o cron exige `CRON_SECRET` por header, bearer token ou query string
+- lembretes sao enviados pelo endpoint `POST /api/cron/send-reminders`
+- o cron exige `CRON_SECRET` no header `x-cron-secret` ou `Authorization: Bearer`
 - emails e SMS fazem retry simples em respostas `429` e `5xx` do provider
 
 Sem credenciais de email ou SMS, o sistema nao quebra. Em vez disso, regista `SKIPPED` em `NotificationLog`.
