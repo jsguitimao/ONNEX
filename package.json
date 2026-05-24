@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types test/run.ts",
+    "test": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types test/run.ts && vitest run",
     "test:vi": "vitest run",
     "test:e2e": "playwright test",
     "db:generate": "prisma generate",
