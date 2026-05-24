@@ -10,6 +10,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useBookingSheetOptional } from "@/components/booking-sheet";
+import { canOptimizeImageUrl } from "@/lib/image-optimization";
 import type { PublicPageViewModel } from "@/lib/public-page/types";
 
 const DARK_CARD_SHADOW =
@@ -536,7 +537,7 @@ function GalleryLightbox({
           fill
           sizes="100vw"
           priority
-          unoptimized
+          unoptimized={!canOptimizeImageUrl(currentSrc)}
           className="pointer-events-none object-contain"
           draggable={false}
         />
@@ -601,7 +602,7 @@ function SafeImage({
       priority={priority}
       sizes={sizes}
       className={className}
-      unoptimized
+      unoptimized={!canOptimizeImageUrl(src)}
       onError={() => setFailed(true)}
     />
   );
