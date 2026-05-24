@@ -525,6 +525,7 @@ export async function saveStaffDayAvailabilityAction(
       staffId,
       dayOfWeek,
       sanitizedShifts,
+      business.timezone,
     );
     revalidatePath("/crm");
     return { ok: true, day, bookingsOutsideCount };

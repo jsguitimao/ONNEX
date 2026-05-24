@@ -300,6 +300,14 @@ model NotificationLog {
 
   @@index([businessId, createdAt])
   @@index([bookingId, kind, channel])
+  // INDICE PARCIAL gerido a mao (nao representavel no Prisma, que nao suporta
+  // clausula WHERE): UNIQUE em (bookingId, kind, channel, recipient) apenas para
+  // status IN ('PENDING','SENT') — garante dedupe de entregas em curso/concluidas
+  // sem bloquear retries de FAILED/SKIPPED.
+  // Definido em prisma/migrations/20260523_notification_delivery_dedupe.
+  // NAO apagar este indice em migrations futuras: o `prisma migrate dev` vai
+  // querer gerar um `DROP INDEX "NotificationLog_delivery_dedupe_active_key"`
+  // porque ele nao aparece aqui — remover esse DROP da migration gerada.
 }
 
 model ReminderRunLog {

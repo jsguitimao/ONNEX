@@ -1,4 +1,10 @@
 import { db } from "@/lib/db";
+import {
+  getDayOfWeekForDateKey,
+  getSafeTimeZone,
+  getZonedDateKey,
+  getZonedTimeValue,
+} from "@/lib/timezone";
 
 export type CrmShift = {
   startTime: string;
@@ -124,11 +130,51 @@ export async function setStaffDayAvailability(
   return { dayOfWeek, shifts };
 }
 
+/**
+ * Pure classification of how many bookings fall outside the given shifts.
+ *
+ * Bookings are stored in UTC, while shifts (and `dayOfWeek`) are wall-clock
+ * values in the business timezone. Comparing the two directly is only correct
+ * at UTC+0; once the business observes DST (e.g. Europe/Lisbon in summer) the
+ * UTC hour/day no longer match the local shift, so we convert each booking to
+ * the business timezone before comparing. Day-of-week follows getUTCDay's
+ * Sunday=0 convention, matching how WeeklyAvailability.dayOfWeek is stored.
+ */
+export function countBookingsOutsideShifts(
+  bookings: { startsAt: Date; endsAt: Date }[],
+  dayOfWeek: number,
+  shifts: CrmShift[],
+  timezone: string | null | undefined,
+): number {
+  if (bookings.length === 0) return 0;
+
+  const tz = getSafeTimeZone(timezone);
+  const targetDay = ((dayOfWeek % 7) + 7) % 7;
+  const shiftsByMinutes = shifts.map((shift) => ({
+    start: timeToMinutes(shift.startTime),
+    end: timeToMinutes(shift.endTime),
+  }));
+
+  let outsideCount = 0;
+  for (const booking of bookings) {
+    const localDay = getDayOfWeekForDateKey(getZonedDateKey(booking.startsAt, tz));
+    if (localDay !== targetDay) continue;
+    const startMinutes = timeToMinutes(getZonedTimeValue(booking.startsAt, tz));
+    const endMinutes = timeToMinutes(getZonedTimeValue(booking.endsAt, tz));
+    const fits = shiftsByMinutes.some(
+      (shift) => startMinutes >= shift.start && endMinutes <= shift.end,
+    );
+    if (!fits) outsideCount += 1;
+  }
+  return outsideCount;
+}
+
 export async function countFutureBookingsOutsideShifts(
   businessId: string,
   staffId: string,
   dayOfWeek: number,
   shifts: CrmShift[],
+  timezone: string | null | undefined,
 ): Promise<number> {
   const future = await db.booking.findMany({
     where: {
@@ -140,23 +186,5 @@ export async function countFutureBookingsOutsideShifts(
     select: { startsAt: true, endsAt: true },
   });
 
-  if (future.length === 0) return 0;
-
-  const targetUtcDay = ((dayOfWeek % 7) + 7) % 7;
-  const shiftsByMinutes = shifts.map((shift) => ({
-    start: timeToMinutes(shift.startTime),
-    end: timeToMinutes(shift.endTime),
-  }));
-
-  let outsideCount = 0;
-  for (const booking of future) {
-    if (booking.startsAt.getUTCDay() !== targetUtcDay) continue;
-    const startMinutes = booking.startsAt.getUTCHours() * 60 + booking.startsAt.getUTCMinutes();
-    const endMinutes = booking.endsAt.getUTCHours() * 60 + booking.endsAt.getUTCMinutes();
-    const fits = shiftsByMinutes.some(
-      (shift) => startMinutes >= shift.start && endMinutes <= shift.end,
-    );
-    if (!fits) outsideCount += 1;
-  }
-  return outsideCount;
+  return countBookingsOutsideShifts(future, dayOfWeek, shifts, timezone);
 }
