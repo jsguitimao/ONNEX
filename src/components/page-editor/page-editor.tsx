@@ -176,6 +176,7 @@ export function PageEditor({ initialDraft, readOnly = false, embedded = false }:
           <SectionIdentity
             draft={{
               name: draft.name,
+              slug: draft.slug,
               city: draft.city,
               headline: draft.headline,
               description: draft.description,
