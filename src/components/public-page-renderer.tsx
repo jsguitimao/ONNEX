@@ -3,14 +3,18 @@
 // Renderer unico da pagina publica. Usado por:
 // - /[slug]/page.tsx (modo "live", DB -> ViewModel via fromPublicBusiness)
 // - bio-render.tsx (modo "preview", EditorDraft -> ViewModel via fromEditorDraft)
+// - /mock/page.tsx (demo estatica, mockBusiness -> ViewModel via fromPublicBusiness)
 //
 // Single source of truth visual: o que o editor mostra e o que o cliente final ve.
+// O tratamento visual segue o front bio/barbearia validado (barber-bio), adaptado
+// ao stack do Onnex (palettes dark/light proprias, lightbox proprio, sem deps novas).
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useBookingSheetOptional } from "@/components/booking-sheet";
 import { canOptimizeImageUrl } from "@/lib/image-optimization";
+import { formatEuro } from "@/lib/formatters";
 import type { PublicPageViewModel } from "@/lib/public-page/types";
 
 const DARK_CARD_SHADOW =
@@ -33,13 +37,22 @@ type Palette = {
   cardBg: string;
   cardShadow: string;
   heroBg: string;
+  /** Hex usado no degradê (vinheta) do hero — tem de bater com cardBg. */
+  heroFadeColor: string;
   subtleText: string;
-  serviceCardBg: string;
-  serviceCardText: string;
-  serviceCardSubtle: string;
-  staffCardBg: string;
-  staffPlaceholder: string;
-  galleryPlaceholder: string;
+  /** Hover/press em botões redondos (sociais + tabs). */
+  overlayHover: string;
+  overlayActive: string;
+  /** Cartões fantasma (serviços) — borda + fundo subtil. */
+  ghostBg: string;
+  ghostBorder: string;
+  ghostHover: string;
+  tickBorder: string;
+  /** Cartões com borda (equipa). */
+  teamCardBg: string;
+  teamCardBorder: string;
+  /** Placeholder de media (skeleton). */
+  skeleton: string;
   mapBorder: string;
   mapBg: string;
   mapColorScheme: "dark" | "light";
@@ -57,13 +70,17 @@ const PALETTES: Record<Theme, Palette> = {
     cardBg: "bg-[#09090b]",
     cardShadow: DARK_CARD_SHADOW,
     heroBg: "bg-[#1a1a1d]",
+    heroFadeColor: "#09090b",
     subtleText: "text-[#a1a1aa]",
-    serviceCardBg: "bg-[#fafafa]",
-    serviceCardText: "text-[#0a0a0a]",
-    serviceCardSubtle: "text-[#71717a]",
-    staffCardBg: "bg-[#1a1a1d]",
-    staffPlaceholder: "bg-[#27272a]",
-    galleryPlaceholder: "bg-[#27272a]",
+    overlayHover: "hover:bg-white/[0.06]",
+    overlayActive: "active:bg-white/[0.12]",
+    ghostBg: "bg-white/[0.03]",
+    ghostBorder: "border-white/[0.08]",
+    ghostHover: "hover:border-white/[0.16] hover:bg-white/[0.06]",
+    tickBorder: "border-white/25",
+    teamCardBg: "bg-white/[0.03]",
+    teamCardBorder: "border-white/[0.08]",
+    skeleton: "bg-[#27272a]",
     mapBorder: "border-white/[0.08]",
     mapBg: "bg-[#1a1a1d]",
     mapColorScheme: "dark",
@@ -79,13 +96,17 @@ const PALETTES: Record<Theme, Palette> = {
     cardBg: "bg-white",
     cardShadow: LIGHT_CARD_SHADOW,
     heroBg: "bg-[#e4e4e7]",
+    heroFadeColor: "#ffffff",
     subtleText: "text-[#52525b]",
-    serviceCardBg: "bg-[#0a0a0a]",
-    serviceCardText: "text-[#fafafa]",
-    serviceCardSubtle: "text-[#a1a1aa]",
-    staffCardBg: "bg-[#f4f4f5]",
-    staffPlaceholder: "bg-[#e4e4e7]",
-    galleryPlaceholder: "bg-[#e4e4e7]",
+    overlayHover: "hover:bg-black/[0.05]",
+    overlayActive: "active:bg-black/[0.1]",
+    ghostBg: "bg-black/[0.02]",
+    ghostBorder: "border-black/[0.08]",
+    ghostHover: "hover:border-black/[0.16] hover:bg-black/[0.04]",
+    tickBorder: "border-black/20",
+    teamCardBg: "bg-black/[0.02]",
+    teamCardBorder: "border-black/[0.08]",
+    skeleton: "bg-[#e4e4e7]",
     mapBorder: "border-black/[0.08]",
     mapBg: "bg-[#f4f4f5]",
     mapColorScheme: "light",
@@ -146,7 +167,7 @@ export function PublicPageRenderer({ viewModel, bookingMode = "live" }: Props) {
             <header className="flex flex-col items-center px-4 text-center">
               <h1
                 className="font-bold"
-                style={{ fontSize: "40px", lineHeight: "56px", letterSpacing: "-1.6px" }}
+                style={{ fontSize: "34px", lineHeight: "41px", letterSpacing: "-0.4px" }}
               >
                 {viewModel.name || "—"}
               </h1>
@@ -167,6 +188,7 @@ export function PublicPageRenderer({ viewModel, bookingMode = "live" }: Props) {
 
             {/* 3. Redes sociais */}
             <SocialIcons
+              palette={palette}
               phoneDigits={phoneDigits}
               instagramUrl={viewModel.socials.instagramUrl}
               tiktokUrl={viewModel.socials.tiktokUrl}
@@ -175,16 +197,17 @@ export function PublicPageRenderer({ viewModel, bookingMode = "live" }: Props) {
 
             {/* 4. Tabs (anchors; "Agendar" em modo live abre o booking sheet) */}
             {tabs.length > 0 ? (
-              <nav className="overflow-x-auto px-4">
-                <ul
-                  className={`flex min-w-max items-center justify-center gap-6 pb-1 pt-1 ${palette.subtleText}`}
-                >
+              <nav
+                aria-label="Navegação rápida"
+                className="overflow-x-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                <ul className="flex min-w-max items-center justify-center gap-1">
                   {tabs.map((tab) => (
-                    <li key={tab.label} className="text-sm font-medium">
+                    <li key={tab.label}>
                       <a
                         href={tab.href}
                         onClick={(event) => handleTabClick(event, tab.href)}
-                        className="transition hover:opacity-70"
+                        className={`inline-flex h-11 items-center rounded-full px-4 text-[15px] font-semibold transition ${palette.subtleText} ${palette.overlayHover} ${palette.overlayActive} active:scale-[0.97]`}
                       >
                         {tab.label}
                       </a>
@@ -254,10 +277,8 @@ function HeroBlock({
   alt: string;
   palette: Palette;
 }) {
-  const fadeColor = palette.cardBg.includes("white") ? "#ffffff" : "#09090b";
-
   return (
-    <div className={`relative aspect-square w-full ${palette.heroBg}`}>
+    <div className={`relative aspect-[5/4] w-full ${palette.heroBg}`}>
       {hero.kind === "video" ? (
         <SafeVideo hero={hero} alt={alt} />
       ) : (
@@ -269,11 +290,13 @@ function HeroBlock({
           className="absolute inset-0 h-full w-full object-cover"
         />
       )}
+      {/* Vinheta de altura total: transparente no topo, saturando até cardBg
+          a 95% — sem costura visível entre o hero e o corpo do cartão. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[9%]"
+        className="pointer-events-none absolute inset-0"
         style={{
-          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0) 0%, ${fadeColor} 100%)`,
+          backgroundImage: `linear-gradient(to bottom, transparent 0%, ${palette.heroFadeColor} 95%)`,
         }}
       />
     </div>
@@ -294,24 +317,30 @@ function ServicesSection({
   onSelect?: (serviceId: string) => void;
 }) {
   return (
-    <section id="servicos" className="flex flex-col gap-3 px-4 pt-4">
-      <h2 className="text-base font-semibold">Os nossos serviços</h2>
+    <section id="servicos" className="flex flex-col gap-3 px-4 pt-6">
+      <h2 className="text-xl font-bold tracking-tight">Os nossos serviços</h2>
       <ul className="flex flex-col gap-2">
         {services.map((s) => {
-          const cardBase = `flex h-14 w-full items-center gap-3 rounded-lg px-4 text-left ${palette.serviceCardBg} ${palette.serviceCardText}`;
+          const cardBase = `flex h-16 w-full items-center gap-3 rounded-xl border px-4 text-left transition ${palette.ghostBg} ${palette.ghostBorder}`;
           const inner = (
             <>
+              <span
+                aria-hidden
+                className={`size-5 shrink-0 rounded-full border-[1.5px] ${palette.tickBorder}`}
+              />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{s.name.trim() || "Novo serviço"}</p>
+                <p className="truncate text-[15px] font-semibold leading-tight">
+                  {s.name.trim() || "Novo serviço"}
+                </p>
                 {showDurations ? (
-                  <p className={`text-xs ${palette.serviceCardSubtle}`}>
+                  <p className={`mt-0.5 text-[13px] ${palette.subtleText}`}>
                     {s.durationMinutes} min
                   </p>
                 ) : null}
               </div>
               {showPrices ? (
-                <p className="shrink-0 text-sm font-semibold tabular-nums">
-                  {(s.priceCents / 100).toFixed(2)} €
+                <p className="shrink-0 text-[15px] font-semibold tabular-nums">
+                  {formatEuro(s.priceCents)}
                 </p>
               ) : null}
             </>
@@ -322,7 +351,7 @@ function ServicesSection({
                 <button
                   type="button"
                   onClick={() => onSelect(s.id)}
-                  className={`${cardBase} cursor-pointer transition hover:opacity-90 active:opacity-80`}
+                  className={`${cardBase} cursor-pointer active:scale-[0.99] ${palette.ghostHover}`}
                   aria-label={`Agendar ${s.name}`}
                 >
                   {inner}
@@ -346,13 +375,15 @@ function TeamSection({
   palette: Palette;
 }) {
   return (
-    <section id="equipa" className="flex flex-col gap-3 px-4 pt-4">
-      <h2 className="text-base font-semibold">A nossa equipa</h2>
+    <section id="equipa" className="flex flex-col gap-3 px-4 pt-6">
+      <h2 className="text-xl font-bold tracking-tight">A nossa equipa</h2>
       <ul className="grid grid-cols-2 gap-2">
         {staff.map((m) => (
           <li key={m.id}>
-            <article className={`overflow-hidden rounded-lg ${palette.staffCardBg}`}>
-              <div className={`relative aspect-square w-full ${palette.staffPlaceholder}`}>
+            <article
+              className={`overflow-hidden rounded-xl border ${palette.teamCardBorder} ${palette.teamCardBg}`}
+            >
+              <div className={`relative aspect-square w-full ${palette.skeleton}`}>
                 {m.avatarUrl ? (
                   <SafeImage
                     src={m.avatarUrl}
@@ -362,8 +393,8 @@ function TeamSection({
                   />
                 ) : null}
               </div>
-              <div className="px-3 py-3">
-                <p className="truncate text-sm font-semibold">{m.fullName}</p>
+              <div className="px-3.5 py-3.5">
+                <p className="truncate text-[15px] font-semibold">{m.fullName}</p>
               </div>
             </article>
           </li>
@@ -383,51 +414,40 @@ function GallerySection({
   onOpen?: (index: number) => void;
 }) {
   return (
-    <section className="flex flex-col gap-3 px-4 pt-4">
-      <h2 className="text-base font-semibold">Últimos trabalhos</h2>
-      <div className="-mx-4 overflow-hidden px-4">
-        <ul className="animate-marquee flex w-max gap-2">
-          {[...images, ...images].map((src, idx) => {
-            const realIndex = idx % images.length;
-            const isDuplicate = idx >= images.length;
-            return (
-              <li
-                key={`${idx}-${src}`}
-                className="shrink-0"
-                aria-hidden={isDuplicate || undefined}
+    <section id="trabalhos" className="flex flex-col gap-3 px-4 pt-6">
+      <h2 className="text-xl font-bold tracking-tight">Últimos trabalhos</h2>
+      <ul className="grid grid-cols-3 gap-2">
+        {images.map((src, idx) => (
+          <li key={`${idx}-${src}`}>
+            {onOpen ? (
+              <button
+                type="button"
+                onClick={() => onOpen(idx)}
+                aria-label={`Abrir trabalho ${idx + 1} em tamanho grande`}
+                className={`group relative block aspect-square w-full overflow-hidden rounded-lg ${palette.skeleton} cursor-zoom-in active:scale-[0.98]`}
               >
-                {onOpen ? (
-                  <button
-                    type="button"
-                    onClick={() => onOpen(realIndex)}
-                    aria-label={`Abrir trabalho ${realIndex + 1} em tamanho grande`}
-                    tabIndex={isDuplicate ? -1 : undefined}
-                    className={`group relative size-44 overflow-hidden rounded-lg ${palette.galleryPlaceholder} cursor-zoom-in`}
-                  >
-                    <SafeImage
-                      src={src}
-                      alt={isDuplicate ? "" : `Trabalho ${realIndex + 1}`}
-                      sizes="176px"
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                  </button>
-                ) : (
-                  <div
-                    className={`relative size-44 overflow-hidden rounded-lg ${palette.galleryPlaceholder}`}
-                  >
-                    <SafeImage
-                      src={src}
-                      alt={isDuplicate ? "" : `Trabalho ${realIndex + 1}`}
-                      sizes="176px"
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                <SafeImage
+                  src={src}
+                  alt={`Trabalho ${idx + 1}`}
+                  sizes="(max-width: 480px) 33vw, 152px"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              </button>
+            ) : (
+              <div
+                className={`relative block aspect-square w-full overflow-hidden rounded-lg ${palette.skeleton}`}
+              >
+                <SafeImage
+                  src={src}
+                  alt={`Trabalho ${idx + 1}`}
+                  sizes="(max-width: 480px) 33vw, 152px"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -655,12 +675,12 @@ function LocationSection({
   const buttonClass = `inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border ${palette.buttonBorder} ${palette.buttonBg} text-sm font-medium transition ${palette.buttonHoverBorder} ${palette.buttonHoverBg}`;
 
   return (
-    <section id="onde-estamos" className="flex flex-col gap-3 px-4 pt-4">
-      <h2 className="text-base font-semibold">Onde estamos</h2>
+    <section id="onde-estamos" className="flex flex-col gap-3 px-4 pt-6">
+      <h2 className="text-xl font-bold tracking-tight">Onde estamos</h2>
 
       <p className={`text-xs leading-relaxed ${palette.subtleText}`}>{address}</p>
 
-      <div className={`overflow-hidden rounded-lg border ${palette.mapBorder} ${palette.mapBg}`}>
+      <div className={`overflow-hidden rounded-xl border ${palette.mapBorder} ${palette.mapBg}`}>
         <iframe
           title={`Mapa de ${address}`}
           src={`https://www.google.com/maps?q=${encoded}&output=embed`}
@@ -736,11 +756,13 @@ function GoogleMapsIcon() {
 }
 
 function SocialIcons({
+  palette,
   phoneDigits,
   instagramUrl,
   tiktokUrl,
   facebookUrl,
 }: {
+  palette: Palette;
   phoneDigits: string;
   instagramUrl: string | null;
   tiktokUrl: string | null;
@@ -798,7 +820,7 @@ function SocialIcons({
   if (items.length === 0) return null;
 
   return (
-    <div className="flex items-center justify-center gap-6 px-4">
+    <div className="flex items-center justify-center gap-1 px-4">
       {items.map((item) => (
         <a
           key={item.label}
@@ -806,7 +828,7 @@ function SocialIcons({
           target="_blank"
           rel="noreferrer"
           aria-label={item.label}
-          className="transition hover:opacity-70"
+          className={`flex size-11 items-center justify-center rounded-full transition active:scale-[0.97] ${palette.overlayHover} ${palette.overlayActive}`}
         >
           {item.icon}
         </a>
