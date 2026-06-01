@@ -11,7 +11,7 @@ ONNEX.PT e uma plataforma de agendamentos para barbearias, com area privada para
 - gestao publica por token com confirmacao, cancelamento e remarcacao
 - agenda operacional com reservas manuais, bloqueios e mudanca de estado
 - CRM basico de clientes
-- notificacoes por email e SMS
+- notificacoes por WhatsApp
 - sitemap e robots para SEO tecnico
 - rate limiting basico nas rotas publicas
 
@@ -65,8 +65,13 @@ npm run dev
 - `npm run build` gera o build de producao
 - `npm run lint` executa o ESLint
 - `npm run test` executa a suite base com `node:test`
+- `npm run test:e2e` executa os smoke tests Playwright
+- `npm run test:staging` executa smoke tests contra staging/producao-like
+- `npm run test:load` executa um load smoke HTTP read-only configuravel
+- `npm run env:check` valida o contrato minimo de variaveis de ambiente
 - `npm run db:generate` gera o cliente Prisma
 - `npm run db:push` sincroniza o schema com a base de dados
+- `npm run db:migrate:deploy` aplica migrations em producao/staging
 
 ## Variaveis de ambiente
 
@@ -79,26 +84,15 @@ O ficheiro [.env.example](./.env.example) contem todos os valores esperados pelo
 - `CLERK_SECRET_KEY`
 - `NEXT_PUBLIC_APP_URL`
 
-### Email
-
-- `RESEND_API_KEY`
-- `EMAIL_FROM`
-
-### SMS
+### WhatsApp
 
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
-- `TWILIO_PHONE_NUMBER`
+- `TWILIO_WHATSAPP_FROM`
 
 ### Cron
 
 - `CRON_SECRET`
-
-### Billing
-
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 
 ### Observabilidade opcional
 
@@ -117,14 +111,12 @@ O ficheiro [.env.example](./.env.example) contem todos os valores esperados pelo
 
 As notificacoes sao disparadas a partir de `src/lib/notifications.ts`.
 
-- email usa Resend
-- SMS usa Twilio
-- emails incluem versao HTML e `text/plain`
+- WhatsApp usa Twilio
 - lembretes sao enviados pelo endpoint `POST /api/cron/send-reminders`
 - o cron exige `CRON_SECRET` no header `x-cron-secret` ou `Authorization: Bearer`
-- emails e SMS fazem retry simples em respostas `429` e `5xx` do provider
+- chamadas ao provider fazem retry simples em respostas `429` e `5xx`, com timeout
 
-Sem credenciais de email ou SMS, o sistema nao quebra. Em vez disso, regista `SKIPPED` em `NotificationLog`.
+Sem credenciais de WhatsApp, o sistema nao quebra. Em vez disso, regista `SKIPPED` em `NotificationLog`.
 
 ### Scheduler de producao
 
@@ -136,7 +128,7 @@ Para ativar os lembretes automaticos em producao:
 2. Cria o secret `REMINDER_CRON_SECRET` no repositorio GitHub com exatamente o mesmo valor.
 3. Opcionalmente, cria a variable `REMINDER_CRON_URL` no GitHub se quiseres usar um dominio/URL diferente de `https://www.onnex.pt/api/cron/send-reminders`.
 
-O workflow chama o endpoint de 10 em 10 minutos com a janela `start=25` e `end=35`, o que fecha o lembrete "30 minutos antes" de forma robusta.
+O workflow chama o endpoint de 10 em 10 minutos. O backend calcula a janela operacional de lembretes com base na configuracao de automacao de cada negocio.
 
 ## Seguranca publica
 
@@ -148,7 +140,7 @@ As rotas publicas mais sensiveis tem rate limiting basico em memoria:
 - `GET/PATCH /api/public/booking/[token]`
 - `GET /api/public/booking/[token]/availability`
 
-Este limite ajuda ja hoje, mas nao substitui uma camada distribuida. Para producao com mais carga, o proximo passo natural e mover isto para Redis/Upstash.
+Em producao, o rate limit deve usar Redis/Upstash. O contrato de env falha em modo estrito se estas variaveis estiverem ausentes.
 
 ## SEO tecnico
 
@@ -174,6 +166,15 @@ Sem DSN configurado, a app continua funcional e mantem apenas logs locais.
 
 O projeto esta preparado para Vercel, mas o diretorio `.vercel/` continua ignorado de proposito. Isso e normal: a ligacao local a um projeto Vercel nao deve ser versionada.
 
+Checklist operacional completo: [docs/PRODUCTION_READINESS.md](./docs/PRODUCTION_READINESS.md).
+
+Exemplo de validacao de staging:
+
+```bash
+STAGING_BASE_URL=https://staging.example.com STAGING_PUBLIC_SLUG=demo npm run test:staging
+LOAD_TEST_BASE_URL=https://staging.example.com LOAD_TEST_PUBLIC_SLUG=demo npm run test:load
+```
+
 Se precisares ligar o repositorio local a outro projeto Vercel, usa:
 
 ```bash
@@ -182,27 +183,19 @@ vercel link
 
 ## Testes
 
-Esta base ja inclui testes unitarios simples com o runner nativo do Node. O objetivo desta primeira camada e validar regras puras sem adicionar friccao de tooling.
-
-Proximos passos recomendados para testes:
-
-- expandir unit tests para politicas de booking
-- adicionar smoke tests para APIs publicas
-- introduzir e2e reais para onboarding, reserva e dashboard
+Esta base inclui testes custom, Vitest e smoke tests Playwright para rotas publicas, auth, cron, upload, dashboard, multi-tenant e regras de booking.
 
 ## Estrutura principal
 
 - `src/app` rotas App Router
 - `src/components` interface do produto
-- `src/lib/business.ts` dominio principal
-- `src/lib/notifications.ts` entregas email/SMS
-- `src/lib/rate-limit.ts` protecao basica das rotas publicas
+- `src/lib/business-modules/*` dominio principal
+- `src/lib/notifications.ts` entregas WhatsApp/lembretes
+- `src/lib/rate-limit.ts` protecao das rotas publicas e mutacoes sensiveis
 - `src/lib/cron-auth.ts` validacao do cron
 - `prisma/schema.prisma` modelo de dados
 
 ## Proximas melhorias de arquitetura
 
-- partir `business.ts` em modulos menores
 - instrumentar spans de dominio e queries mais criticas
 - implementar pagamentos e planos
-- mover rate limiting para armazenamento distribuido

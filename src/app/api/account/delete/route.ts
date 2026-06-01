@@ -2,9 +2,10 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { deleteAccount } from "@/lib/account-data";
+import { captureException } from "@/lib/observability";
 import { buildRateLimitHeaders, consumeRateLimit } from "@/lib/rate-limit";
 import { readJsonBody } from "@/lib/request-body";
-import { validatePublicMutationOrigin } from "@/lib/request-origin";
+import { validateAuthenticatedMutationOrigin } from "@/lib/request-origin";
 
 const DELETE_CONFIRMATION = "APAGAR CONTA";
 
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
   }
 
-  const origin = validatePublicMutationOrigin(req);
+  const origin = validateAuthenticatedMutationOrigin(req);
   if (!origin.ok) {
     return NextResponse.json(
       { error: "Origem nao autorizada.", code: origin.reason },
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Utilizador nao encontrado." }, { status: 404 });
     }
 
-    console.error("[account.delete] route_failed", error);
+    captureException("account.delete.route_failed", error, { userId });
     return NextResponse.json({ error: "Nao foi possivel apagar a conta." }, { status: 500 });
   }
 }

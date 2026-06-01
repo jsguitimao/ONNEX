@@ -257,7 +257,10 @@ async function createSkippedNotification(
 async function safeReadJson(response: Response) {
   try {
     return (await response.json()) as Record<string, unknown>;
-  } catch {
+  } catch (error) {
+    captureException("notification.provider_json_parse_failed", error, {
+      status: response.status,
+    });
     return {};
   }
 }
@@ -270,21 +273,48 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const PROVIDER_REQUEST_TIMEOUT_MS = 10_000;
+const REMINDER_SEND_CONCURRENCY = 5;
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function fetchWithProviderRetry(
   input: RequestInfo | URL,
   init: RequestInit,
-  options: { attempts?: number; baseDelayMs?: number } = {},
+  options: { attempts?: number; baseDelayMs?: number; timeoutMs?: number } = {},
 ) {
   const attempts = options.attempts ?? 3;
   const baseDelayMs = options.baseDelayMs ?? 600;
+  const timeoutMs = options.timeoutMs ?? PROVIDER_REQUEST_TIMEOUT_MS;
   let lastResponse: Response | null = null;
+  let lastError: unknown;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const response = await fetch(input, init);
-    lastResponse = response;
+    try {
+      const response = await fetchWithTimeout(input, init, timeoutMs);
+      lastResponse = response;
 
-    if (!shouldRetryProviderResponse(response.status) || attempt === attempts - 1) {
-      return response;
+      if (!shouldRetryProviderResponse(response.status) || attempt === attempts - 1) {
+        return response;
+      }
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts - 1) {
+        throw error;
+      }
     }
 
     await wait(baseDelayMs * (attempt + 1));
@@ -294,7 +324,27 @@ async function fetchWithProviderRetry(
     return lastResponse;
   }
 
-  throw new Error("PROVIDER_REQUEST_FAILED");
+  throw lastError instanceof Error ? lastError : new Error("PROVIDER_REQUEST_FAILED");
+}
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+) {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await worker(items[index] as T, index);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
 }
 
 function normalizeWhatsappAddress(value: string) {
@@ -625,14 +675,15 @@ export async function sendUpcomingBookingReminders(businessId?: string) {
     return isWithinTarget(booking.startsAt, config.reminderMinutesBefore, 5);
   });
 
-  const results = await Promise.all(
-    eligible.map((booking) =>
+  const results = await mapWithConcurrency(
+    eligible,
+    REMINDER_SEND_CONCURRENCY,
+    (booking) =>
       sendBookingNotification(
         booking.id,
         "BOOKING_REMINDER",
         getConfig(automationMap, booking.businessId),
       ),
-    ),
   );
 
   return summarize(eligible.length, results);
@@ -656,61 +707,98 @@ export async function autoCancelUnconfirmedBookings(businessId?: string) {
     return isWithinTarget(booking.startsAt, target, 2);
   });
 
-  let cancelled = 0;
-  let advancementsSent = 0;
-
-  for (const booking of toCancel) {
+  const results = await mapWithConcurrency(toCancel, REMINDER_SEND_CONCURRENCY, async (booking) => {
     // Update condicional: se o cliente confirmou (ou alguem cancelou) entre o
     // findMany e este update, count=0 e saltamos. Evita cancelar marcacoes
     // que ja foram confirmadas durante o tempo de iteracao do cron.
-    const updated = await db.booking.updateMany({
-      where: {
-        id: booking.id,
-        status: { in: ["PENDING", "CONFIRMED"] },
-        customerConfirmedAt: null,
-      },
-      data: { status: "CANCELLED" },
-    });
-    if (updated.count === 0) continue;
+    try {
+      const updated = await db.booking.updateMany({
+        where: {
+          id: booking.id,
+          status: { in: ["PENDING", "CONFIRMED"] },
+          customerConfirmedAt: null,
+        },
+        data: { status: "CANCELLED" },
+      });
+      if (updated.count === 0) return { cancelled: 0, advancementsSent: 0 };
 
-    // 1. Avisa o cliente cancelado.
-    await sendBookingNotification(booking.id, "BOOKING_CANCELLED");
-    cancelled++;
+      try {
+        // 1. Avisa o cliente cancelado.
+        await sendBookingNotification(booking.id, "BOOKING_CANCELLED");
+      } catch (error) {
+        captureException("notification.auto_cancel.customer_failed", error, {
+          bookingId: booking.id,
+        });
+      }
 
     // 2. Procura próximo cliente da agenda do mesmo barbeiro e convida a adiantar.
-    let nextCustomerName: string | undefined;
-    if (booking.staffMemberId) {
-      const nextBooking = await db.booking.findFirst({
-        where: {
-          staffMemberId: booking.staffMemberId,
-          businessId: booking.businessId,
-          startsAt: { gt: booking.startsAt },
-          status: { in: ["PENDING", "CONFIRMED"] },
-          id: { not: booking.id },
-        },
-        orderBy: { startsAt: "asc" },
-        select: { id: true, customerName: true },
-      });
+      let nextCustomerName: string | undefined;
+      let advancementsSent = 0;
+      try {
+        if (booking.staffMemberId) {
+          const nextBooking = await db.booking.findFirst({
+            where: {
+              staffMemberId: booking.staffMemberId,
+              businessId: booking.businessId,
+              startsAt: { gt: booking.startsAt },
+              status: { in: ["PENDING", "CONFIRMED"] },
+              id: { not: booking.id },
+            },
+            orderBy: { startsAt: "asc" },
+            select: { id: true, customerName: true },
+          });
 
-      if (nextBooking) {
-        await sendBookingNotification(
-          nextBooking.id,
-          "BOOKING_ADVANCEMENT",
-          undefined,
-          { freedSlotAt: booking.startsAt },
-        );
-        nextCustomerName = nextBooking.customerName;
-        advancementsSent++;
+        if (nextBooking) {
+          try {
+            const advancementResult = await sendBookingNotification(
+              nextBooking.id,
+              "BOOKING_ADVANCEMENT",
+              undefined,
+              { freedSlotAt: booking.startsAt },
+            );
+            if (advancementResult.status === "sent" || advancementResult.status === "duplicate") {
+              nextCustomerName = nextBooking.customerName;
+              advancementsSent = 1;
+            }
+          } catch (error) {
+            captureException("notification.auto_cancel.advancement_failed", error, {
+              bookingId: booking.id,
+              nextBookingId: nextBooking.id,
+            });
+          }
+        }
+        }
+      } catch (error) {
+        captureException("notification.auto_cancel.next_booking_lookup_failed", error, {
+          bookingId: booking.id,
+        });
       }
-    }
 
     // 3. Avisa o dono — uma única mensagem que combina cancelamento + convite ao próximo.
-    await sendRepresentativeBookingNotification(
-      booking.id,
-      "BOOKING_CANCELLED_INTERNAL",
-      nextCustomerName ? { nextCustomerName } : undefined,
-    );
-  }
+      try {
+        await sendRepresentativeBookingNotification(
+          booking.id,
+          "BOOKING_CANCELLED_INTERNAL",
+          nextCustomerName ? { nextCustomerName } : undefined,
+        );
+      } catch (error) {
+        captureException("notification.auto_cancel.internal_failed", error, {
+          bookingId: booking.id,
+          hasNextCustomer: Boolean(nextCustomerName),
+        });
+      }
+
+      return { cancelled: 1, advancementsSent };
+    } catch (error) {
+      captureException("notification.auto_cancel.booking_failed", error, {
+        bookingId: booking.id,
+      });
+      return { cancelled: 0, advancementsSent: 0 };
+    }
+  });
+
+  const cancelled = results.reduce((sum, result) => sum + result.cancelled, 0);
+  const advancementsSent = results.reduce((sum, result) => sum + result.advancementsSent, 0);
 
   return { scanned: toCancel.length, cancelled, advancementsSent };
 }

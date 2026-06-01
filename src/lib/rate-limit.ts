@@ -139,16 +139,41 @@ async function consumeInRedis(
   options: RateLimitOptions,
   now: number
 ): Promise<RateLimitResult> {
-  const count = await redis.incr(key);
-
-  if (count === 1) {
-    await redis.pexpire(key, options.windowMs);
-  }
-
-  const ttlMs = await redis.pttl(key);
+  const [count, ttlMs] = await redis.eval<[string], [number, number]>(
+    "local c = redis.call('INCR', KEYS[1]); if c == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end; local ttl = redis.call('PTTL', KEYS[1]); return {c, ttl}",
+    [key],
+    [String(options.windowMs)],
+  );
   const resetAt = ttlMs > 0 ? now + ttlMs : now + options.windowMs;
 
   return buildResult(key, identifier, options, count, resetAt, now);
+}
+
+function consumeFailClosed(
+  key: string,
+  identifier: string,
+  options: RateLimitOptions,
+  now: number
+): RateLimitResult {
+  return buildResult(key, identifier, options, options.limit + 1, now + options.windowMs, now);
+}
+
+function logRateLimitStoreFailure(error: unknown, namespace: string) {
+  const normalizedError =
+    error instanceof Error
+      ? { name: error.name, message: error.message }
+      : { message: typeof error === "string" ? error : "Unknown error" };
+
+  console.error(
+    JSON.stringify({
+      scope: "onnex",
+      event: "rate_limit.redis_failed",
+      level: "error",
+      timestamp: new Date().toISOString(),
+      namespace,
+      error: normalizedError,
+    }),
+  );
 }
 
 export async function consumeRateLimit(options: RateLimitOptions): Promise<RateLimitResult> {
@@ -161,7 +186,11 @@ export async function consumeRateLimit(options: RateLimitOptions): Promise<RateL
   if (redis) {
     try {
       return await consumeInRedis(redis, key, identifier, options, now);
-    } catch {
+    } catch (error) {
+      logRateLimitStoreFailure(error, options.namespace);
+      if (process.env.NODE_ENV === "production") {
+        return consumeFailClosed(key, identifier, options, now);
+      }
       return consumeInMemory(key, identifier, options, now);
     }
   }

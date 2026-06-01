@@ -13,7 +13,10 @@ import {
   getClientIp,
   resetRateLimitStoreForTests,
 } from "../src/lib/rate-limit.ts";
-import { validatePublicMutationOrigin } from "../src/lib/request-origin.ts";
+import {
+  validateAuthenticatedMutationOrigin,
+  validatePublicMutationOrigin,
+} from "../src/lib/request-origin.ts";
 import {
   getDayOfWeekForDateKey,
   getZonedDateKey,
@@ -251,6 +254,40 @@ const tests: TestCase[] = [
 
       assert.equal(result.ok, false);
       assert.equal(result.reason, "ORIGIN_NOT_ALLOWED");
+    },
+  },
+  {
+    name: "validateAuthenticatedMutationOrigin rejects requests without origin signal",
+    run: () => {
+      process.env.NEXT_PUBLIC_APP_URL = "https://www.onnex.pt";
+
+      const request = new Request("https://www.onnex.pt/api/dashboard", {
+        method: "PUT",
+      });
+
+      const result = validateAuthenticatedMutationOrigin(request);
+
+      assert.equal(result.ok, false);
+      assert.equal(result.reason, "MISSING_ORIGIN_SIGNAL");
+    },
+  },
+  {
+    name: "validateAuthenticatedMutationOrigin accepts same-origin authenticated mutations",
+    run: () => {
+      process.env.NEXT_PUBLIC_APP_URL = "https://www.onnex.pt";
+
+      const request = new Request("https://www.onnex.pt/api/dashboard", {
+        method: "PUT",
+        headers: {
+          origin: "https://www.onnex.pt",
+          "sec-fetch-site": "same-origin",
+        },
+      });
+
+      const result = validateAuthenticatedMutationOrigin(request);
+
+      assert.equal(result.ok, true);
+      assert.equal(result.reason, null);
     },
   },
   {

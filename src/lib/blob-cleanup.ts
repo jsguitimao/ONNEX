@@ -1,4 +1,5 @@
 import { del } from "@vercel/blob";
+import { captureException } from "@/lib/observability";
 
 // Assets carregados pela app vivem no Vercel Blob, cujo host publico e
 // `<storeId>.public.blob.vercel-storage.com`. So apagamos URLs deste dominio:
@@ -118,9 +119,8 @@ export async function deleteManagedBlobs(
       result.deleted += batch.length;
     } catch (error) {
       result.failed += batch.length;
-      console.error("[account.delete] blob_cleanup_failed", {
+      captureException("account.delete.blob_cleanup_failed", error, {
         batchSize: batch.length,
-        message: error instanceof Error ? error.message : String(error),
       });
     }
   }

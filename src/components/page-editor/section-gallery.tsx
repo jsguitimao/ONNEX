@@ -9,6 +9,7 @@ import { uploadMedia } from "@/lib/client-upload";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_IMAGES = 12;
+const MAX_CONCURRENT_UPLOADS = 3;
 
 type Props = {
   images: string[];
@@ -65,7 +66,7 @@ export function SectionGallery({ images, onChange, readOnly = false }: Props) {
 
     try {
       setBusy(true);
-      const urls = await Promise.all(candidates.map((file) => uploadMedia(file)));
+      const urls = await uploadFilesWithConcurrency(candidates);
       setFailedImages((prev) => {
         const next = { ...prev };
         for (const url of urls) delete next[url];
@@ -161,4 +162,21 @@ export function SectionGallery({ images, onChange, readOnly = false }: Props) {
       </p>
     </SectionShell>
   );
+}
+
+async function uploadFilesWithConcurrency(files: File[]): Promise<string[]> {
+  const urls = new Array<string>(files.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < files.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      urls[currentIndex] = await uploadMedia(files[currentIndex]);
+    }
+  }
+
+  const workerCount = Math.min(MAX_CONCURRENT_UPLOADS, files.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return urls;
 }

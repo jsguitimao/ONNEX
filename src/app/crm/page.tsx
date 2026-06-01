@@ -15,7 +15,7 @@ import {
   toCrmBookingRowDto,
   toCrmPendingBookingDto,
 } from "@/lib/crm/bookings";
-import { listStaffWeeklyAvailability, type CrmDayAvailability } from "@/lib/crm/availability";
+import { listWeeklyAvailabilityForStaffIds } from "@/lib/crm/availability";
 import {
   listScheduleBlocks,
   toCrmScheduleBlockRowDto,
@@ -77,11 +77,9 @@ export default async function CrmPage() {
     loadEditorDraft(),
   ]);
 
-  const availabilityByStaff: Record<string, CrmDayAvailability[]> = {};
-  await Promise.all(
-    staff.map(async (member) => {
-      availabilityByStaff[member.id] = await listStaffWeeklyAvailability(business.id, member.id);
-    }),
+  const availabilityByStaff = await listWeeklyAvailabilityForStaffIds(
+    business.id,
+    staff.map((member) => member.id),
   );
 
   const services = business.services.map((service) => ({

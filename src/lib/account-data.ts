@@ -1,6 +1,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { collectBusinessAssetUrls, deleteManagedBlobs } from "@/lib/blob-cleanup";
+import { captureException, logWarning } from "@/lib/observability";
 
 async function getCurrentAppUser() {
   const { userId } = await auth();
@@ -92,7 +93,7 @@ export async function deleteAccount() {
   if (blobUrls.length > 0) {
     const cleanup = await deleteManagedBlobs(blobUrls);
     if (cleanup.failed > 0) {
-      console.error("[account.delete] blob_cleanup_incomplete", {
+      logWarning("account.delete.blob_cleanup_incomplete", {
         requested: cleanup.requested,
         deleted: cleanup.deleted,
         failed: cleanup.failed,
@@ -106,6 +107,6 @@ export async function deleteAccount() {
     const client = await clerkClient();
     await client.users.deleteUser(clerkUserId);
   } catch (error) {
-    console.error("[account.delete] clerk_delete_failed", error);
+    captureException("account.delete.clerk_delete_failed", error, { userId: user.id });
   }
 }

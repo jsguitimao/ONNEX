@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Image from "next/image";
 import { Drawer } from "@base-ui/react/drawer";
-import { ArrowRight, Check, ChevronRight, Loader2, X } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { BioSelectionTick } from "@/components/bio-selection-tick";
 import type { BookingSlot, PublicBusinessPayload } from "@/lib/business";
 import { generateMockSlots } from "@/lib/mock-business";
@@ -23,6 +23,12 @@ const STEP_LABELS: Record<StepId, string> = {
 };
 
 const STEP_ORDER: StepId[] = ["service", "barber", "date", "time", "contact"];
+const SELECTED_CARD_SHADOW =
+  "shadow-[0_0_0_2px_var(--card),0_0_0_4px_var(--bio-accent)]";
+
+function stepNumber(step: StepId) {
+  return STEP_ORDER.indexOf(step) + 1;
+}
 
 type BookingSheetDialogProps = {
   business: PublicBusinessPayload;
@@ -163,11 +169,14 @@ export function BookingSheetDialog({
   });
   useEffect(() => {
     const node = stepRefs.current[activeStep];
-    if (node) {
-      requestAnimationFrame(() => {
-        node.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
+    if (!node) return;
+    const container = node.closest<HTMLElement>("[data-scroll-root]");
+    if (!container) return;
+
+    requestAnimationFrame(() => {
+      const target = node.offsetTop - container.offsetTop - 16;
+      container.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    });
   }, [activeStep]);
 
   // ---------- step transitions ----------
@@ -290,12 +299,16 @@ export function BookingSheetDialog({
     <Drawer.Root open={isOpen} onOpenChange={onOpenChange}>
       <Drawer.Portal>
         <Drawer.Backdrop className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
-        <Drawer.Popup className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92vh] w-full max-w-[var(--bio-card-width)] flex-col overflow-hidden rounded-t-2xl bg-[#09090b] text-[#fafafa] shadow-[0_-12px_40px_rgba(0,0,0,0.6)] transition-transform duration-300 data-[ending-style]:translate-y-full data-[starting-style]:translate-y-full">
+        <Drawer.Popup
+          data-theme={business.theme}
+          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85vh] w-full max-w-[var(--bio-card-width)] flex-col overflow-hidden rounded-t-[20px] bg-card text-foreground shadow-[0_-12px_40px_rgba(0,0,0,0.6)] transition-transform duration-300 data-[ending-style]:translate-y-full data-[starting-style]:translate-y-full"
+          style={bookingThemeVars(business.theme)}
+        >
           <DrawerHandle />
 
           <header className="flex items-center justify-between gap-3 px-5 pb-3 pt-1">
             <Drawer.Title
-              className="font-semibold text-[#fafafa]"
+              className="font-bold text-foreground"
               style={{
                 fontSize: "var(--text-bio-section)",
                 lineHeight: "var(--text-bio-section-line)",
@@ -306,13 +319,16 @@ export function BookingSheetDialog({
             </Drawer.Title>
             <Drawer.Close
               aria-label="Fechar"
-              className="flex size-9 items-center justify-center rounded-full bg-white/[0.08] text-[#fafafa] transition active:bg-white/[0.14]"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground/[0.08] text-foreground transition hover:bg-foreground/[0.12] active:bg-foreground/[0.16]"
             >
               <X className="size-4" strokeWidth={2.5} />
             </Drawer.Close>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-5 pb-[max(env(safe-area-inset-bottom),24px)]">
+          <div
+            data-scroll-root
+            className="flex-1 overflow-y-auto px-5 pb-[max(env(safe-area-inset-bottom),24px)]"
+          >
             {success ? (
               <SuccessView
                 success={success}
@@ -426,8 +442,8 @@ export function BookingSheetDialog({
                     type="submit"
                     disabled={!canSubmit}
                     className={cn(
-                      "mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#fafafa] text-sm font-semibold text-[#0a0a0a] transition",
-                      "hover:bg-white disabled:cursor-not-allowed disabled:bg-white/[0.18] disabled:text-white/40",
+                      "mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[15px] font-semibold leading-5 tracking-[-0.2px] text-primary-foreground transition",
+                      "hover:bg-primary/90 active:bg-primary/80 disabled:cursor-not-allowed disabled:bg-foreground/[0.12] disabled:text-muted-foreground",
                     )}
                   >
                     {submitting ? (
@@ -465,35 +481,37 @@ function StepRow({ stepRef, step, state, doneSummary, onEdit, children }: StepRo
     <div
       ref={stepRef}
       className={cn(
-        "rounded-lg border transition",
-        state === "active" && "border-white/[0.12] bg-white/[0.02] p-4",
-        state === "done" && "border-white/[0.06] bg-transparent",
-        state === "locked" && "border-transparent bg-transparent",
+        "rounded-xl border px-4 transition-colors duration-200",
+        state === "active" && "border-border bg-foreground/[0.04] py-4",
+        state === "done" && "border-transparent bg-transparent",
+        state === "locked" && "border-transparent bg-transparent py-3",
       )}
     >
       {state === "done" ? (
         <button
           type="button"
           onClick={onEdit}
-          className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-white/[0.02] rounded-lg"
+          className="-mx-2 flex w-full items-center gap-3 rounded-xl px-2 py-3 text-left transition hover:bg-foreground/[0.04] active:bg-foreground/[0.08]"
         >
-          <StepIcon state="done" />
+          <StepIcon step={stepNumber(step)} state="done" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-[0.06em] text-[#71717a]">
+            <p className="text-[12px] font-medium uppercase leading-[14px] tracking-[0.06em] text-muted-foreground">
               {label}
             </p>
-            <p className="truncate text-sm font-semibold text-[#fafafa]">{doneSummary}</p>
+            <p className="mt-0.5 truncate text-[15px] font-semibold leading-5 tracking-[-0.2px] text-foreground">
+              {doneSummary}
+            </p>
           </div>
-          <ChevronRight className="size-4 text-[#52525b]" />
+          <ChevronRight className="size-4 text-muted-foreground" />
         </button>
       ) : (
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
-            <StepIcon state={state} />
+            <StepIcon step={stepNumber(step)} state={state} />
             <h3
               className={cn(
                 "font-semibold",
-                state === "active" ? "text-[#fafafa]" : "text-[#52525b]",
+                state === "active" ? "text-foreground" : "text-muted-foreground",
               )}
               style={{
                 fontSize: "var(--text-bio-tab)",
@@ -510,11 +528,17 @@ function StepRow({ stepRef, step, state, doneSummary, onEdit, children }: StepRo
   );
 }
 
-function StepIcon({ state }: { state: "locked" | "active" | "done" }) {
+function StepIcon({
+  step,
+  state,
+}: {
+  step: number;
+  state: "locked" | "active" | "done";
+}) {
   if (state === "done") {
     return (
       <span
-        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#fafafa] text-[#0a0a0a]"
+        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
         aria-hidden
       >
         <Check className="size-3.5" strokeWidth={3} />
@@ -524,18 +548,20 @@ function StepIcon({ state }: { state: "locked" | "active" | "done" }) {
   if (state === "active") {
     return (
       <span
-        className="flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-[#fafafa] bg-transparent"
+        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold tabular-nums text-primary-foreground"
         aria-hidden
       >
-        <span className="size-2 rounded-full bg-[#fafafa]" />
+        {step}
       </span>
     );
   }
   return (
     <span
-      className="flex size-6 shrink-0 rounded-full border-2 border-[#3f3f46] bg-transparent"
+      className="flex size-6 shrink-0 items-center justify-center rounded-full border-[1.5px] border-border bg-transparent text-xs font-semibold tabular-nums text-muted-foreground"
       aria-hidden
-    />
+    >
+      {step}
+    </span>
   );
 }
 
@@ -561,17 +587,22 @@ function ServiceStep({
               onClick={() => onPick(service.id)}
               aria-pressed={active}
               className={cn(
-                "flex h-14 w-full items-center gap-3 rounded-lg bg-[#fafafa] px-4 text-left text-[#0a0a0a] transition hover:bg-white",
-                active &&
-                  "shadow-[0_0_0_2px_var(--bio-accent-ring),0_0_0_3px_var(--bio-accent)]",
+                "flex h-16 w-full items-center gap-3 rounded-xl border px-4 text-left text-foreground transition active:scale-[0.99]",
+                active
+                  ? `border-[var(--bio-accent)] bg-foreground/[0.08] ${SELECTED_CARD_SHADOW}`
+                  : "border-border bg-foreground/[0.04] hover:border-foreground/25 hover:bg-foreground/[0.08]",
               )}
             >
               <BioSelectionTick active={active} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold leading-tight">{service.name}</p>
-                <p className="text-xs text-[#71717a]">{service.durationMinutes} min</p>
+                <p className="truncate text-[15px] font-semibold leading-5 tracking-[-0.2px]">
+                  {service.name}
+                </p>
+                <p className="mt-0.5 text-[13px] leading-[18px] text-muted-foreground">
+                  {service.durationMinutes} min
+                </p>
               </div>
-              <p className="shrink-0 text-sm font-semibold tabular-nums">
+              <p className="shrink-0 text-[15px] font-semibold leading-5 tracking-[-0.2px] tabular-nums">
                 {formatEuro(service.priceCents)}
               </p>
             </button>
@@ -593,7 +624,7 @@ function BarberStep({
 }) {
   if (staff.length === 0) {
     return (
-      <p className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-sm text-[#a1a1aa]">
+      <p className="rounded-xl border border-border bg-foreground/[0.04] p-3 text-[15px] leading-5 text-muted-foreground">
         Nenhum profissional disponível para este serviço. Escolhe outro acima.
       </p>
     );
@@ -609,13 +640,13 @@ function BarberStep({
               onClick={() => onPick(member.id)}
               aria-pressed={active}
               className={cn(
-                "flex w-full flex-col overflow-hidden rounded-lg border-2 bg-[#1a1a1d] text-left transition",
+                "flex w-full flex-col overflow-hidden rounded-xl border-2 bg-muted text-left transition active:scale-[0.99]",
                 active
-                  ? "border-[var(--bio-accent)]"
-                  : "border-transparent hover:bg-[#27272a]",
+                  ? `border-[var(--bio-accent)] ${SELECTED_CARD_SHADOW}`
+                  : "border-transparent hover:bg-foreground/[0.10]",
               )}
             >
-              <div className="relative aspect-square w-full bg-[#27272a]">
+              <div className="relative aspect-square w-full bg-foreground/[0.08]">
                 {member.avatarUrl ? (
                   <Image
                     src={member.avatarUrl}
@@ -630,8 +661,8 @@ function BarberStep({
                   <BioSelectionTick active={active} variant="photo" />
                 </span>
               </div>
-              <div className="px-3 py-3">
-                <p className="truncate text-sm font-semibold text-[#fafafa]">
+              <div className="px-3.5 py-3.5">
+                <p className="truncate text-[15px] font-semibold leading-5 tracking-[-0.2px] text-foreground">
                   {member.fullName}
                 </p>
               </div>
@@ -656,25 +687,185 @@ function DateStep({
   onChange: (v: string) => void;
   onConfirm: () => void;
 }) {
+  const days = useMemo(() => generateCalendarDays(min, max), [min, max]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const initialMonth = useMemo(() => getMonthAnchor(value || min), [min, value]);
+  const [visibleMonth, setVisibleMonth] = useState(initialMonth);
+  const visibleMonthRef = useRef(initialMonth);
+
+  useEffect(() => {
+    if (!value) return;
+    const index = days.findIndex((day) => day.iso === value);
+    if (index < 0) return;
+
+    const container = scrollRef.current;
+    const pill = container?.children[index] as HTMLElement | undefined;
+    if (!container || !pill) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const pillRect = pill.getBoundingClientRect();
+    const visible = pillRect.left >= containerRect.left && pillRect.right <= containerRect.right;
+    if (!visible) {
+      pill.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  }, [days, value]);
+
+  const monthLabel = useMemo(
+    () =>
+      monthFormatter
+        .format(new Date(visibleMonth.year, visibleMonth.month - 1, 1))
+        .toUpperCase(),
+    [visibleMonth],
+  );
+  const minMonth = getMonthAnchor(min);
+  const maxMonth = getMonthAnchor(max);
+  const canPrevMonth = compareMonth(visibleMonth, minMonth) > 0;
+  const canNextMonth = compareMonth(visibleMonth, maxMonth) < 0;
+
+  const updateVisibleMonth = (anchor: MonthAnchor) => {
+    if (
+      visibleMonthRef.current.year === anchor.year &&
+      visibleMonthRef.current.month === anchor.month
+    ) {
+      return;
+    }
+    visibleMonthRef.current = anchor;
+    setVisibleMonth(anchor);
+  };
+
+  const handleScroll = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const containerLeft = container.getBoundingClientRect().left;
+    const children = Array.from(container.children) as HTMLElement[];
+    const lead = children.find((child) => child.getBoundingClientRect().left >= containerLeft - 1);
+    if (!lead) return;
+
+    const day = days[children.indexOf(lead)];
+    if (day) updateVisibleMonth({ year: day.date.getFullYear(), month: day.date.getMonth() + 1 });
+  };
+
+  const jumpMonth = (delta: -1 | 1) => {
+    let targetYear = visibleMonthRef.current.year;
+    let targetMonth = visibleMonthRef.current.month + delta;
+    if (targetMonth < 1) {
+      targetMonth = 12;
+      targetYear -= 1;
+    } else if (targetMonth > 12) {
+      targetMonth = 1;
+      targetYear += 1;
+    }
+
+    const index = days.findIndex(
+      (day) => day.date.getFullYear() === targetYear && day.date.getMonth() === targetMonth - 1,
+    );
+    const pill = scrollRef.current?.children[index] as HTMLElement | undefined;
+    pill?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+  };
+
   return (
-    <div className="flex flex-col gap-2">
-      <input
-        type="date"
-        value={value}
-        min={min}
-        max={max}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-12 w-full rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 text-sm text-[#fafafa] outline-none transition focus-visible:border-white/40 focus-visible:bg-white/[0.06]"
-        style={{ colorScheme: "dark" }}
-      />
-      {value ? (
+    <div className="relative flex flex-col gap-3">
+      <div className="absolute -top-9 right-0 z-10 flex items-center gap-1.5">
         <button
           type="button"
-          onClick={onConfirm}
-          className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#fafafa] text-sm font-semibold text-[#0a0a0a] transition hover:bg-white"
+          onClick={() => jumpMonth(-1)}
+          disabled={!canPrevMonth}
+          aria-label="Mes anterior"
+          className="flex size-7 items-center justify-center rounded-full bg-foreground/[0.08] text-foreground transition hover:bg-foreground/[0.12] active:bg-foreground/[0.16] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-foreground/[0.08]"
         >
-          Continuar
+          <ChevronLeft className="size-3.5" strokeWidth={2.25} />
         </button>
+        <span className="min-w-[80px] text-center text-[12px] font-medium uppercase leading-[14px] tracking-[0.06em] text-muted-foreground">
+          {monthLabel}
+        </span>
+        <button
+          type="button"
+          onClick={() => jumpMonth(1)}
+          disabled={!canNextMonth}
+          aria-label="Mes seguinte"
+          className="flex size-7 items-center justify-center rounded-full bg-foreground/[0.08] text-foreground transition hover:bg-foreground/[0.12] active:bg-foreground/[0.16] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-foreground/[0.08]"
+        >
+          <ChevronRight className="size-3.5" strokeWidth={2.25} />
+        </button>
+      </div>
+
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        role="radiogroup"
+        aria-label="Escolher data"
+        className="mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {days.map((day) => {
+          const selected = day.iso === value;
+          const disabled = day.iso < min || day.iso > max;
+          return (
+            <button
+              key={day.iso}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              aria-label={formatDateLong(day.iso)}
+              disabled={disabled}
+              onClick={() => onChange(day.iso)}
+              className={cn(
+                "flex w-14 shrink-0 snap-start flex-col items-center gap-0.5 rounded-xl border py-2.5 transition-colors duration-200 active:scale-[0.98]",
+                selected
+                  ? "border-[var(--bio-accent)] bg-[var(--bio-accent)] text-[var(--bio-accent-foreground)]"
+                  : disabled
+                    ? "cursor-not-allowed border-border bg-transparent text-muted-foreground opacity-45"
+                    : "border-border bg-foreground/[0.04] text-foreground hover:border-foreground/25 hover:bg-foreground/[0.08] active:bg-foreground/[0.12]",
+              )}
+            >
+              <span
+                className={cn(
+                  "text-[11px] font-semibold uppercase leading-[13px] tracking-[0.04em]",
+                  selected ? "text-[var(--bio-accent-foreground)]/80" : "text-muted-foreground",
+                )}
+              >
+                {WEEKDAY_PT[day.date.getDay()]}
+              </span>
+              <span className="text-[18px] font-bold leading-6 tabular-nums">
+                {day.date.getDate()}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="hidden items-center justify-center gap-2 sm:flex">
+        <button
+          type="button"
+          onClick={() => scrollRef.current?.scrollBy({ left: -224, behavior: "smooth" })}
+          aria-label="Semana anterior"
+          className="flex size-9 items-center justify-center rounded-full bg-foreground/[0.08] text-foreground transition hover:bg-foreground/[0.12] active:bg-foreground/[0.16]"
+        >
+          <ChevronLeft className="size-4" strokeWidth={2.25} />
+        </button>
+        <button
+          type="button"
+          onClick={() => scrollRef.current?.scrollBy({ left: 224, behavior: "smooth" })}
+          aria-label="Semana seguinte"
+          className="flex size-9 items-center justify-center rounded-full bg-foreground/[0.08] text-foreground transition hover:bg-foreground/[0.12] active:bg-foreground/[0.16]"
+        >
+          <ChevronRight className="size-4" strokeWidth={2.25} />
+        </button>
+      </div>
+
+      {value ? (
+        <>
+          <p className="text-[13px] leading-[18px] text-muted-foreground first-letter:uppercase">
+            {formatDateLong(value)}
+          </p>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-[15px] font-semibold leading-5 tracking-[-0.2px] text-primary-foreground transition hover:bg-primary/90 active:bg-primary/80"
+          >
+            Continuar
+          </button>
+        </>
       ) : null}
     </div>
   );
@@ -697,28 +888,29 @@ function TimeStep({
 }) {
   if (loading) {
     return (
-      <p className="flex items-center gap-2 text-sm text-[#a1a1aa]">
+      <p className="flex items-center gap-2 text-[15px] leading-5 text-muted-foreground">
         <Loader2 className="size-4 animate-spin" /> A carregar horários…
       </p>
     );
   }
   if (errorMessage) {
     return (
-      <p role="alert" className="text-sm text-rose-300">
+      <p role="alert" className="text-[15px] leading-5 text-muted-foreground">
         {errorMessage}
       </p>
     );
   }
   if (!hasFilters) {
     return (
-      <p className="text-sm text-[#a1a1aa]">
+      <p className="text-[15px] leading-5 text-muted-foreground">
         Escolhe data, serviço e barbeiro para ver os horários disponíveis.
       </p>
     );
   }
-  if (slots.length === 0) {
+  const anyAvailable = slots.some((s) => isSlotAvailable(s));
+  if (slots.length === 0 || !anyAvailable) {
     return (
-      <p className="text-sm text-[#a1a1aa]">
+      <p className="text-[15px] leading-5 text-muted-foreground">
         Sem horários disponíveis nesta data. Experimenta outro dia.
       </p>
     );
@@ -727,18 +919,23 @@ function TimeStep({
     <div role="radiogroup" className="grid grid-cols-3 gap-2 sm:grid-cols-4">
       {slots.map((s) => {
         const active = selected === s.iso;
+        const available = isSlotAvailable(s);
         return (
           <button
             key={s.iso}
             type="button"
             role="radio"
             aria-checked={active}
+            aria-label={available ? s.label : `${s.label} indisponivel`}
+            disabled={!available}
             onClick={() => onPick(s.iso)}
             className={cn(
-              "h-10 rounded-lg border text-sm font-medium tabular-nums transition",
-              active
-                ? "border-[var(--bio-accent)] bg-[var(--bio-accent)] text-[var(--bio-accent-foreground)]"
-                : "border-white/[0.12] bg-transparent text-[#fafafa] hover:border-white/30 hover:bg-white/[0.04]",
+              "h-11 rounded-xl border text-[15px] font-semibold leading-5 tracking-[-0.2px] tabular-nums transition-colors duration-200",
+              !available
+                ? "cursor-not-allowed border-border bg-transparent text-muted-foreground line-through opacity-50"
+                : active
+                  ? "border-[var(--bio-accent)] bg-[var(--bio-accent)] text-[var(--bio-accent-foreground)]"
+                  : "border-border bg-transparent text-foreground hover:border-foreground/30 hover:bg-foreground/[0.04] active:bg-foreground/[0.08]",
             )}
           >
             {s.label}
@@ -761,11 +958,11 @@ function ContactStep({
   onPhone: (v: string) => void;
 }) {
   const inputClass =
-    "h-12 w-full rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 text-sm text-[#fafafa] outline-none transition placeholder:text-[#52525b] focus-visible:border-white/40 focus-visible:bg-white/[0.06]";
+    "h-12 w-full rounded-xl border border-border bg-foreground/[0.04] px-3.5 text-[15px] leading-5 text-foreground outline-none transition placeholder:text-muted-foreground focus-visible:border-foreground/35 focus-visible:bg-foreground/[0.08]";
   return (
     <div className="flex flex-col gap-2">
       <label className="grid gap-1">
-        <span className="text-xs text-[#a1a1aa]">Nome completo</span>
+        <span className="text-[13px] leading-[18px] text-muted-foreground">Nome completo</span>
         <input
           type="text"
           autoComplete="name"
@@ -776,7 +973,7 @@ function ContactStep({
         />
       </label>
       <label className="grid gap-1">
-        <span className="text-xs text-[#a1a1aa]">Telefone</span>
+        <span className="text-[13px] leading-[18px] text-muted-foreground">Telefone</span>
         <input
           type="tel"
           inputMode="tel"
@@ -787,7 +984,7 @@ function ContactStep({
           className={inputClass}
         />
       </label>
-      <p className="text-xs text-[#71717a]">
+      <p className="text-[13px] leading-[18px] text-muted-foreground">
         Vamos enviar a confirmação por WhatsApp para este número.
       </p>
     </div>
@@ -811,15 +1008,15 @@ function SuccessView({
     : "";
   return (
     <div className="flex flex-col items-center gap-5 py-8 text-center">
-      <span className="flex size-16 items-center justify-center rounded-full bg-[#fafafa] text-[#0a0a0a]">
+      <span className="flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
         <Check className="size-8" strokeWidth={3} />
       </span>
       <div className="flex flex-col gap-1">
-        <h3 className="text-2xl font-semibold tracking-tight text-[#fafafa]">
+        <h3 className="text-[20px] font-bold leading-6 tracking-[-0.3px] text-foreground">
           Reserva confirmada
         </h3>
         {success.serviceName && when ? (
-          <p className="text-sm text-[#a1a1aa]">
+          <p className="text-[15px] leading-5 text-muted-foreground">
             {success.serviceName} · {when}
           </p>
         ) : null}
@@ -828,7 +1025,7 @@ function SuccessView({
         {manageUrl ? (
           <a
             href={manageUrl}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#fafafa] text-sm font-semibold text-[#0a0a0a] transition hover:bg-white"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary text-[15px] font-semibold leading-5 tracking-[-0.2px] text-primary-foreground transition hover:bg-primary/90 active:bg-primary/80"
           >
             Gerir reserva
             <ArrowRight className="size-4" />
@@ -837,7 +1034,7 @@ function SuccessView({
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-white/[0.12] bg-transparent text-sm font-semibold text-[#fafafa] transition hover:bg-white/[0.04]"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-border bg-transparent text-[15px] font-semibold leading-5 tracking-[-0.2px] text-foreground transition hover:bg-foreground/[0.04] active:bg-foreground/[0.08]"
         >
           Fechar
         </button>
@@ -849,7 +1046,7 @@ function SuccessView({
 function DrawerHandle() {
   return (
     <div className="flex justify-center pb-2 pt-3">
-      <span aria-hidden className="h-1 w-9 rounded-full bg-white/20" />
+      <span aria-hidden className="h-[5px] w-9 rounded-full bg-foreground/20" />
     </div>
   );
 }
@@ -865,6 +1062,83 @@ function toDateInputValue(date: Date, timeZone: string) {
   }).formatToParts(date);
   const v = Object.fromEntries(parts.map((p) => [p.type, p.value]));
   return `${v.year}-${v.month}-${v.day}`;
+}
+
+const WEEKDAY_PT = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"] as const;
+
+const monthFormatter = new Intl.DateTimeFormat("pt-PT", { month: "long" });
+
+type MonthAnchor = {
+  year: number;
+  month: number;
+};
+
+function parseDateKey(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function toDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function generateCalendarDays(min: string, max: string) {
+  const minDate = parseDateKey(min);
+  const maxDate = parseDateKey(max);
+  if (!minDate || !maxDate) return [];
+
+  const cursor = new Date(minDate);
+  const daysFromMonday = (cursor.getDay() + 6) % 7;
+  cursor.setDate(cursor.getDate() - daysFromMonday);
+
+  const days: Array<{ date: Date; iso: string }> = [];
+  while (cursor.getTime() <= maxDate.getTime()) {
+    const date = new Date(cursor);
+    days.push({ date, iso: toDateKey(date) });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+}
+
+function getMonthAnchor(value: string): MonthAnchor {
+  const date = parseDateKey(value) ?? new Date();
+  return { year: date.getFullYear(), month: date.getMonth() + 1 };
+}
+
+function compareMonth(a: MonthAnchor, b: MonthAnchor) {
+  if (a.year !== b.year) return a.year < b.year ? -1 : 1;
+  if (a.month !== b.month) return a.month < b.month ? -1 : 1;
+  return 0;
+}
+
+function isSlotAvailable(slot: BookingSlot) {
+  return !("available" in slot) || slot.available !== false;
+}
+
+function bookingThemeVars(theme: PublicBusinessPayload["theme"]): CSSProperties {
+  if (theme === "light") {
+    return {
+      "--card": "#f0f0f0",
+      "--foreground": "#141414",
+      "--muted-foreground": "#666666",
+      "--border": "#e8e8e8",
+      "--primary": "#007aff",
+      "--primary-foreground": "#ffffff",
+    } as CSSProperties;
+  }
+
+  return {
+    "--card": "#141414",
+    "--foreground": "#fcfcfc",
+    "--muted-foreground": "#a6a6a6",
+    "--border": "#383838",
+    "--primary": "#007aff",
+    "--primary-foreground": "#ffffff",
+  } as CSSProperties;
 }
 
 function formatDateLong(yyyyMmDd: string) {

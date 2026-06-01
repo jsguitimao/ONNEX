@@ -1,0 +1,54 @@
+name: Staging verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Staging base URL"
+        required: true
+        type: string
+      public_slug:
+        description: "Public business slug to verify"
+        required: false
+        type: string
+      load_concurrency:
+        description: "Read-only load smoke concurrency"
+        required: false
+        default: "20"
+        type: string
+      load_duration_ms:
+        description: "Read-only load smoke duration in ms"
+        required: false
+        default: "60000"
+        type: string
+
+jobs:
+  verify-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      STAGING_BASE_URL: ${{ inputs.base_url }}
+      STAGING_PUBLIC_SLUG: ${{ inputs.public_slug }}
+      STAGING_CRON_SECRET: ${{ secrets.STAGING_CRON_SECRET }}
+      LOAD_TEST_BASE_URL: ${{ inputs.base_url }}
+      LOAD_TEST_PUBLIC_SLUG: ${{ inputs.public_slug }}
+      LOAD_TEST_CONCURRENCY: ${{ inputs.load_concurrency }}
+      LOAD_TEST_DURATION_MS: ${{ inputs.load_duration_ms }}
+      LOAD_TEST_MAX_ERROR_RATE: "0.01"
+      LOAD_TEST_MAX_P95_MS: "1500"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Staging smoke
+        run: npm run test:staging
+
+      - name: Read-only load smoke
+        run: npm run test:load

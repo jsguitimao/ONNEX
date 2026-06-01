@@ -132,7 +132,6 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
       <BookingSheetProvider business={publicBusiness}>
         <PublicPageRenderer
           viewModel={fromPublicBusiness(publicBusiness)}
-          bookingMode="live"
         />
       </BookingSheetProvider>
     </>

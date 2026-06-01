@@ -91,6 +91,53 @@ export async function listStaffWeeklyAvailability(
   }));
 }
 
+function emptyWeeklyAvailability(): CrmDayAvailability[] {
+  return Array.from({ length: 7 }, (_, dayOfWeek) => ({
+    dayOfWeek,
+    shifts: [],
+  }));
+}
+
+export async function listWeeklyAvailabilityForStaffIds(
+  businessId: string,
+  staffIds: string[],
+): Promise<Record<string, CrmDayAvailability[]>> {
+  const uniqueStaffIds = [...new Set(staffIds)];
+  const availabilityByStaff: Record<string, CrmDayAvailability[]> = {};
+
+  for (const staffId of uniqueStaffIds) {
+    availabilityByStaff[staffId] = emptyWeeklyAvailability();
+  }
+
+  if (uniqueStaffIds.length === 0) {
+    return availabilityByStaff;
+  }
+
+  const rows = await db.weeklyAvailability.findMany({
+    where: {
+      staffMemberId: { in: uniqueStaffIds },
+      isActive: true,
+      staffMember: { businessId, deletedAt: null },
+    },
+    orderBy: [{ staffMemberId: "asc" }, { dayOfWeek: "asc" }, { startTime: "asc" }],
+    select: {
+      staffMemberId: true,
+      dayOfWeek: true,
+      startTime: true,
+      endTime: true,
+    },
+  });
+
+  for (const row of rows) {
+    availabilityByStaff[row.staffMemberId]?.[row.dayOfWeek]?.shifts.push({
+      startTime: row.startTime,
+      endTime: row.endTime,
+    });
+  }
+
+  return availabilityByStaff;
+}
+
 export async function setStaffDayAvailability(
   businessId: string,
   staffId: string,

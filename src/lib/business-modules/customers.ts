@@ -9,24 +9,13 @@ async function findCustomerByNormalizedPhone(
   phone: string,
   client: PrismaClientLike = db
 ) {
-  const candidates = await client.customer.findMany({
+  return client.customer.findFirst({
     where: {
       businessId,
-      phone: { not: null },
+      phone,
     },
     orderBy: [{ lastBookedAt: "desc" }, { createdAt: "desc" }],
   });
-
-  return (
-    candidates.find(
-      (candidate) =>
-        sanitizeBookingCustomerInput({
-          fullName: candidate.fullName,
-          email: candidate.email,
-          phone: candidate.phone,
-        }).phone === phone
-    ) ?? null
-  );
 }
 
 export async function upsertBookingCustomer(

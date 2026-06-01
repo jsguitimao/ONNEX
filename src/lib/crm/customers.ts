@@ -124,13 +124,10 @@ export async function createCustomer(
   }
 
   if (phone) {
-    const candidates = await db.customer.findMany({
-      where: { businessId, phone: { not: null } },
-      select: { id: true, phone: true },
+    const conflict = await db.customer.findFirst({
+      where: { businessId, phone },
+      select: { id: true },
     });
-    const conflict = candidates.find(
-      (candidate) => normalizeCustomerPhone(candidate.phone) === phone,
-    );
     if (conflict) {
       throw new CrmCustomerError("DUPLICATE_PHONE", "Já existe um cliente com este telefone.");
     }
@@ -192,13 +189,10 @@ export async function updateCustomer(
   }
 
   if (phone) {
-    const candidates = await db.customer.findMany({
-      where: { businessId, phone: { not: null }, NOT: { id: existing.id } },
-      select: { id: true, phone: true },
+    const conflict = await db.customer.findFirst({
+      where: { businessId, phone, NOT: { id: existing.id } },
+      select: { id: true },
     });
-    const conflict = candidates.find(
-      (candidate) => normalizeCustomerPhone(candidate.phone) === phone,
-    );
     if (conflict) {
       throw new CrmCustomerError("DUPLICATE_PHONE", "Já existe um cliente com este telefone.");
     }

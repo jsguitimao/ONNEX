@@ -5,8 +5,10 @@ import { getCurrentBusiness } from "@/lib/business-modules/core";
 import { loadEditorDraft } from "@/lib/page-editor/load";
 import { editorDraftSchema } from "@/lib/page-editor/schema";
 import { PageEditorError, saveEditorDraft } from "@/lib/page-editor/save";
+import { captureException } from "@/lib/observability";
 import { buildRateLimitHeaders, checkRequestRateLimit } from "@/lib/rate-limit";
 import { readJsonBody } from "@/lib/request-body";
+import { validateAuthenticatedMutationOrigin } from "@/lib/request-origin";
 
 export async function GET() {
   const { isAuthenticated } = await auth();
@@ -17,7 +19,7 @@ export async function GET() {
     const draft = await loadEditorDraft();
     return NextResponse.json(draft);
   } catch (error) {
-    console.error("GET /api/dashboard:", error);
+    captureException("dashboard.load_failed", error);
     return NextResponse.json({ error: "Erro ao carregar a página." }, { status: 500 });
   }
 }
@@ -37,6 +39,14 @@ export async function PUT(req: Request) {
     return NextResponse.json(
       { error: "Demasiadas alterações em pouco tempo. Aguarda um momento." },
       { status: 429, headers: buildRateLimitHeaders(rateLimit) },
+    );
+  }
+
+  const originValidation = validateAuthenticatedMutationOrigin(req);
+  if (!originValidation.ok) {
+    return NextResponse.json(
+      { error: "Origem nao autorizada.", code: originValidation.reason },
+      { status: 403, headers: buildRateLimitHeaders(rateLimit) },
     );
   }
 
@@ -60,7 +70,7 @@ export async function PUT(req: Request) {
       const status = error.code === "SLUG_TAKEN" ? 409 : 400;
       return NextResponse.json({ error: error.message, code: error.code }, { status });
     }
-    console.error("PUT /api/dashboard:", error);
+    captureException("dashboard.save_failed", error);
     return NextResponse.json({ error: "Erro ao guardar." }, { status: 500 });
   }
 }

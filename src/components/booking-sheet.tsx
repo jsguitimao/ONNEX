@@ -31,7 +31,7 @@ export function useBookingSheet(): BookingSheetContextValue {
   return ctx;
 }
 
-// Safe version for editor preview, where the provider is intentionally absent.
+// Safe version for shared renderers that may be mounted outside booking pages.
 export function useBookingSheetOptional(): BookingSheetContextValue | null {
   return useContext(BookingSheetContext);
 }

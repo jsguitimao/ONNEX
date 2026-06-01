@@ -21,18 +21,18 @@ export function BioSelectionTick({ active, variant = "card" }: Props) {
     <span
       aria-hidden
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full transition-colors duration-150",
-        isPhoto ? "size-6" : "size-5",
+        "flex shrink-0 items-center justify-center rounded-full transition-colors duration-200 ease-out",
+        isPhoto ? "size-6" : "size-[22px]",
         active
           ? "bg-[var(--bio-accent)] text-[var(--bio-accent-foreground)]"
           : isPhoto
-            ? "border-[1.5px] border-white/85 bg-black/35 backdrop-blur-sm"
-            : "border-[1.5px] border-[#d4d4d8] bg-transparent",
+            ? "border-[1.5px] border-white/90 bg-black/20 backdrop-blur-md"
+            : "border-[1.5px] border-muted-foreground/40 bg-transparent",
       )}
     >
       <Check
         className={cn(
-          "transition-all duration-150 ease-out",
+          "transition-all duration-200 ease-out",
           isPhoto ? "size-3.5" : "size-3",
           active ? "scale-100 opacity-100" : "scale-50 opacity-0",
         )}

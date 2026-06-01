@@ -87,6 +87,7 @@ model BusinessMembership {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, userId])
+  @@index([userId])
 }
 
 model BookingPage {
@@ -210,6 +211,7 @@ model StaffService {
   service     Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   @@id([staffMemberId, serviceId])
+  @@index([serviceId])
 }
 
 model WeeklyAvailability {
@@ -243,6 +245,8 @@ model Customer {
   bookings Booking[]
 
   @@index([businessId])
+  @@index([businessId, email])
+  @@index([businessId, phone])
 }
 
 model Booking {
@@ -277,6 +281,8 @@ model Booking {
 
   @@unique([businessId, idempotencyKey])
   @@index([businessId, startsAt])
+  @@index([businessId, customerPhone, startsAt])
+  @@index([businessId, customerId])
   @@index([staffMemberId, startsAt])
 }
 

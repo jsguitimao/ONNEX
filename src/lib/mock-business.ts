@@ -2,31 +2,36 @@ import type { BookingSlot, PublicBusinessPayload } from "@/lib/business-modules/
 
 export const MOCK_SLUG = "mock-barbearia";
 
-// Hero quadrado (1:1) — segue padrão de "link in bio" premium.
+// Hero 5:4 — segue padrão de "link in bio" premium.
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=1200&h=1200&q=85";
+  "https://images.pexels.com/photos/3998414/pexels-photo-3998414.jpeg?auto=compress&cs=tinysrgb&w=1200&h=960&dpr=1";
 const COVER_IMAGE =
-  "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80";
+  "https://images.pexels.com/photos/1813272/pexels-photo-1813272.jpeg?auto=compress&cs=tinysrgb&w=1200&dpr=1";
 
 const STAFF_AVATARS = {
   guilherme:
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
-  rafa: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80",
+    "https://images.pexels.com/photos/2035738/pexels-photo-2035738.jpeg?auto=compress&cs=tinysrgb&w=600&dpr=1",
+  rafa: "https://images.pexels.com/photos/3998417/pexels-photo-3998417.jpeg?auto=compress&cs=tinysrgb&w=600&dpr=1",
+  andre:
+    "https://images.pexels.com/photos/3998414/pexels-photo-3998414.jpeg?auto=compress&cs=tinysrgb&w=600&dpr=1",
+  tomas:
+    "https://images.pexels.com/photos/3992874/pexels-photo-3992874.jpeg?auto=compress&cs=tinysrgb&w=600&dpr=1",
+  diogo:
+    "https://images.pexels.com/photos/3998429/pexels-photo-3998429.jpeg?auto=compress&cs=tinysrgb&w=600&dpr=1",
+  joao:
+    "https://images.pexels.com/photos/3992870/pexels-photo-3992870.jpeg?auto=compress&cs=tinysrgb&w=600&dpr=1",
+  miguel:
+    "https://images.pexels.com/photos/3998406/pexels-photo-3998406.jpeg?auto=compress&cs=tinysrgb&w=600&dpr=1",
 };
 
-const PORTFOLIO_GUILHERME = [
-  "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1503443207922-dff7d543fd0e?auto=format&fit=crop&w=900&q=80",
-];
-
-const PORTFOLIO_RAFA = [
-  "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1503443207922-dff7d543fd0e?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1622287162716-f311baa1a2b8?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=900&q=80",
+const PORTFOLIO_IMAGES = [
+  "https://images.pexels.com/photos/3992874/pexels-photo-3992874.jpeg?auto=compress&cs=tinysrgb&w=900&dpr=1",
+  "https://images.pexels.com/photos/3998429/pexels-photo-3998429.jpeg?auto=compress&cs=tinysrgb&w=900&dpr=1",
+  "https://images.pexels.com/photos/3998419/pexels-photo-3998419.jpeg?auto=compress&cs=tinysrgb&w=900&dpr=1",
+  "https://images.pexels.com/photos/3992870/pexels-photo-3992870.jpeg?auto=compress&cs=tinysrgb&w=900&dpr=1",
+  "https://images.pexels.com/photos/3998406/pexels-photo-3998406.jpeg?auto=compress&cs=tinysrgb&w=900&dpr=1",
+  "https://images.pexels.com/photos/3992869/pexels-photo-3992869.jpeg?auto=compress&cs=tinysrgb&w=900&dpr=1",
+  "https://images.pexels.com/photos/3998417/pexels-photo-3998417.jpeg?auto=compress&cs=tinysrgb&w=900&dpr=1",
 ];
 
 export const mockBusiness: PublicBusinessPayload = {
@@ -100,6 +105,90 @@ export const mockBusiness: PublicBusinessPayload = {
       durationMinutes: 25,
       priceCents: 1300,
     },
+    {
+      id: "svc-fade",
+      name: "Corte Degrade (Fade)",
+      description: "Fade progressivo com acabamento preciso na nuca e laterais.",
+      durationMinutes: 35,
+      priceCents: 1800,
+    },
+    {
+      id: "svc-corte-sobrancelhas",
+      name: "Corte + Sobrancelhas",
+      description: "Corte completo com limpeza e definição de sobrancelhas.",
+      durationMinutes: 40,
+      priceCents: 2200,
+    },
+    {
+      id: "svc-barba-lenhador",
+      name: "Barba Lenhador",
+      description: "Modelação de barba longa com hidratação e acabamento.",
+      durationMinutes: 30,
+      priceCents: 1500,
+    },
+    {
+      id: "svc-hidratacao",
+      name: "Hidratação Capilar",
+      description: "Tratamento rápido para devolver brilho e controlo ao cabelo.",
+      durationMinutes: 20,
+      priceCents: 1400,
+    },
+    {
+      id: "svc-tratamento",
+      name: "Tratamento Capilar",
+      description: "Diagnóstico e cuidado capilar para couro cabeludo e fios.",
+      durationMinutes: 30,
+      priceCents: 2500,
+    },
+    {
+      id: "svc-pintura-cabelo",
+      name: "Pintura de Cabelo",
+      description: "Coloração masculina com preparação e finalização profissional.",
+      durationMinutes: 50,
+      priceCents: 2800,
+    },
+    {
+      id: "svc-pintura-barba",
+      name: "Pintura de Barba",
+      description: "Cobertura e uniformização de tom para barba.",
+      durationMinutes: 30,
+      priceCents: 1800,
+    },
+    {
+      id: "svc-limpeza",
+      name: "Limpeza Facial Masculina",
+      description: "Limpeza facial prática para pele mais fresca e equilibrada.",
+      durationMinutes: 40,
+      priceCents: 3000,
+    },
+    {
+      id: "svc-noivo",
+      name: "Pacote Noivo",
+      description: "Preparação completa para o dia: cabelo, barba e acabamento.",
+      durationMinutes: 90,
+      priceCents: 6000,
+    },
+    {
+      id: "svc-massagem",
+      name: "Massagem Capilar",
+      description: "Massagem relaxante no couro cabeludo com finalização leve.",
+      durationMinutes: 20,
+      priceCents: 1600,
+    },
+    {
+      id: "svc-platinado",
+      name: "Platinado / Descoloração",
+      description: "Descoloração controlada com matização e cuidado pós-química.",
+      durationMinutes: 60,
+      priceCents: 4000,
+    },
+    {
+      id: "svc-penteado",
+      name: "Penteado para Eventos",
+      description: "Styling com fixação para ocasiões especiais.",
+      durationMinutes: 30,
+      priceCents: 2000,
+    },
   ],
   staffMembers: [
     {
@@ -108,8 +197,16 @@ export const mockBusiness: PublicBusinessPayload = {
       roleTitle: "Master Barber",
       bio: "Fade · Barba clássica · Consultoria de estilo",
       avatarUrl: STAFF_AVATARS.guilherme,
-      portfolioImages: PORTFOLIO_GUILHERME,
-      serviceIds: ["svc-corte", "svc-barba", "svc-completo", "svc-tesoura", "svc-sobrancelhas"],
+      portfolioImages: PORTFOLIO_IMAGES.slice(0, 5),
+      serviceIds: [
+        "svc-corte",
+        "svc-barba",
+        "svc-completo",
+        "svc-tesoura",
+        "svc-sobrancelhas",
+        "svc-fade",
+        "svc-corte-sobrancelhas",
+      ],
     },
     {
       id: "staff-rafa",
@@ -117,8 +214,92 @@ export const mockBusiness: PublicBusinessPayload = {
       roleTitle: "Senior Barber",
       bio: "Corte social · Textura · Atendimento expresso",
       avatarUrl: STAFF_AVATARS.rafa,
-      portfolioImages: PORTFOLIO_RAFA,
-      serviceIds: ["svc-corte", "svc-completo", "svc-sobrancelhas", "svc-infantil"],
+      portfolioImages: PORTFOLIO_IMAGES.slice(3),
+      serviceIds: [
+        "svc-corte",
+        "svc-completo",
+        "svc-sobrancelhas",
+        "svc-infantil",
+        "svc-fade",
+        "svc-massagem",
+      ],
+    },
+    {
+      id: "staff-andre",
+      fullName: "André Pinto",
+      roleTitle: "Color Specialist",
+      bio: "Coloração · Platinado · Tratamentos capilares",
+      avatarUrl: STAFF_AVATARS.andre,
+      portfolioImages: [],
+      serviceIds: [
+        "svc-pintura-cabelo",
+        "svc-pintura-barba",
+        "svc-platinado",
+        "svc-hidratacao",
+        "svc-tratamento",
+        "svc-corte",
+      ],
+    },
+    {
+      id: "staff-tomas",
+      fullName: "Tomás Almeida",
+      roleTitle: "Barber",
+      bio: "Corte clássico · Tesoura · Barba longa",
+      avatarUrl: STAFF_AVATARS.tomas,
+      portfolioImages: [],
+      serviceIds: [
+        "svc-corte",
+        "svc-barba",
+        "svc-completo",
+        "svc-tesoura",
+        "svc-barba-lenhador",
+      ],
+    },
+    {
+      id: "staff-diogo",
+      fullName: "Diogo Mendes",
+      roleTitle: "Fade Specialist",
+      bio: "Fade · Corte infantil · Acabamentos rápidos",
+      avatarUrl: STAFF_AVATARS.diogo,
+      portfolioImages: [],
+      serviceIds: [
+        "svc-corte",
+        "svc-infantil",
+        "svc-fade",
+        "svc-sobrancelhas",
+        "svc-corte-sobrancelhas",
+      ],
+    },
+    {
+      id: "staff-joao",
+      fullName: "João Ferreira",
+      roleTitle: "Grooming Specialist",
+      bio: "Noivo · Limpeza facial · Penteados de evento",
+      avatarUrl: STAFF_AVATARS.joao,
+      portfolioImages: [],
+      serviceIds: [
+        "svc-noivo",
+        "svc-penteado",
+        "svc-completo",
+        "svc-limpeza",
+        "svc-tratamento",
+      ],
+    },
+    {
+      id: "staff-miguel",
+      fullName: "Miguel Carvalho",
+      roleTitle: "Barber",
+      bio: "Corte moderno · Barba · Massagem capilar",
+      avatarUrl: STAFF_AVATARS.miguel,
+      portfolioImages: [],
+      serviceIds: [
+        "svc-corte",
+        "svc-barba",
+        "svc-fade",
+        "svc-completo",
+        "svc-massagem",
+        "svc-limpeza",
+      ],
     },
   ],
 };

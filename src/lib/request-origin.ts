@@ -1,6 +1,11 @@
 type OriginValidationResult = {
   ok: boolean;
-  reason: "ORIGIN_NOT_ALLOWED" | "REFERER_NOT_ALLOWED" | "FETCH_SITE_NOT_ALLOWED" | null;
+  reason:
+    | "ORIGIN_NOT_ALLOWED"
+    | "REFERER_NOT_ALLOWED"
+    | "FETCH_SITE_NOT_ALLOWED"
+    | "MISSING_ORIGIN_SIGNAL"
+    | null;
 };
 
 const DEFAULT_APP_URL = "https://www.onnex.pt";
@@ -75,4 +80,26 @@ export function validatePublicMutationOrigin(request: Request): OriginValidation
     ok: true,
     reason: null,
   };
+}
+
+export function validateAuthenticatedMutationOrigin(request: Request): OriginValidationResult {
+  const result = validatePublicMutationOrigin(request);
+  if (!result.ok) {
+    return result;
+  }
+
+  const hasOriginSignal = Boolean(
+    request.headers.get("origin") ||
+      request.headers.get("referer") ||
+      request.headers.get("sec-fetch-site")
+  );
+
+  if (!hasOriginSignal) {
+    return {
+      ok: false,
+      reason: "MISSING_ORIGIN_SIGNAL",
+    };
+  }
+
+  return result;
 }

@@ -17,6 +17,7 @@ import { SectionOperations } from "@/components/page-editor/section-operations";
 import { SectionSeo } from "@/components/page-editor/section-seo";
 import { DraftPreviewFrame } from "@/components/page-editor/draft-preview-frame";
 import type { EditorDraft } from "@/lib/page-editor/draft";
+import { captureException } from "@/lib/observability";
 
 const DEMO_DRAFT_STORAGE_KEY = "onnex:page-editor-demo-draft";
 
@@ -48,7 +49,8 @@ export function PageEditor({ initialDraft, readOnly = false, embedded = false }:
       const restored = JSON.parse(stored) as EditorDraft;
       setDraft(restored);
       setSavedSnapshot(JSON.stringify(restored));
-    } catch {
+    } catch (error) {
+      captureException("page_editor.localstorage_corrupt", error);
       window.localStorage.removeItem(DEMO_DRAFT_STORAGE_KEY);
     }
   }, [readOnly]);

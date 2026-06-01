@@ -1,10 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { PageEditor } from "@/components/page-editor/page-editor";
 import { loadEditorDraft } from "@/lib/page-editor/load";
-import { buildInitialDraftFromMock } from "@/lib/page-editor/mock-draft";
 
 export const metadata = {
-  title: "Editor da página",
+  title: "Editor da pagina",
   robots: { index: false, follow: false },
 };
 
@@ -12,8 +12,7 @@ export default async function PageEditorRoute() {
   const { isAuthenticated } = await auth();
 
   if (!isAuthenticated) {
-    // Modo demo: scaffold com mockBusiness, sem persistência.
-    return <PageEditor initialDraft={buildInitialDraftFromMock()} readOnly />;
+    redirect("/sign-in?redirect_url=/dashboard");
   }
 
   const draft = await loadEditorDraft();

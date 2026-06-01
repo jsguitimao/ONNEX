@@ -494,24 +494,7 @@ export async function createPublicBooking(input: {
     phone: input.customerPhone,
   });
 
-  // Guard "1 marcacao activa por cliente nesta barbearia": se o telefone do
-  // cliente ja tem uma marcacao PENDING/CONFIRMED no futuro nesta mesma
-  // barbearia, rejeitamos para evitar duplicado silencioso. CANCELLED ou
-  // COMPLETED nao contam (cliente pode marcar de novo).
-  if (customerInput.phone) {
-    const existing = await db.booking.findFirst({
-      where: {
-        businessId: business.id,
-        customerPhone: customerInput.phone,
-        status: { in: ["PENDING", "CONFIRMED"] },
-        startsAt: { gt: new Date() },
-      },
-      select: { id: true },
-    });
-    if (existing) {
-      throw new Error("CLIENTE_JA_TEM_MARCACAO");
-    }
-  }
+  const activeBookingCutoff = new Date();
 
   const booking = await runBookingTransaction(async (tx) => {
     await assertSlotAvailable(tx, {
@@ -520,6 +503,23 @@ export async function createPublicBooking(input: {
       startsAt,
       endsAt,
     });
+
+    // Guard "1 marcacao activa por cliente nesta barbearia": dentro da
+    // transacao Serializable para duas requests concorrentes serializarem.
+    if (customerInput.phone) {
+      const existing = await tx.booking.findFirst({
+        where: {
+          businessId: business.id,
+          customerPhone: customerInput.phone,
+          status: { in: ["PENDING", "CONFIRMED"] },
+          startsAt: { gt: activeBookingCutoff },
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new Error("CLIENTE_JA_TEM_MARCACAO");
+      }
+    }
 
     const customer = await upsertBookingCustomer(
       {
@@ -575,6 +575,20 @@ export async function createPublicBooking(input: {
         include: { service: true, staffMember: true },
       });
       if (existing) return existing;
+    }
+    if (err instanceof Error && err.message === "HORARIO_OCUPADO" && customerInput.phone) {
+      const activeForPhone = await db.booking.findFirst({
+        where: {
+          businessId: business.id,
+          customerPhone: customerInput.phone,
+          status: { in: ["PENDING", "CONFIRMED"] },
+          startsAt: { gt: activeBookingCutoff },
+        },
+        select: { id: true },
+      });
+      if (activeForPhone) {
+        throw new Error("CLIENTE_JA_TEM_MARCACAO");
+      }
     }
     throw err;
   });
@@ -639,7 +653,16 @@ export async function updatePublicBookingByToken(
     });
 
     if (booking.status === "PENDING") {
-      await sendBookingNotification(updated.id, "BOOKING_CONFIRMED");
+      runAfterResponse(async () => {
+        try {
+          await sendBookingNotification(updated.id, "BOOKING_CONFIRMED");
+        } catch (error) {
+          captureException("public.update_booking.confirm_notification_failed", error, {
+            bookingId: updated.id,
+            action,
+          });
+        }
+      });
     }
 
     return buildPublicBookingDetails(updated);
@@ -671,12 +694,30 @@ export async function updatePublicBookingByToken(
   });
 
   if (action === "confirm") {
-    await sendBookingNotification(updated.id, "BOOKING_CONFIRMED");
+    runAfterResponse(async () => {
+      try {
+        await sendBookingNotification(updated.id, "BOOKING_CONFIRMED");
+      } catch (error) {
+        captureException("public.update_booking.confirm_notification_failed", error, {
+          bookingId: updated.id,
+          action,
+        });
+      }
+    });
   } else {
-    await Promise.all([
-      sendBookingNotification(updated.id, "BOOKING_CANCELLED"),
-      sendRepresentativeBookingNotification(updated.id, "BOOKING_CANCELLED_INTERNAL"),
-    ]);
+    runAfterResponse(async () => {
+      try {
+        await Promise.all([
+          sendBookingNotification(updated.id, "BOOKING_CANCELLED"),
+          sendRepresentativeBookingNotification(updated.id, "BOOKING_CANCELLED_INTERNAL"),
+        ]);
+      } catch (error) {
+        captureException("public.update_booking.cancel_notification_failed", error, {
+          bookingId: updated.id,
+          action,
+        });
+      }
+    });
   }
 
   return buildPublicBookingDetails(updated);
@@ -761,7 +802,15 @@ export async function reschedulePublicBookingByToken(
     });
   });
 
-  await sendBookingNotification(updated.id, "BOOKING_RESCHEDULED");
+  runAfterResponse(async () => {
+    try {
+      await sendBookingNotification(updated.id, "BOOKING_RESCHEDULED");
+    } catch (error) {
+      captureException("public.reschedule_booking.notification_failed", error, {
+        bookingId: updated.id,
+      });
+    }
+  });
 
   return buildPublicBookingDetails(updated);
 }

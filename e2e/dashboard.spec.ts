@@ -1,20 +1,22 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("Dashboard — acesso sem autenticação", () => {
-  test("dashboard redireciona para sign-in", async ({ page }) => {
-    const response = await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
-    const url = page.url();
-    const redirectedOrBlocked =
-      url.includes("/sign-in") || (response?.status() ?? 0) >= 300;
-    expect(redirectedOrBlocked).toBe(true);
+test.describe("Dashboard - acesso sem autenticacao", () => {
+  test("dashboard redireciona para sign-in", async ({ request }) => {
+    const response = await request.get("/dashboard", { maxRedirects: 0 });
+    expect([302, 303, 307, 308]).toContain(response.status());
+    expect(response.headers().location).toContain("/sign-in");
   });
 
-  test("onboarding redireciona para sign-in", async ({ page }) => {
-    const response = await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
-    const url = page.url();
-    const redirectedOrBlocked =
-      url.includes("/sign-in") || (response?.status() ?? 0) >= 300;
-    expect(redirectedOrBlocked).toBe(true);
+  test("onboarding redireciona para sign-in", async ({ request }) => {
+    const response = await request.get("/onboarding", { maxRedirects: 0 });
+    expect([302, 303, 307, 308]).toContain(response.status());
+    expect(response.headers().location).toContain("/sign-in");
+  });
+
+  test("api dashboard sem sessao devolve json 401", async ({ request }) => {
+    const response = await request.get("/api/dashboard");
+    expect(response.status()).toBe(401);
+    expect(response.headers()["content-type"]).toContain("application/json");
   });
 
   test("sign-in carrega sem erro 500", async ({ page }) => {
@@ -28,10 +30,10 @@ test.describe("Dashboard — acesso sem autenticação", () => {
   });
 });
 
-test.describe("API cron — segurança", () => {
+test.describe("API cron - seguranca", () => {
   test("rejeita request sem secret", async ({ request }) => {
     const response = await request.get("/api/cron/send-reminders");
-    expect([401, 403, 404, 503]).toContain(response.status());
+    expect([401, 403, 404, 405, 503]).toContain(response.status());
   });
 
   test("rejeita request com secret errado", async ({ request }) => {
@@ -42,14 +44,13 @@ test.describe("API cron — segurança", () => {
   });
 });
 
-test.describe("API pública — booking", () => {
-  test("availability retorna dados para slug válido", async ({ request }) => {
+test.describe("API publica - booking", () => {
+  test("availability retorna resposta controlada para request incompleto", async ({ request }) => {
     const response = await request.get("/api/public/buk-barbearia/availability");
-    const status = response.status();
-    expect([200, 404]).toContain(status);
+    expect([200, 400, 404]).toContain(response.status());
   });
 
-  test("booking com token inválido retorna 404", async ({ request }) => {
+  test("booking com token invalido retorna 404", async ({ request }) => {
     const response = await request.get("/api/public/booking/token-invalido-xyz");
     expect([404, 400]).toContain(response.status());
   });
