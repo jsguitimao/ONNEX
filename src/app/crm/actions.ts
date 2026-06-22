@@ -51,6 +51,8 @@ import {
 import {
   autoCancelUnconfirmedBookings,
   logReminderRunExecution,
+  sendBookingNotification,
+  sendStaffBookingNotification,
   sendUpcomingBookingReminders,
 } from "@/lib/notifications";
 import {
@@ -58,8 +60,6 @@ import {
   createManualBooking,
   type CrmManualBookingInput,
 } from "@/lib/crm/manual-booking";
-import { sendStaffBookingNotification } from "@/lib/notifications";
-import { sendBookingNotification } from "@/lib/notifications";
 import { captureException } from "@/lib/observability";
 import { consumeRateLimit } from "@/lib/rate-limit";
 

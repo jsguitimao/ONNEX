@@ -4,7 +4,16 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // PRODUÇÃO: DATABASE_URL deve apontar para o endpoint COM connection pooling
+  // (PgBouncer / Neon pooler / Prisma Accelerate). Em serverless cada lambda abre
+  // o seu pool; sem pooler, tráfego alto esgota o max_connections do Postgres.
+  //
+  // Ao ativar o pooler, adicionar também a ligação direta para as migrações:
+  //   directUrl = env("DIRECT_URL")
+  // (ver passo-a-passo no .env.example / OPERATIONS-RUNBOOK). Só adicionar a linha
+  // `directUrl` DEPOIS de DIRECT_URL estar definida em todos os ambientes (local,
+  // CI e Vercel), senão `prisma generate`/`validate` falham com P1012.
+  url = env("DATABASE_URL")
 }
 
 model User {
@@ -284,6 +293,13 @@ model Booking {
   @@index([businessId, customerPhone, startsAt])
   @@index([businessId, customerId])
   @@index([staffMemberId, startsAt])
+  // INDICE PARCIAL gerido a mao (Prisma nao suporta clausula WHERE): indice em
+  // (startsAt) apenas para status IN ('PENDING','CONFIRMED') AND customerPhone IS
+  // NOT NULL. Suporta o scan global do cron de lembretes sem sequential scan da
+  // tabela. Definido em prisma/migrations/20260615_booking_reminder_scan_index.
+  // NAO apagar em migrations futuras: o `prisma migrate dev` vai querer gerar um
+  // DROP INDEX "Booking_reminder_scan_idx" porque ele nao aparece aqui — remover
+  // esse DROP da migration gerada.
 }
 
 model NotificationLog {

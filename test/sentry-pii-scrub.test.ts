@@ -33,6 +33,16 @@ describe("scrubString mascara PII por valor", () => {
   it("NÃO mascara sequências curtas demais para serem E.164 (<8 dígitos)", () => {
     expect(scrubString("ref +1234567")).toBe("ref +1234567");
   });
+
+  it("mascara telefone em formato local (sem +) embutido numa mensagem", () => {
+    expect(scrubString("Twilio recusou o numero 924057914")).toBe(
+      `Twilio recusou o numero ${PHONE_MASK}`,
+    );
+  });
+
+  it("NÃO mascara sequências de 9 dígitos coladas a outras (IDs longos)", () => {
+    expect(scrubString("ref 1234567890123456789")).toBe("ref 1234567890123456789");
+  });
 });
 
 describe("scrubPii percorre objetos em profundidade", () => {

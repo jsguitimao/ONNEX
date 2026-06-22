@@ -6,6 +6,7 @@ import { getAppUrl } from "@/lib/app-config";
 import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
 import { inferMediaKindFromUrl, isSupportedMediaUrl } from "@/lib/media-url";
 import { fromPublicBusiness } from "@/lib/public-page/from-public-business";
+import { serializeJsonLd } from "@/lib/safe-json-ld";
 
 export const revalidate = 60;
 
@@ -127,7 +128,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <BookingSheetProvider business={publicBusiness}>
         <PublicPageRenderer

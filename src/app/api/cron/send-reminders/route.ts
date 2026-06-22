@@ -7,6 +7,11 @@ import {
 } from "@/lib/notifications";
 import { captureException, logWarning } from "@/lib/observability";
 
+// O cron faz dois scans (auto-cancel + lembretes) e envia via Twilio com retry.
+// Damos margem ao runtime para não cortar a meio sob carga. NOTA: em volume real,
+// o envio síncrono deve migrar para fila (ex.: Upstash QStash) — ver dívida técnica.
+export const maxDuration = 60;
+
 async function handleCronReminderRequest(req: Request) {
   const authorization = authorizeCronRequest(req);
   const userAgent = req.headers.get("user-agent");

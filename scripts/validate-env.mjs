@@ -102,4 +102,26 @@ for (const group of OPTIONAL_PROVIDER_GROUPS) {
   }
 }
 
+// Pooling de BD: em serverless, DATABASE_URL sem pooler esgota o max_connections
+// sob carga. Avisamos (não falhamos) se a connection string de produção não
+// aparentar usar pooling. Heurística: host com "-pooler", pgbouncer=true, ou
+// endpoint do Prisma Accelerate.
+if (isProductionLike() && hasValue("DATABASE_URL")) {
+  const dbUrl = process.env.DATABASE_URL;
+  const looksPooled =
+    /-pooler\./i.test(dbUrl) ||
+    /[?&]pgbouncer=true/i.test(dbUrl) ||
+    /prisma:\/\/|accelerate\.prisma-data\.net/i.test(dbUrl);
+  if (!looksPooled) {
+    console.warn(
+      "[env:check] DATABASE_URL não aparenta usar connection pooling. Em produção serverless, usa o endpoint pooled (Neon '-pooler' / PgBouncer / Prisma Accelerate) para não esgotar ligações sob carga.",
+    );
+  }
+  if (!hasValue("DIRECT_URL")) {
+    console.warn(
+      "[env:check] DIRECT_URL não definida. É necessária para as migrações do Prisma quando DATABASE_URL usa pooler (ver .env.example).",
+    );
+  }
+}
+
 console.info("[env:check] Environment contract satisfied.");

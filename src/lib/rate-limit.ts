@@ -53,6 +53,23 @@ function getRedis(): Redis | null {
 
   if (!url || !token) {
     globalStore.__onnexRateLimitRedis = null;
+    // Em produção serverless, sem Redis o rate-limit fica em memória — por
+    // instância, sem estado partilhado, logo facilmente contornável. Avisamos
+    // uma vez por isolate (o memo acima evita repetir) para não passar
+    // despercebido. validate-env.mjs já exige Upstash em produção; isto é a
+    // rede de segurança em runtime caso a var falte mesmo assim.
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") {
+      console.warn(
+        JSON.stringify({
+          scope: "onnex",
+          event: "rate_limit.in_memory_fallback",
+          level: "warn",
+          timestamp: new Date().toISOString(),
+          message:
+            "UPSTASH_REDIS_REST_URL/TOKEN ausentes: rate-limit a correr EM MEMORIA (nao partilhado entre instancias).",
+        }),
+      );
+    }
     return null;
   }
 

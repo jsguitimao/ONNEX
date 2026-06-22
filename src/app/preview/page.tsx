@@ -6,9 +6,13 @@ import { buildInitialDraftFromMock } from "@/lib/page-editor/mock-draft";
 import { POSTMESSAGE_TYPE, type EditorDraft, type EditorPostMessage } from "@/lib/page-editor/draft";
 
 export default function PreviewPage() {
-  const [draft, setDraft] = useState<EditorDraft>(() => buildInitialDraftFromMock());
+  // Arranca vazio: dentro do editor (iframe) o draft real chega por postMessage.
+  // Renderizar o mock à partida causava um flash de outra barbearia antes do
+  // draft real entrar. O mock só serve de fallback para visitas diretas a /preview.
+  const [draft, setDraft] = useState<EditorDraft | null>(null);
 
   useEffect(() => {
+    if (!draft) return;
     const seoTitle = draft.seoTitle ?? "";
     const seoDescription = draft.seoDescription ?? "";
     const headline = draft.headline ?? "";
@@ -42,8 +46,24 @@ export default function PreviewPage() {
     // Sinaliza ao parent que está pronto a receber drafts.
     window.parent?.postMessage({ type: "onnex:editor-ready" }, window.location.origin);
 
-    return () => window.removeEventListener("message", onMessage);
+    // Visita direta (sem editor pai): mostra a demo. Dentro do iframe do editor
+    // esperamos sempre pelo draft real, sem flash de mock.
+    let fallback: ReturnType<typeof setTimeout> | undefined;
+    if (window.parent === window) {
+      fallback = setTimeout(() => {
+        setDraft((current) => current ?? buildInitialDraftFromMock());
+      }, 0);
+    }
+
+    return () => {
+      window.removeEventListener("message", onMessage);
+      if (fallback) clearTimeout(fallback);
+    };
   }, []);
+
+  if (!draft) {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   return <BioRender draft={draft} />;
 }

@@ -44,23 +44,26 @@ function getUploadRule(pathname: string) {
 }
 
 export async function POST(req: Request) {
-  const rateLimit = await checkRequestRateLimit(req, {
-    namespace: "upload",
-    limit: 30,
-    windowMs: 5 * 60_000,
-  });
-
-  if (!rateLimit.ok) {
-    return NextResponse.json(
-      { error: "Demasiados uploads. Aguarda alguns minutos." },
-      { status: 429, headers: buildRateLimitHeaders(rateLimit) },
-    );
-  }
-
   try {
     const body = (await req.json()) as HandleUploadBody;
 
+    // Rate-limit e validação de origem aplicam-se APENAS ao pedido iniciado pelo
+    // utilizador (geração de token). O callback `blob.upload-completed` é um POST
+    // da infra do Vercel Blob (sem cookies, IP partilhado) e NÃO deve ser limitado
+    // nem barrado por origem — caso contrário estrangulamos os próprios callbacks.
     if (body.type === "blob.generate-client-token") {
+      const rateLimit = await checkRequestRateLimit(req, {
+        namespace: "upload",
+        limit: 30,
+        windowMs: 5 * 60_000,
+      });
+      if (!rateLimit.ok) {
+        return NextResponse.json(
+          { error: "Demasiados uploads. Aguarda alguns minutos." },
+          { status: 429, headers: buildRateLimitHeaders(rateLimit) },
+        );
+      }
+
       const originValidation = validateAuthenticatedMutationOrigin(req);
       if (!originValidation.ok) {
         return NextResponse.json(
