@@ -18,7 +18,7 @@ const securityHeaders = [
       "frame-ancestors 'self'",
       "object-src 'none'",
       "img-src 'self' data: blob: https:",
-      "media-src 'self' blob: https:",
+      "media-src 'self' data: blob: https:",
       "style-src 'self' 'unsafe-inline' https:",
       "font-src 'self' data: https:",
       `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://*.clerk.com https://*.clerk.accounts.dev https://*.onnex.pt https://browser.sentry-cdn.com https://challenges.cloudflare.com`,
@@ -53,6 +53,16 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+    ];
+  },
+  async rewrites() {
+    // A homepage (/) serve a landing estatica em public/landing.html.
+    // Mantem o URL "/" (rewrite, nao redirect) e fica isolada do design da app.
+    return [
+      {
+        source: "/",
+        destination: "/landing.html",
       },
     ];
   },
