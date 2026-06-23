@@ -69,6 +69,7 @@ export type PublicBusinessPayload = {
     portfolioImages: string[];
     serviceIds: string[];
   }>;
+  galleryImages: string[];
 };
 
 export type PublicBookingDetails = {

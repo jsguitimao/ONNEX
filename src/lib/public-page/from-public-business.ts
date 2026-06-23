@@ -59,13 +59,7 @@ export function fromPublicBusiness(business: PublicBusinessPayload): PublicPageV
       portfolioImages: member.portfolioImages.filter(isSupportedMediaUrl),
       serviceIds: member.serviceIds,
     })),
-    galleryImages: Array.from(
-      new Set(
-        business.staffMembers
-          .flatMap((m) => m.portfolioImages)
-          .filter(isSupportedMediaUrl),
-      ),
-    ),
+    galleryImages: business.galleryImages.filter(isSupportedMediaUrl),
     mapsAddress: business.mapsAddress,
     locationLine1,
     locationCity: business.city,

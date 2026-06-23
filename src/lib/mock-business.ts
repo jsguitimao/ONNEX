@@ -302,6 +302,7 @@ export const mockBusiness: PublicBusinessPayload = {
       ],
     },
   ],
+  galleryImages: PORTFOLIO_IMAGES,
 };
 
 export function generateMockSlots(date: string): BookingSlot[] {

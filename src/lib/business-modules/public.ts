@@ -361,6 +361,12 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
         : [],
       serviceIds: member.services.map((assignment) => assignment.serviceId),
     })),
+    galleryImages: Array.isArray(business.bookingPage?.galleryImages)
+      ? (business.bookingPage.galleryImages as unknown[]).filter(
+          (value): value is string =>
+            typeof value === "string" && isSupportedMediaUrl(value),
+        )
+      : [],
   };
 }
 

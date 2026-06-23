@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@clerk/nextjs/server";
 import { getCurrentBusiness } from "@/lib/business-modules/core";
@@ -55,6 +56,8 @@ export async function PUT(req: Request) {
     const draft = editorDraftSchema.parse(body);
     const business = await getCurrentBusiness();
     await saveEditorDraft(business.id, draft);
+    // Atualiza a página pública na hora (sem esperar pelo ISR de 60s).
+    revalidatePath(`/${draft.slug}`);
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_JSON_BODY") {
