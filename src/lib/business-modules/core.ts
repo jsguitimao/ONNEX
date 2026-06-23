@@ -1,6 +1,7 @@
 ﻿import { auth, currentUser } from "@clerk/nextjs/server";
 import { addDays, set } from "date-fns";
 import { cache } from "react";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { demoBusiness } from "@/lib/demo-data";
 
@@ -29,6 +30,26 @@ const currentBusinessInclude = {
   },
   locations: { where: { isDefault: true }, take: 1 },
 } as const;
+
+// Include usado pelo hydrateOperationalData. Exportado como tipo para podermos
+// passar a barbearia já carregada (ex.: acabada de criar) e evitar uma re-leitura
+// à BD no caminho de provisionamento de conta nova.
+const operationalHydrationInclude = {
+  locations: { where: { isDefault: true }, take: 1 },
+  services: { orderBy: { displayOrder: "asc" } },
+  staffMembers: {
+    orderBy: { displayOrder: "asc" },
+    include: {
+      services: true,
+      availabilities: true,
+    },
+  },
+  bookings: true,
+} satisfies Prisma.BusinessInclude;
+
+type OperationalBusiness = Prisma.BusinessGetPayload<{
+  include: typeof operationalHydrationInclude;
+}>;
 
 function slugify(value: string) {
   return value
@@ -223,9 +244,13 @@ async function fetchCurrentBusiness() {
         },
       },
     },
+    include: operationalHydrationInclude,
   });
 
-  await hydrateOperationalData(createdBusiness.id, { seedBooking: false });
+  await hydrateOperationalData(createdBusiness.id, {
+    seedBooking: false,
+    preloaded: createdBusiness,
+  });
 
   return db.business.findUniqueOrThrow({
     where: { id: createdBusiness.id },
@@ -379,23 +404,16 @@ export async function hydrateOperationalData(
   businessId: string,
   options: {
     seedBooking?: boolean;
+    /** Barbearia já carregada (com operationalHydrationInclude) para poupar uma re-leitura. */
+    preloaded?: OperationalBusiness;
   } = {}
 ) {
-  const business = await db.business.findUniqueOrThrow({
-    where: { id: businessId },
-    include: {
-      locations: { where: { isDefault: true }, take: 1 },
-      services: { orderBy: { displayOrder: "asc" } },
-      staffMembers: {
-        orderBy: { displayOrder: "asc" },
-        include: {
-          services: true,
-          availabilities: true,
-        },
-      },
-      bookings: true,
-    },
-  });
+  const business =
+    options.preloaded ??
+    (await db.business.findUniqueOrThrow({
+      where: { id: businessId },
+      include: operationalHydrationInclude,
+    }));
 
   const location = business.locations[0];
 

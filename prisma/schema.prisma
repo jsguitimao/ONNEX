@@ -13,7 +13,8 @@ datasource db {
   // (ver passo-a-passo no .env.example / OPERATIONS-RUNBOOK). Só adicionar a linha
   // `directUrl` DEPOIS de DIRECT_URL estar definida em todos os ambientes (local,
   // CI e Vercel), senão `prisma generate`/`validate` falham com P1012.
-  url = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
