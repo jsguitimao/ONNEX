@@ -51,6 +51,7 @@ export function BookingSheetDialog({
   const [date, setDate] = useState<string>("");
   const [slot, setSlot] = useState<string>("");
   const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
 
   const [activeStep, setActiveStep] = useState<StepId>("service");
@@ -232,6 +233,7 @@ export function BookingSheetDialog({
     !!date &&
     !!slot &&
     customerName.trim().length > 0 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) &&
     customerPhone.trim().length > 0 &&
     !submitting;
 
@@ -271,6 +273,7 @@ export function BookingSheetDialog({
           staffMemberId,
           startsAt: slot,
           customerName,
+          customerEmail,
           customerPhone,
         }),
       });
@@ -423,8 +426,10 @@ export function BookingSheetDialog({
                 >
                   <ContactStep
                     name={customerName}
+                    email={customerEmail}
                     phone={customerPhone}
                     onName={setCustomerName}
+                    onEmail={setCustomerEmail}
                     onPhone={setCustomerPhone}
                   />
 
@@ -948,13 +953,17 @@ function TimeStep({
 
 function ContactStep({
   name,
+  email,
   phone,
   onName,
+  onEmail,
   onPhone,
 }: {
   name: string;
+  email: string;
   phone: string;
   onName: (v: string) => void;
+  onEmail: (v: string) => void;
   onPhone: (v: string) => void;
 }) {
   const inputClass =
@@ -973,6 +982,18 @@ function ContactStep({
         />
       </label>
       <label className="grid gap-1">
+        <span className="text-[13px] leading-[18px] text-muted-foreground">Email</span>
+        <input
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          placeholder="o-teu@email.com"
+          value={email}
+          onChange={(e) => onEmail(e.target.value)}
+          className={inputClass}
+        />
+      </label>
+      <label className="grid gap-1">
         <span className="text-[13px] leading-[18px] text-muted-foreground">Telefone</span>
         <input
           type="tel"
@@ -985,7 +1006,7 @@ function ContactStep({
         />
       </label>
       <p className="text-[13px] leading-[18px] text-muted-foreground">
-        Vamos enviar a confirmação por WhatsApp para este número.
+        Enviamos a confirmação da reserva para o teu email e WhatsApp.
       </p>
     </div>
   );
