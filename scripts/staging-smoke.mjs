@@ -1,5 +1,4 @@
 const baseUrl = normalizeBaseUrl(process.env.STAGING_BASE_URL || process.env.NEXT_PUBLIC_APP_URL);
-const cronSecret = process.env.STAGING_CRON_SECRET || process.env.CRON_SECRET;
 const publicSlug = process.env.STAGING_PUBLIC_SLUG;
 
 if (!baseUrl) {
@@ -19,30 +18,6 @@ if (publicSlug) {
     name: "public-business",
     path: `/${encodeURIComponent(publicSlug)}`,
     status: [200],
-  });
-}
-
-if (cronSecret) {
-  checks.push({
-    name: "cron-rejects-missing-secret",
-    path: "/api/cron/send-reminders",
-    method: "POST",
-    status: [401, 403],
-  });
-  checks.push({
-    name: "cron-rejects-wrong-secret",
-    path: "/api/cron/send-reminders",
-    method: "POST",
-    headers: { "x-cron-secret": `${cronSecret}-wrong` },
-    status: [401, 403],
-  });
-  checks.push({
-    name: "cron-accepts-secret",
-    path: "/api/cron/send-reminders",
-    method: "POST",
-    headers: { "x-cron-secret": cronSecret },
-    status: [200],
-    timeoutMs: 45_000,
   });
 }
 

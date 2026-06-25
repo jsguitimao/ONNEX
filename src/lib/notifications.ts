@@ -1,12 +1,6 @@
 import { Prisma } from "@prisma/client";
-import { addMinutes, format } from "date-fns";
+import { format } from "date-fns";
 import { getAppUrl } from "./app-config";
-import {
-  DEFAULT_AUTOMATION,
-  getBusinessAutomation,
-  getBusinessAutomationMap,
-  type CrmAutomationConfig,
-} from "./crm/automation";
 import { db } from "./db";
 import { captureException } from "./observability";
 
@@ -14,16 +8,11 @@ type NotificationKind =
   | "BOOKING_CREATED"
   | "BOOKING_CONFIRMED"
   | "BOOKING_CANCELLED"
-  | "BOOKING_CANCELLED_INTERNAL"
   | "BOOKING_RESCHEDULED"
-  | "BOOKING_REMINDER"
-  | "BOOKING_ADVANCEMENT"
   | "BOOKING_STAFF_NEW_BOOKING"
   | "BOOKING_STAFF_PENDING_REQUEST";
 
 type NotificationChannel = "EMAIL" | "WHATSAPP";
-type ReminderRunSource = "CRON" | "DASHBOARD";
-type ReminderRunStatus = "SUCCESS" | "FAILED" | "UNAUTHORIZED" | "MISCONFIGURED";
 
 type DeliveryStatus = "sent" | "skipped" | "failed" | "duplicate";
 
@@ -71,22 +60,9 @@ function buildPublicPageUrl(booking: BookingNotificationPayload) {
   return `${getAppUrl()}/${booking.business.slug}`;
 }
 
-function getRepresentativeWhatsappRecipient(booking: BookingNotificationPayload) {
-  return booking.business.contactPhone;
-}
-
-type MessageContext = {
-  // Para BOOKING_ADVANCEMENT: hora exacta que ficou livre na agenda.
-  freedSlotAt?: Date;
-  // Para BOOKING_CANCELLED_INTERNAL: nome do próximo cliente convidado a adiantar.
-  nextCustomerName?: string;
-};
-
 function buildWhatsappMessage(
   kind: NotificationKind,
   booking: BookingNotificationPayload,
-  automation?: CrmAutomationConfig,
-  context?: MessageContext,
 ) {
   const when = format(booking.startsAt, "dd/MM HH:mm");
   const professional = booking.staffMember?.fullName ?? "equipa";
@@ -99,23 +75,8 @@ function buildWhatsappMessage(
       return `Reserva confirmada em ${booking.business.name}: ${booking.service.name} a ${when} com ${professional}. ${manageUrl}`;
     case "BOOKING_CANCELLED":
       return `A tua reserva em ${booking.business.name} foi cancelada. Se quiseres marcar novamente: ${buildPublicPageUrl(booking)}`;
-    case "BOOKING_CANCELLED_INTERNAL":
-      if (context?.nextCustomerName) {
-        return `${booking.business.name}: ${booking.customerName} não confirmou ${booking.service.name} de ${when} e foi cancelado. Já convidámos ${context.nextCustomerName} a adiantar — aguardamos resposta. Ver: ${manageUrl}`;
-      }
-      return `Cancelamento recebido: ${booking.customerName} cancelou ${booking.service.name} a ${when}. Ver: ${manageUrl}`;
     case "BOOKING_RESCHEDULED":
       return `Reserva remarcada em ${booking.business.name}: novo horário ${when} com ${professional}. ${manageUrl}`;
-    case "BOOKING_REMINDER": {
-      const cfg = automation ?? DEFAULT_AUTOMATION;
-      return `Lembrete: faltam ~${cfg.reminderMinutesBefore} min para ${booking.service.name} em ${booking.business.name}. Confirma a tua presença aqui — sem confirmação, cancelamos automaticamente em ${cfg.confirmationToleranceMinutes} min: ${manageUrl}`;
-    }
-    case "BOOKING_ADVANCEMENT":
-      if (context?.freedSlotAt) {
-        const freed = format(context.freedSlotAt, "HH:mm");
-        return `${booking.business.name}: boa notícia — abriu vaga às ${freed}. A tua reserva de ${booking.service.name} está marcada para ${when}. Queres adiantar para as ${freed}? Confirma aqui: ${manageUrl}`;
-      }
-      return `${booking.business.name}: Houve uma disponibilidade! Podes adiantar a tua reserva de ${booking.service.name} a ${when}. Ver: ${manageUrl}`;
     case "BOOKING_STAFF_NEW_BOOKING":
       return `${booking.business.name}: Novo agendamento confirmado - ${booking.customerName}, ${booking.service.name} a ${when}. Ver: ${getAppUrl()}/crm`;
     case "BOOKING_STAFF_PENDING_REQUEST":
@@ -274,7 +235,6 @@ function wait(ms: number) {
 }
 
 const PROVIDER_REQUEST_TIMEOUT_MS = 10_000;
-const REMINDER_SEND_CONCURRENCY = 5;
 
 async function fetchWithTimeout(
   input: RequestInfo | URL,
@@ -327,26 +287,6 @@ async function fetchWithProviderRetry(
   throw lastError instanceof Error ? lastError : new Error("PROVIDER_REQUEST_FAILED");
 }
 
-async function mapWithConcurrency<T, R>(
-  items: readonly T[],
-  concurrency: number,
-  worker: (item: T, index: number) => Promise<R>,
-) {
-  const results = new Array<R>(items.length);
-  let nextIndex = 0;
-
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (nextIndex < items.length) {
-      const index = nextIndex;
-      nextIndex += 1;
-      results[index] = await worker(items[index] as T, index);
-    }
-  });
-
-  await Promise.all(workers);
-  return results;
-}
-
 function normalizeWhatsappAddress(value: string) {
   const trimmed = value.trim();
   return trimmed.startsWith("whatsapp:") ? trimmed : `whatsapp:${trimmed}`;
@@ -364,8 +304,6 @@ async function sendWhatsappForKind(
   booking: BookingNotificationPayload,
   kind: NotificationKind,
   recipient: string,
-  automation?: CrmAutomationConfig,
-  context?: MessageContext,
 ) {
   if (!isValidWhatsappRecipient(recipient)) {
     await createNotificationLog({
@@ -421,7 +359,7 @@ async function sendWhatsappForKind(
       body: new URLSearchParams({
         To: normalizeWhatsappAddress(recipient),
         From: normalizeWhatsappAddress(fromNumber),
-        Body: buildWhatsappMessage(kind, booking, automation, context),
+        Body: buildWhatsappMessage(kind, booking),
       }).toString(),
     });
 
@@ -491,10 +429,8 @@ export async function sendBookingNotification(
   bookingId: string,
   kind: Exclude<
     NotificationKind,
-    "BOOKING_CANCELLED_INTERNAL" | "BOOKING_STAFF_NEW_BOOKING" | "BOOKING_STAFF_PENDING_REQUEST"
+    "BOOKING_STAFF_NEW_BOOKING" | "BOOKING_STAFF_PENDING_REQUEST"
   >,
-  automation?: CrmAutomationConfig,
-  context?: MessageContext,
 ) {
   const booking = await loadBookingNotificationPayload(bookingId);
 
@@ -502,16 +438,10 @@ export async function sendBookingNotification(
     return { status: "missing" as const, channels: [] as DeliveryResult[] };
   }
 
-  // BOOKING_REMINDER usa o template dinâmico (X min, tolerância Y). Quando o
-  // chamador (cron) já carregou a config do business, reaproveitamos — caso
-  // contrário (ações pontuais), vamos buscar uma vez.
-  const cfg =
-    automation ?? (kind === "BOOKING_REMINDER" ? await getBusinessAutomation(booking.business.id) : undefined);
-
   const deliveries: DeliveryResult[] = [];
 
   if (booking.customerPhone) {
-    deliveries.push(await sendWhatsappForKind(booking, kind, booking.customerPhone, cfg, context));
+    deliveries.push(await sendWhatsappForKind(booking, kind, booking.customerPhone));
   } else {
     await createSkippedNotification(booking, "WHATSAPP", kind, "CUSTOMER_PHONE_MISSING");
   }
@@ -543,262 +473,4 @@ export async function sendStaffBookingNotification(
   }
 
   return summarizeDeliveries(deliveries);
-}
-
-export async function sendRepresentativeBookingNotification(
-  bookingId: string,
-  kind: Extract<NotificationKind, "BOOKING_CANCELLED_INTERNAL">,
-  context?: MessageContext,
-) {
-  const booking = await loadBookingNotificationPayload(bookingId);
-
-  if (!booking) {
-    return { status: "missing" as const, channels: [] as DeliveryResult[] };
-  }
-
-  const deliveries: DeliveryResult[] = [];
-  const whatsappRecipient = getRepresentativeWhatsappRecipient(booking);
-
-  if (whatsappRecipient) {
-    deliveries.push(await sendWhatsappForKind(booking, kind, whatsappRecipient, undefined, context));
-  } else {
-    await createSkippedNotification(booking, "WHATSAPP", kind, "REPRESENTATIVE_PHONE_MISSING");
-  }
-
-  return summarizeDeliveries(deliveries);
-}
-
-export async function logReminderRunExecution(input: {
-  source: ReminderRunSource;
-  status: ReminderRunStatus;
-  authorizationSource?: string | null;
-  userAgent?: string | null;
-  reminderStartMinutes?: number;
-  reminderEndMinutes?: number;
-  scanned?: number;
-  sent?: number;
-  skipped?: number;
-  failed?: number;
-  errorMessage?: string | null;
-}) {
-  return db.reminderRunLog.create({
-    data: {
-      source: input.source,
-      status: input.status,
-      authorizationSource: input.authorizationSource || null,
-      userAgent: input.userAgent || null,
-      reminderStartMinutes: input.reminderStartMinutes ?? 25,
-      reminderEndMinutes: input.reminderEndMinutes ?? 35,
-      scanned: input.scanned ?? 0,
-      sent: input.sent ?? 0,
-      skipped: input.skipped ?? 0,
-      failed: input.failed ?? 0,
-      errorMessage: input.errorMessage || null,
-    },
-  });
-}
-
-// Janela máxima que vamos varrer em cada cron run. Cobre qualquer combinação
-// razoável de reminderMinutesBefore (max 240 = 4h) + confirmationToleranceMinutes
-// (max 120). Mantém a query única e barata para Onnex scale.
-const MAX_LOOKAHEAD_MINUTES = 240;
-
-function minutesFromNow(date: Date) {
-  return (date.getTime() - Date.now()) / 60_000;
-}
-
-function isWithinTarget(startsAt: Date, targetMinutes: number, halfWidthMinutes: number) {
-  return Math.abs(minutesFromNow(startsAt) - targetMinutes) <= halfWidthMinutes;
-}
-
-type UpcomingBooking = {
-  id: string;
-  businessId: string;
-  startsAt: Date;
-  staffMemberId: string | null;
-};
-
-async function fetchUpcomingBookings(opts: {
-  unconfirmedOnly?: boolean;
-  requireReminderSent?: boolean;
-  // Quando definido, restringe a varredura a um único negócio. O cron global
-  // chama sem este campo (varre todos); o trigger manual do CRM passa sempre o
-  // business.id da sessão para não tocar em reservas de outros negócios.
-  businessId?: string;
-} = {}): Promise<UpcomingBooking[]> {
-  return db.booking.findMany({
-    where: {
-      ...(opts.businessId ? { businessId: opts.businessId } : {}),
-      startsAt: {
-        gte: new Date(),
-        lte: addMinutes(new Date(), MAX_LOOKAHEAD_MINUTES),
-      },
-      status: { in: ["PENDING", "CONFIRMED"] },
-      customerPhone: { not: null },
-      ...(opts.unconfirmedOnly ? { customerConfirmedAt: null } : {}),
-      ...(opts.requireReminderSent
-        ? {
-            notifications: {
-              some: { kind: "BOOKING_REMINDER", status: "SENT" },
-            },
-          }
-        : {}),
-    },
-    select: { id: true, businessId: true, startsAt: true, staffMemberId: true },
-  });
-}
-
-async function loadAutomationFor(bookings: UpcomingBooking[]) {
-  return getBusinessAutomationMap(Array.from(new Set(bookings.map((b) => b.businessId))));
-}
-
-function getConfig(map: Map<string, CrmAutomationConfig>, businessId: string) {
-  return map.get(businessId) ?? DEFAULT_AUTOMATION;
-}
-
-function summarize(scanned: number, results: ReadonlyArray<{ status: string }>) {
-  return {
-    scanned,
-    sent: results.filter((r) => r.status === "sent").length,
-    skipped: results.filter((r) => r.status === "skipped" || r.status === "duplicate").length,
-    failed: results.filter((r) => r.status === "failed").length,
-  };
-}
-
-export async function sendUpcomingBookingReminders(businessId?: string) {
-  const all = await fetchUpcomingBookings(businessId ? { businessId } : {});
-  const automationMap = await loadAutomationFor(all);
-
-  const eligible = all.filter((booking) => {
-    const config = getConfig(automationMap, booking.businessId);
-    if (!config.reminderEnabled) return false;
-    return isWithinTarget(booking.startsAt, config.reminderMinutesBefore, 5);
-  });
-
-  const results = await mapWithConcurrency(
-    eligible,
-    REMINDER_SEND_CONCURRENCY,
-    (booking) =>
-      sendBookingNotification(
-        booking.id,
-        "BOOKING_REMINDER",
-        getConfig(automationMap, booking.businessId),
-      ),
-  );
-
-  return summarize(eligible.length, results);
-}
-
-export async function autoCancelUnconfirmedBookings(businessId?: string) {
-  const candidates = await fetchUpcomingBookings({
-    unconfirmedOnly: true,
-    requireReminderSent: true,
-    ...(businessId ? { businessId } : {}),
-  });
-  const automationMap = await loadAutomationFor(candidates);
-
-  const toCancel = candidates.filter((booking) => {
-    const config = getConfig(automationMap, booking.businessId);
-    if (!config.reminderEnabled) return false;
-    // Auto-cancel corre `confirmationToleranceMinutes` depois do lembrete:
-    // se lembrete foi a T-30 com 10 min de tolerância, cancela a T-20.
-    const target = config.reminderMinutesBefore - config.confirmationToleranceMinutes;
-    if (target <= 0) return false;
-    return isWithinTarget(booking.startsAt, target, 2);
-  });
-
-  const results = await mapWithConcurrency(toCancel, REMINDER_SEND_CONCURRENCY, async (booking) => {
-    // Update condicional: se o cliente confirmou (ou alguem cancelou) entre o
-    // findMany e este update, count=0 e saltamos. Evita cancelar marcacoes
-    // que ja foram confirmadas durante o tempo de iteracao do cron.
-    try {
-      const updated = await db.booking.updateMany({
-        where: {
-          id: booking.id,
-          status: { in: ["PENDING", "CONFIRMED"] },
-          customerConfirmedAt: null,
-        },
-        data: { status: "CANCELLED" },
-      });
-      if (updated.count === 0) return { cancelled: 0, advancementsSent: 0 };
-
-      try {
-        // 1. Avisa o cliente cancelado.
-        await sendBookingNotification(booking.id, "BOOKING_CANCELLED");
-      } catch (error) {
-        captureException("notification.auto_cancel.customer_failed", error, {
-          bookingId: booking.id,
-        });
-      }
-
-    // 2. Procura próximo cliente da agenda do mesmo barbeiro e convida a adiantar.
-      let nextCustomerName: string | undefined;
-      let advancementsSent = 0;
-      try {
-        if (booking.staffMemberId) {
-          const nextBooking = await db.booking.findFirst({
-            where: {
-              staffMemberId: booking.staffMemberId,
-              businessId: booking.businessId,
-              startsAt: { gt: booking.startsAt },
-              status: { in: ["PENDING", "CONFIRMED"] },
-              id: { not: booking.id },
-            },
-            orderBy: { startsAt: "asc" },
-            select: { id: true, customerName: true },
-          });
-
-        if (nextBooking) {
-          try {
-            const advancementResult = await sendBookingNotification(
-              nextBooking.id,
-              "BOOKING_ADVANCEMENT",
-              undefined,
-              { freedSlotAt: booking.startsAt },
-            );
-            if (advancementResult.status === "sent" || advancementResult.status === "duplicate") {
-              nextCustomerName = nextBooking.customerName;
-              advancementsSent = 1;
-            }
-          } catch (error) {
-            captureException("notification.auto_cancel.advancement_failed", error, {
-              bookingId: booking.id,
-              nextBookingId: nextBooking.id,
-            });
-          }
-        }
-        }
-      } catch (error) {
-        captureException("notification.auto_cancel.next_booking_lookup_failed", error, {
-          bookingId: booking.id,
-        });
-      }
-
-    // 3. Avisa o dono — uma única mensagem que combina cancelamento + convite ao próximo.
-      try {
-        await sendRepresentativeBookingNotification(
-          booking.id,
-          "BOOKING_CANCELLED_INTERNAL",
-          nextCustomerName ? { nextCustomerName } : undefined,
-        );
-      } catch (error) {
-        captureException("notification.auto_cancel.internal_failed", error, {
-          bookingId: booking.id,
-          hasNextCustomer: Boolean(nextCustomerName),
-        });
-      }
-
-      return { cancelled: 1, advancementsSent };
-    } catch (error) {
-      captureException("notification.auto_cancel.booking_failed", error, {
-        bookingId: booking.id,
-      });
-      return { cancelled: 0, advancementsSent: 0 };
-    }
-  });
-
-  const cancelled = results.reduce((sum, result) => sum + result.cancelled, 0);
-  const advancementsSent = results.reduce((sum, result) => sum + result.advancementsSent, 0);
-
-  return { scanned: toCancel.length, cancelled, advancementsSent };
 }

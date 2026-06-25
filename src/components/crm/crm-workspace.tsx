@@ -11,7 +11,6 @@ import type { CrmStaffRow } from "@/lib/crm/staff";
 import type { CrmBookingRowDto, CrmPendingBookingDto } from "@/lib/crm/bookings";
 import type { CrmDayAvailability } from "@/lib/crm/availability";
 import type { CrmScheduleBlockRowDto } from "@/lib/crm/schedule-blocks";
-import type { CrmAutomationConfig } from "@/lib/crm/automation";
 import type { CrmFinancialSummary } from "@/lib/crm/finance";
 
 export type CrmServiceOption = {
@@ -40,7 +39,6 @@ type Props = {
   scheduleBlocks: CrmScheduleBlockRowDto[];
   initialFinancialSummary: CrmFinancialSummary;
   services: CrmServiceOption[];
-  automation: CrmAutomationConfig;
   editorDraft: EditorDraft;
 };
 
@@ -57,7 +55,6 @@ export function CrmWorkspace({
   scheduleBlocks,
   initialFinancialSummary,
   services,
-  automation,
   editorDraft,
 }: Props) {
   const [active, setActive] = useState<CrmSectionId>("painel-visual");
@@ -67,7 +64,6 @@ export function CrmWorkspace({
   const [pendingBookingsList, setPendingBookingsList] = useState(pendingBookings);
   const [availabilityState, setAvailabilityState] = useState(availabilityByStaff);
   const [scheduleBlocksList, setScheduleBlocksList] = useState(scheduleBlocks);
-  const [automationConfig, setAutomationConfig] = useState(automation);
   const activeSection = sections.find((section) => section.id === active) ?? sections[0];
   const Icon = activeSection.icon;
   const showActionButton = active === "clientes" || active === "agendamentos";
@@ -243,8 +239,6 @@ export function CrmWorkspace({
               onStaffDayAvailabilityUpdated={handleStaffDayAvailabilityUpdated}
               onScheduleBlockCreated={handleScheduleBlockCreated}
               onScheduleBlockDeleted={handleScheduleBlockDeleted}
-              automation={automationConfig}
-              onAutomationUpdated={setAutomationConfig}
             />
           ) : (
             <FinancePanel staff={staffList} initialSummary={initialFinancialSummary} />

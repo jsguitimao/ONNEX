@@ -88,11 +88,8 @@ export type PublicBookingDetails = {
   staffName: string | null;
   businessName: string;
   businessSlug: string;
-  canConfirm: boolean;
   canCancel: boolean;
   canReschedule: boolean;
-  canReconfirm: boolean;
-  customerConfirmedAt: Date | null;
   cancellationWindowHours: number;
   cancellationDeadline: Date;
   bookingLeadTimeHours: number;

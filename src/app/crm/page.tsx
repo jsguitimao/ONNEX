@@ -21,7 +21,6 @@ import {
   toCrmScheduleBlockRowDto,
 } from "@/lib/crm/schedule-blocks";
 import { computeFinancialSummary } from "@/lib/crm/finance";
-import { getBusinessAutomation } from "@/lib/crm/automation";
 import { loadEditorDraft } from "@/lib/page-editor/load";
 import { captureException } from "@/lib/observability";
 
@@ -58,7 +57,6 @@ export default async function CrmPage() {
     dailyBookings,
     scheduleBlocks,
     financialSummary,
-    automation,
     editorDraft,
   ] = await Promise.all([
     listCustomers(business.id),
@@ -73,7 +71,6 @@ export default async function CrmPage() {
       staffMemberId: null,
       timezone: business.timezone,
     }),
-    getBusinessAutomation(business.id),
     loadEditorDraft(),
   ]);
 
@@ -103,7 +100,6 @@ export default async function CrmPage() {
       scheduleBlocks={scheduleBlocks.map(toCrmScheduleBlockRowDto)}
       initialFinancialSummary={financialSummary}
       services={services}
-      automation={automation}
       editorDraft={editorDraft}
     />
   );

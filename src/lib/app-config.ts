@@ -12,10 +12,6 @@ export function getAppUrl() {
   return normalizeUrl(process.env.NEXT_PUBLIC_APP_URL);
 }
 
-export function getCronSecret() {
-  return process.env.CRON_SECRET?.trim() || "";
-}
-
 export function getEnvironmentName() {
   return process.env.VERCEL_ENV?.trim() || process.env.NODE_ENV?.trim() || "development";
 }

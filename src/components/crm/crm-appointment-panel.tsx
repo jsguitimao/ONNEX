@@ -11,12 +11,10 @@ import {
 } from "@/app/crm/actions";
 import type { CrmBookingRowDto, CrmPendingBookingDto } from "@/lib/crm/bookings";
 import type { CrmDayAvailability } from "@/lib/crm/availability";
-import type { CrmAutomationConfig } from "@/lib/crm/automation";
 import type { CrmScheduleBlockRowDto } from "@/lib/crm/schedule-blocks";
 import type { CrmStaffRow } from "@/lib/crm/staff";
 import { BookingsTable } from "./crm-bookings-table";
 import type { AcceptanceMode } from "./crm-types";
-import { ReminderAutomationPanel } from "./crm-reminder-panel";
 import { TimeOffPanel } from "./crm-time-off-panel";
 import { WeeklySchedulePanel } from "./crm-weekly-schedule-panel";
 
@@ -35,8 +33,6 @@ type Props = {
   onStaffDayAvailabilityUpdated: (staffId: string, day: CrmDayAvailability) => void;
   onScheduleBlockCreated: (block: CrmScheduleBlockRowDto) => void;
   onScheduleBlockDeleted: (blockId: string) => void;
-  automation: CrmAutomationConfig;
-  onAutomationUpdated: (config: CrmAutomationConfig) => void;
 };
 
 const dateTimeFormatter = new Intl.DateTimeFormat("pt-PT", {
@@ -73,8 +69,6 @@ function AppointmentPanelContent({
   onStaffDayAvailabilityUpdated,
   onScheduleBlockCreated,
   onScheduleBlockDeleted,
-  automation,
-  onAutomationUpdated,
 }: Props) {
   const [selectedViewerId, setSelectedViewerId] = useState<string | null>(null);
   const [acceptanceError, setAcceptanceError] = useState<string | null>(null);
@@ -220,11 +214,6 @@ function AppointmentPanelContent({
         businessTimezone={businessTimezone}
         onCreated={onScheduleBlockCreated}
         onDeleted={onScheduleBlockDeleted}
-      />
-
-      <ReminderAutomationPanel
-        automation={automation}
-        onAutomationUpdated={onAutomationUpdated}
       />
 
       <BookingsTable

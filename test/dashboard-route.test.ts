@@ -12,6 +12,12 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: h.auth,
 }));
 
+// revalidatePath exige o store de geração estática do Next, ausente quando o
+// handler é chamado diretamente no teste. Mockamos para no-op.
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
 vi.mock("@/lib/business-modules/core", () => ({
   getCurrentBusiness: h.getCurrentBusiness,
 }));

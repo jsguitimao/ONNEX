@@ -14,7 +14,6 @@ const required = [
   "NEXT_PUBLIC_APP_URL",
   "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
   "CLERK_SECRET_KEY",
-  "CRON_SECRET",
   "UPSTASH_REDIS_REST_URL",
   "UPSTASH_REDIS_REST_TOKEN",
   "BLOB_READ_WRITE_TOKEN",
@@ -22,7 +21,6 @@ const required = [
 
 const sensitiveKeys = new Set([
   "CLERK_SECRET_KEY",
-  "CRON_SECRET",
   "UPSTASH_REDIS_REST_TOKEN",
   "BLOB_READ_WRITE_TOKEN",
 ]);

@@ -5,7 +5,6 @@ import { assertSlotAvailable, runBookingTransaction } from "@/lib/booking-transa
 import { after } from "next/server";
 import {
   sendBookingNotification,
-  sendRepresentativeBookingNotification,
   sendStaffBookingNotification,
 } from "@/lib/notifications";
 import { captureException } from "@/lib/observability";
@@ -226,7 +225,6 @@ function buildPublicBookingDetails(booking: {
   customerName: string;
   customerEmail: string | null;
   customerPhone: string | null;
-  customerConfirmedAt: Date | null;
   service: { id: string; name: string };
   staffMember: { id: string; fullName: string } | null;
   business: {
@@ -261,14 +259,8 @@ function buildPublicBookingDetails(booking: {
     staffName: booking.staffMember?.fullName ?? null,
     businessName: booking.business.name,
     businessSlug: booking.business.slug,
-    canConfirm: booking.status === "PENDING" && new Date() < booking.startsAt,
     canCancel: canManageTime,
     canReschedule: canManageTime && Boolean(booking.staffMember?.id),
-    canReconfirm:
-      ["PENDING", "CONFIRMED"].includes(booking.status) &&
-      !booking.customerConfirmedAt &&
-      new Date() < booking.startsAt,
-    customerConfirmedAt: booking.customerConfirmedAt,
     cancellationWindowHours: policy.cancellationWindowHours,
     cancellationDeadline,
     bookingLeadTimeHours: policy.bookingLeadTimeHours,
@@ -624,7 +616,7 @@ export async function getPublicBookingByToken(token: string): Promise<PublicBook
 
 export async function updatePublicBookingByToken(
   token: string,
-  action: "confirm" | "cancel" | "reconfirm"
+  action: "cancel"
 ): Promise<PublicBookingDetails | null> {
   const booking = await db.booking.findUnique({
     where: { publicToken: token },
@@ -640,56 +632,17 @@ export async function updatePublicBookingByToken(
     throw new Error("BOOKING_TOKEN_EXPIRED");
   }
 
-  if (action === "reconfirm") {
-    if (!["PENDING", "CONFIRMED"].includes(booking.status)) {
-      throw new Error("BOOKING_ACTION_NOT_ALLOWED");
-    }
-
-    const updated = await db.booking.update({
-      where: { id: booking.id },
-      data: {
-        status: "CONFIRMED",
-        customerConfirmedAt: new Date(),
-      },
-      include: {
-        business: true,
-        service: true,
-        staffMember: true,
-      },
-    });
-
-    if (booking.status === "PENDING") {
-      runAfterResponse(async () => {
-        try {
-          await sendBookingNotification(updated.id, "BOOKING_CONFIRMED");
-        } catch (error) {
-          captureException("public.update_booking.confirm_notification_failed", error, {
-            bookingId: updated.id,
-            action,
-          });
-        }
-      });
-    }
-
-    return buildPublicBookingDetails(updated);
-  }
-
-  if (action === "confirm" && booking.status !== "PENDING") {
+  if (!["PENDING", "CONFIRMED"].includes(booking.status)) {
     throw new Error("BOOKING_ACTION_NOT_ALLOWED");
   }
-
-  if (action === "cancel" && !["PENDING", "CONFIRMED"].includes(booking.status)) {
-    throw new Error("BOOKING_ACTION_NOT_ALLOWED");
-  }
-  if (action === "cancel" && new Date() >= getCancellationDeadline(booking.startsAt, booking.business)) {
+  if (new Date() >= getCancellationDeadline(booking.startsAt, booking.business)) {
     throw new Error("CANCEL_WINDOW_EXPIRED");
   }
 
   const updated = await db.booking.update({
     where: { id: booking.id },
     data: {
-      status: action === "confirm" ? "CONFIRMED" : "CANCELLED",
-      customerConfirmedAt: action === "confirm" ? new Date() : undefined,
+      status: "CANCELLED",
       publicToken: createPublicBookingToken(),
     },
     include: {
@@ -699,32 +652,16 @@ export async function updatePublicBookingByToken(
     },
   });
 
-  if (action === "confirm") {
-    runAfterResponse(async () => {
-      try {
-        await sendBookingNotification(updated.id, "BOOKING_CONFIRMED");
-      } catch (error) {
-        captureException("public.update_booking.confirm_notification_failed", error, {
-          bookingId: updated.id,
-          action,
-        });
-      }
-    });
-  } else {
-    runAfterResponse(async () => {
-      try {
-        await Promise.all([
-          sendBookingNotification(updated.id, "BOOKING_CANCELLED"),
-          sendRepresentativeBookingNotification(updated.id, "BOOKING_CANCELLED_INTERNAL"),
-        ]);
-      } catch (error) {
-        captureException("public.update_booking.cancel_notification_failed", error, {
-          bookingId: updated.id,
-          action,
-        });
-      }
-    });
-  }
+  runAfterResponse(async () => {
+    try {
+      await sendBookingNotification(updated.id, "BOOKING_CANCELLED");
+    } catch (error) {
+      captureException("public.update_booking.cancel_notification_failed", error, {
+        bookingId: updated.id,
+        action,
+      });
+    }
+  });
 
   return buildPublicBookingDetails(updated);
 }

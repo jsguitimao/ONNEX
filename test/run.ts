@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { getBookableRange, getBookingPolicySettings } from "../src/lib/booking-policy.ts";
-import { authorizeCronRequest } from "../src/lib/cron-auth.ts";
 import {
   normalizeCustomerEmail,
   normalizeCustomerPhone,
@@ -151,69 +150,6 @@ const tests: TestCase[] = [
       assert.equal(range.bookingLeadTimeHours, 2);
       assert.equal(range.bookingWindowDays, 15);
       assert.equal(range.maxBookableAt > range.minBookableAt, true);
-    },
-  },
-  {
-    name: "authorizeCronRequest accepts the shared secret in the custom header",
-    run: () => {
-      process.env.CRON_SECRET = "super-secret";
-
-      const request = new Request("https://example.com/api/cron/send-reminders", {
-        headers: {
-          "x-cron-secret": "super-secret",
-          "user-agent": "vercel-cron/1.0",
-        },
-      });
-
-      const result = authorizeCronRequest(request);
-
-      assert.equal(result.ok, true);
-      assert.equal(result.configured, true);
-      assert.equal(result.source, "header");
-      assert.equal(result.isVercelCronUserAgent, true);
-    },
-  },
-  {
-    name: "authorizeCronRequest rejects invalid secrets",
-    run: () => {
-      process.env.CRON_SECRET = "correct-secret";
-
-      const request = new Request("https://example.com/api/cron/send-reminders?secret=wrong-secret", {
-        headers: {
-          authorization: "Bearer wrong-secret",
-        },
-      });
-
-      const result = authorizeCronRequest(request);
-
-      assert.equal(result.ok, false);
-      assert.equal(result.configured, true);
-      assert.equal(result.source, null);
-    },
-  },
-  {
-    name: "authorizeCronRequest rejects secrets in query string",
-    run: () => {
-      process.env.CRON_SECRET = "super-secret";
-
-      const request = new Request("https://example.com/api/cron/send-reminders?secret=super-secret");
-      const result = authorizeCronRequest(request);
-
-      assert.equal(result.ok, false);
-      assert.equal(result.configured, true);
-      assert.equal(result.source, null);
-    },
-  },
-  {
-    name: "authorizeCronRequest reports missing configuration",
-    run: () => {
-      delete process.env.CRON_SECRET;
-
-      const request = new Request("https://example.com/api/cron/send-reminders");
-      const result = authorizeCronRequest(request);
-
-      assert.equal(result.ok, false);
-      assert.equal(result.configured, false);
     },
   },
   {
