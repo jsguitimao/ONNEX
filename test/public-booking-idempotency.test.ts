@@ -84,8 +84,6 @@ vi.mock("@/lib/business-modules/customers", () => ({
 }));
 vi.mock("@/lib/notifications", () => ({
   sendBookingNotification: vi.fn(async () => {}),
-  sendStaffBookingNotification: vi.fn(async () => {}),
-  sendRepresentativeBookingNotification: vi.fn(async () => {}),
 }));
 vi.mock("@/lib/booking-transaction", () => ({
   runBookingTransaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(h.db)),

@@ -3,10 +3,7 @@ import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
 import { db } from "@/lib/db";
 import { assertSlotAvailable, runBookingTransaction } from "@/lib/booking-transaction";
 import { after } from "next/server";
-import {
-  sendBookingNotification,
-  sendStaffBookingNotification,
-} from "@/lib/notifications";
+import { sendBookingNotification } from "@/lib/notifications";
 import { captureException } from "@/lib/observability";
 import { isSupportedMediaUrl } from "@/lib/media-url";
 import {
@@ -28,7 +25,6 @@ import type { BookingSlot, PublicBookingDetails, PublicBusinessPayload } from ".
 
 type CreatedPublicBooking = {
   id: string;
-  staffMember: unknown | null;
 };
 
 function runAfterResponse(task: () => Promise<void>) {
@@ -47,20 +43,6 @@ async function sendPostBookingNotifications(booking: CreatedPublicBooking, autoA
     );
   } catch (error) {
     captureException("public.create_booking.customer_notification_failed", error, {
-      bookingId: booking.id,
-      autoAccept,
-    });
-  }
-
-  if (!booking.staffMember) return;
-
-  try {
-    await sendStaffBookingNotification(
-      booking.id,
-      autoAccept ? "BOOKING_STAFF_NEW_BOOKING" : "BOOKING_STAFF_PENDING_REQUEST",
-    );
-  } catch (error) {
-    captureException("public.create_booking.staff_notification_failed", error, {
       bookingId: booking.id,
       autoAccept,
     });

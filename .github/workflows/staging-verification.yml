@@ -29,7 +29,6 @@ jobs:
     env:
       STAGING_BASE_URL: ${{ inputs.base_url }}
       STAGING_PUBLIC_SLUG: ${{ inputs.public_slug }}
-      STAGING_CRON_SECRET: ${{ secrets.STAGING_CRON_SECRET }}
       LOAD_TEST_BASE_URL: ${{ inputs.base_url }}
       LOAD_TEST_PUBLIC_SLUG: ${{ inputs.public_slug }}
       LOAD_TEST_CONCURRENCY: ${{ inputs.load_concurrency }}

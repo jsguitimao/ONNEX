@@ -53,3 +53,6 @@ next-env.d.ts
 
 # playwright MCP session artifacts
 /.playwright-mcp/
+
+# Backups locais de dados de produção (NÃO commitar — contém PII)
+backups/

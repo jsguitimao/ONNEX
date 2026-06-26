@@ -107,12 +107,6 @@ function AppointmentPanelContent({
 
   return (
     <div className="grid gap-5">
-      <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-        <strong>Pré-visualização parcial.</strong> Pedidos pendentes, horário semanal, folgas, agenda e
-        vista do dia já usam dados reais. O painel de automações de lembrete continua a usar dados
-        de exemplo até ser ligado à base de dados.
-      </div>
-
       <div className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>

@@ -8,20 +8,15 @@ Runbook de procedimentos operacionais derivados do `SECURITY-AUDIT-2026-05.md`. 
 
 ## 1. Rotação de secrets expostos
 
-### TWILIO_AUTH_TOKEN
+### Twilio (descontinuado — limpar)
 
-**Porquê:** o token apareceu em screenshots durante setup. Mesmo que o sandbox seja gratuito, deve ser rotacionado.
+**Porquê:** o WhatsApp passou para a Cloud API oficial da Meta. O Twilio já não é usado por nenhum código. As env vars `TWILIO_*` e a conta/sandbox devem ser removidas para não deixar credenciais penduradas.
 
 **Como (5 min):**
-1. Abrir https://console.twilio.com
-2. Painel da conta → **Account Info** → **Auth Tokens**
-3. Clicar em **"Request a new Auth Token"** → confirmar
-4. **Copiar o novo token** (Twilio mostra apenas uma vez)
-5. Abrir https://vercel.com/guilhermebilla2-9868s-projects/buk-next/settings/environment-variables
-6. Encontrar `TWILIO_AUTH_TOKEN` → ⋯ → **Edit** → colar o novo valor → **Save** (Production only)
-7. Vercel → **Deployments** → deployment mais recente → ⋯ → **Redeploy** (para o novo env var ser lido)
-8. Confirmar: aguardar ~2 min, depois forçar 1 ciclo do cron-job.org e verificar histórico = 200 OK
-9. **No Twilio Console**, opcional: clicar em **"Promote to primary"** se Twilio criou como secundário. Daí a algumas horas, marcar o token antigo como **"Mark for deletion"**.
+1. Abrir https://vercel.com/guilhermebilla2-9868s-projects/buk-next/settings/environment-variables
+2. Apagar `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` e `TWILIO_WHATSAPP_FROM` (todas as environments)
+3. Vercel → **Deployments** → mais recente → ⋯ → **Redeploy**
+4. Opcional: em https://console.twilio.com, encerrar o projecto/sandbox de WhatsApp se já não for usado para mais nada.
 
 ### BLOB_READ_WRITE_TOKEN
 
@@ -135,10 +130,10 @@ Estes itens NÃO devem ser atacados agora. Cada um tem um critério explícito d
 - **O que envolve:** novo Clerk production instance, CNAMEs adicionais no DNS Hostinger, trocar `pk_live_` / `sk_live_` na Vercel
 - **Quanto tempo:** ~2-3h + propagação DNS
 
-### 5.2 Migrar Twilio sandbox → WhatsApp Business
-- **Critério:** primeira barbearia real interessada em usar a plataforma
-- **O que envolve:** comprar número Twilio (~$2/mês), verificação Meta (1-5 dias úteis), templates aprovados (1-2 dias por template), trocar `TWILIO_WHATSAPP_FROM` na Vercel
-- **Custo operacional:** ~€0.04 por mensagem WhatsApp em Portugal
+### 5.2 Ligar números reais de barbearias (WhatsApp Cloud API)
+- **Critério:** primeira barbearia real a querer enviar confirmações por WhatsApp
+- **O que envolve:** token permanente (System User token) em vez do temporário de teste, verificação da empresa na Meta, e o fluxo de embedded signup que guarda o `phone_number_id` da barbearia em `Business.whatsappPhoneNumberId`. Os templates `reserva_confirmada` / `lembrete_marcacao` já estão submetidos.
+- **Custo operacional:** ~€0.02–0.04 por mensagem de Utilidade em Portugal
 
 ### 5.3 Backups externos (snapshots pg_dump)
 - **Critério:** primeiro cliente pagante OU > 100 marcações reais armazenadas
@@ -149,17 +144,12 @@ Estes itens NÃO devem ser atacados agora. Cada um tem um critério explícito d
 - **Critério:** se aparecerem violations de CSP em logs Vercel/Sentry causando bugs visuais
 - **Estado actual:** CSP em enforced (não bloqueia nada visível). Não vale recuar para Report-Only.
 
-### 5.5 p-limit no cron de lembretes
-- **Critério:** > 20 reservas/dia OU timeouts no cron-job.org
-- **O que envolve:** envolver as chamadas Twilio em `p-limit(5)` para não estourar Vercel function timeout de 10s
-- **Quanto tempo:** ~1h
-
 ---
 
 ## 6. Quando aplicar tudo isto
 
 **Hoje / esta semana (alta prioridade):**
-- ☑️ Secção 1 (rotação Twilio + Blob)
+- ☑️ Secção 1 (limpeza Twilio + rotação Blob)
 - ☑️ Secção 2 (Sentry sample rate)
 
 **Quando tiveres tempo (média prioridade):**

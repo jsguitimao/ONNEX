@@ -3,15 +3,14 @@ import { format } from "date-fns";
 import { getAppUrl } from "./app-config";
 import { db } from "./db";
 import { sendEmail } from "./email";
+import { sendWhatsappTemplate } from "./whatsapp";
 import { captureException } from "./observability";
 
 type NotificationKind =
   | "BOOKING_CREATED"
   | "BOOKING_CONFIRMED"
   | "BOOKING_CANCELLED"
-  | "BOOKING_RESCHEDULED"
-  | "BOOKING_STAFF_NEW_BOOKING"
-  | "BOOKING_STAFF_PENDING_REQUEST";
+  | "BOOKING_RESCHEDULED";
 
 type NotificationChannel = "EMAIL" | "WHATSAPP";
 
@@ -37,6 +36,7 @@ type BookingNotificationPayload = {
     name: string;
     slug: string;
     contactPhone: string | null;
+    whatsappPhoneNumberId: string | null;
     owner: {
       email: string;
       firstName: string | null;
@@ -59,30 +59,6 @@ function buildManageUrl(booking: BookingNotificationPayload) {
 
 function buildPublicPageUrl(booking: BookingNotificationPayload) {
   return `${getAppUrl()}/${booking.business.slug}`;
-}
-
-function buildWhatsappMessage(
-  kind: NotificationKind,
-  booking: BookingNotificationPayload,
-) {
-  const when = format(booking.startsAt, "dd/MM HH:mm");
-  const professional = booking.staffMember?.fullName ?? "equipa";
-  const manageUrl = buildManageUrl(booking);
-
-  switch (kind) {
-    case "BOOKING_CREATED":
-      return `Reserva recebida em ${booking.business.name}: ${booking.service.name} a ${when} com ${professional}. Gerir: ${manageUrl}`;
-    case "BOOKING_CONFIRMED":
-      return `Reserva confirmada em ${booking.business.name}: ${booking.service.name} a ${when} com ${professional}. ${manageUrl}`;
-    case "BOOKING_CANCELLED":
-      return `A tua reserva em ${booking.business.name} foi cancelada. Se quiseres marcar novamente: ${buildPublicPageUrl(booking)}`;
-    case "BOOKING_RESCHEDULED":
-      return `Reserva remarcada em ${booking.business.name}: novo horário ${when} com ${professional}. ${manageUrl}`;
-    case "BOOKING_STAFF_NEW_BOOKING":
-      return `${booking.business.name}: Novo agendamento confirmado - ${booking.customerName}, ${booking.service.name} a ${when}. Ver: ${getAppUrl()}/crm`;
-    case "BOOKING_STAFF_PENDING_REQUEST":
-      return `${booking.business.name}: Pedido pendente - ${booking.customerName}, ${booking.service.name} a ${when}. Aceita ou recusa: ${getAppUrl()}/crm`;
-  }
 }
 
 async function createNotificationLog(input: {
@@ -216,201 +192,12 @@ async function createSkippedNotification(
   });
 }
 
-async function safeReadJson(response: Response) {
-  try {
-    return (await response.json()) as Record<string, unknown>;
-  } catch (error) {
-    captureException("notification.provider_json_parse_failed", error, {
-      status: response.status,
-    });
-    return {};
-  }
-}
-
-function shouldRetryProviderResponse(status: number) {
-  return status === 429 || status >= 500;
-}
-
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-const PROVIDER_REQUEST_TIMEOUT_MS = 10_000;
-
-async function fetchWithTimeout(
-  input: RequestInfo | URL,
-  init: RequestInit,
-  timeoutMs: number,
-) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(input, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function fetchWithProviderRetry(
-  input: RequestInfo | URL,
-  init: RequestInit,
-  options: { attempts?: number; baseDelayMs?: number; timeoutMs?: number } = {},
-) {
-  const attempts = options.attempts ?? 3;
-  const baseDelayMs = options.baseDelayMs ?? 600;
-  const timeoutMs = options.timeoutMs ?? PROVIDER_REQUEST_TIMEOUT_MS;
-  let lastResponse: Response | null = null;
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      const response = await fetchWithTimeout(input, init, timeoutMs);
-      lastResponse = response;
-
-      if (!shouldRetryProviderResponse(response.status) || attempt === attempts - 1) {
-        return response;
-      }
-    } catch (error) {
-      lastError = error;
-      if (attempt === attempts - 1) {
-        throw error;
-      }
-    }
-
-    await wait(baseDelayMs * (attempt + 1));
-  }
-
-  if (lastResponse) {
-    return lastResponse;
-  }
-
-  throw lastError instanceof Error ? lastError : new Error("PROVIDER_REQUEST_FAILED");
-}
-
-function normalizeWhatsappAddress(value: string) {
-  const trimmed = value.trim();
-  return trimmed.startsWith("whatsapp:") ? trimmed : `whatsapp:${trimmed}`;
-}
-
-// Aceita números no formato E.164 (`+CCNNNN...`) ou já com prefixo `whatsapp:`.
-// Sem `+`, o Twilio interpreta mal e marca a mensagem como SENT no nosso log
-// mesmo quando falha a entrega (vimos isso em 2026-05-12 com `924057914`).
+// Aceita só números em E.164 (`+CCNNNN...`). Sem `+`, a Cloud API pode interpretar
+// mal o destinatário; exigimos o formato canónico para não registar como enviado
+// algo que afinal não chega.
 function isValidWhatsappRecipient(value: string) {
   const trimmed = value.trim().replace(/^whatsapp:/, "");
   return /^\+[1-9]\d{6,14}$/.test(trimmed);
-}
-
-async function sendWhatsappForKind(
-  booking: BookingNotificationPayload,
-  kind: NotificationKind,
-  recipient: string,
-) {
-  if (!isValidWhatsappRecipient(recipient)) {
-    await createNotificationLog({
-      bookingId: booking.id,
-      businessId: booking.business.id,
-      channel: "WHATSAPP",
-      kind,
-      recipient,
-      status: "SKIPPED",
-      errorMessage: "WHATSAPP_RECIPIENT_INVALID_FORMAT",
-    });
-    return {
-      channel: "WHATSAPP",
-      status: "skipped",
-      reason: "WHATSAPP_RECIPIENT_INVALID_FORMAT",
-    } satisfies DeliveryResult;
-  }
-
-  const reservation = await reserveNotificationDelivery({
-    bookingId: booking.id,
-    businessId: booking.business.id,
-    channel: "WHATSAPP",
-    kind,
-    recipient,
-  });
-
-  if (reservation.duplicate) {
-    return { channel: "WHATSAPP", status: "duplicate" } satisfies DeliveryResult;
-  }
-
-  const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
-  const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
-  const fromNumber = process.env.TWILIO_WHATSAPP_FROM?.trim();
-
-  if (!accountSid || !authToken || !fromNumber) {
-    await db.notificationLog.update({
-      where: { id: reservation.logId },
-      data: {
-        status: "SKIPPED",
-        errorMessage: "WHATSAPP_PROVIDER_NOT_CONFIGURED",
-      },
-    });
-    return { channel: "WHATSAPP", status: "skipped", reason: "WHATSAPP_PROVIDER_NOT_CONFIGURED" } satisfies DeliveryResult;
-  }
-
-  try {
-    const response = await fetchWithProviderRetry(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        To: normalizeWhatsappAddress(recipient),
-        From: normalizeWhatsappAddress(fromNumber),
-        Body: buildWhatsappMessage(kind, booking),
-      }).toString(),
-    });
-
-    const payload = await safeReadJson(response);
-
-    if (!response.ok) {
-      await db.notificationLog.update({
-        where: { id: reservation.logId },
-        data: {
-          status: "FAILED",
-          errorMessage: String(payload.message ?? payload.code ?? "WHATSAPP_SEND_FAILED"),
-          payload: payload as Prisma.InputJsonValue,
-        },
-      });
-
-      return { channel: "WHATSAPP", status: "failed", reason: String(payload.message ?? "WHATSAPP_SEND_FAILED") } satisfies DeliveryResult;
-    }
-
-    await db.notificationLog.update({
-      where: { id: reservation.logId },
-      data: {
-        status: "SENT",
-        providerMessageId: typeof payload.sid === "string" ? payload.sid : undefined,
-        payload: payload as Prisma.InputJsonValue,
-        sentAt: new Date(),
-      },
-    });
-
-    return { channel: "WHATSAPP", status: "sent" } satisfies DeliveryResult;
-  } catch (error) {
-    captureException("notification.whatsapp_failed", error, {
-      bookingId: booking.id,
-      kind,
-      recipient,
-    });
-
-    await db.notificationLog.update({
-      where: { id: reservation.logId },
-      data: {
-        status: "FAILED",
-        errorMessage: error instanceof Error ? error.message : "WHATSAPP_SEND_FAILED",
-      },
-    });
-
-    return {
-      channel: "WHATSAPP",
-      status: "failed",
-      reason: error instanceof Error ? error.message : "WHATSAPP_SEND_FAILED",
-    } satisfies DeliveryResult;
-  }
 }
 
 function escapeHtml(value: string) {
@@ -455,7 +242,7 @@ function getEmailCopy(kind: NotificationKind, businessName: string): EmailCopy |
         ctaLabel: "Marcar de novo",
       };
     default:
-      // Kinds de staff/internas não enviam email ao cliente.
+      // Tipo sem email definido — não envia nada ao cliente.
       return null;
   }
 }
@@ -553,6 +340,113 @@ function summarizeDeliveries(results: DeliveryResult[]) {
   return { status: "skipped" as const, channels: results };
 }
 
+// Mensagens ao cliente via WhatsApp Cloud API. Só os tipos com template aprovado
+// na Meta podem ser enviados (regra da Meta). Por agora: confirmação de reserva.
+// O lembrete (lembrete_marcacao) será disparado pelo agendador, não por aqui.
+const WHATSAPP_TEMPLATES: Partial<
+  Record<NotificationKind, { name: string; build: (booking: BookingNotificationPayload) => string[] }>
+> = {
+  BOOKING_CONFIRMED: {
+    name: "reserva_confirmada",
+    build: (booking) => [
+      booking.customerName,
+      booking.business.name,
+      format(booking.startsAt, "dd/MM 'às' HH:mm"),
+    ],
+  },
+};
+
+async function sendWhatsappTemplateForKind(
+  booking: BookingNotificationPayload,
+  kind: NotificationKind,
+  recipient: string,
+): Promise<DeliveryResult> {
+  const template = WHATSAPP_TEMPLATES[kind];
+  if (!template) {
+    await createNotificationLog({
+      bookingId: booking.id,
+      businessId: booking.business.id,
+      channel: "WHATSAPP",
+      kind,
+      recipient,
+      status: "SKIPPED",
+      errorMessage: "WHATSAPP_KIND_NO_TEMPLATE",
+    });
+    return { channel: "WHATSAPP", status: "skipped", reason: "WHATSAPP_KIND_NO_TEMPLATE" };
+  }
+
+  if (!isValidWhatsappRecipient(recipient)) {
+    await createNotificationLog({
+      bookingId: booking.id,
+      businessId: booking.business.id,
+      channel: "WHATSAPP",
+      kind,
+      recipient,
+      status: "SKIPPED",
+      errorMessage: "WHATSAPP_RECIPIENT_INVALID_FORMAT",
+    });
+    return { channel: "WHATSAPP", status: "skipped", reason: "WHATSAPP_RECIPIENT_INVALID_FORMAT" };
+  }
+
+  const phoneNumberId = booking.business.whatsappPhoneNumberId?.trim() || null;
+  if (!phoneNumberId) {
+    await createNotificationLog({
+      bookingId: booking.id,
+      businessId: booking.business.id,
+      channel: "WHATSAPP",
+      kind,
+      recipient,
+      status: "SKIPPED",
+      errorMessage: "WHATSAPP_BUSINESS_NOT_CONNECTED",
+    });
+    return { channel: "WHATSAPP", status: "skipped", reason: "WHATSAPP_BUSINESS_NOT_CONNECTED" };
+  }
+
+  const reservation = await reserveNotificationDelivery({
+    bookingId: booking.id,
+    businessId: booking.business.id,
+    channel: "WHATSAPP",
+    kind,
+    recipient,
+  });
+  if (reservation.duplicate) {
+    return { channel: "WHATSAPP", status: "duplicate" };
+  }
+
+  const result = await sendWhatsappTemplate({
+    phoneNumberId,
+    to: recipient.trim().replace(/^whatsapp:/, ""),
+    template: template.name,
+    variables: template.build(booking),
+    languageCode: "pt_PT",
+  });
+
+  if (!result.ok && result.skipped) {
+    await db.notificationLog.update({
+      where: { id: reservation.logId },
+      data: { status: "SKIPPED", errorMessage: result.reason },
+    });
+    return { channel: "WHATSAPP", status: "skipped", reason: result.reason };
+  }
+  if (!result.ok) {
+    captureException("notification.whatsapp_failed", new Error(result.reason), {
+      bookingId: booking.id,
+      kind,
+    });
+    await db.notificationLog.update({
+      where: { id: reservation.logId },
+      data: { status: "FAILED", errorMessage: result.reason },
+    });
+    return { channel: "WHATSAPP", status: "failed", reason: result.reason };
+  }
+
+  await db.notificationLog.update({
+    where: { id: reservation.logId },
+    data: { status: "SENT", providerMessageId: result.id ?? undefined, sentAt: new Date() },
+  });
+  return { channel: "WHATSAPP", status: "sent" };
+}
+
 async function deliverWhatsappToCustomer(
   booking: BookingNotificationPayload,
   kind: NotificationKind,
@@ -561,7 +455,7 @@ async function deliverWhatsappToCustomer(
     await createSkippedNotification(booking, "WHATSAPP", kind, "CUSTOMER_PHONE_MISSING");
     return { channel: "WHATSAPP", status: "skipped", reason: "CUSTOMER_PHONE_MISSING" };
   }
-  return sendWhatsappForKind(booking, kind, booking.customerPhone);
+  return sendWhatsappTemplateForKind(booking, kind, booking.customerPhone);
 }
 
 async function deliverEmailToCustomer(
@@ -577,10 +471,7 @@ async function deliverEmailToCustomer(
 
 export async function sendBookingNotification(
   bookingId: string,
-  kind: Exclude<
-    NotificationKind,
-    "BOOKING_STAFF_NEW_BOOKING" | "BOOKING_STAFF_PENDING_REQUEST"
-  >,
+  kind: NotificationKind,
 ) {
   const booking = await loadBookingNotificationPayload(bookingId);
 
@@ -594,32 +485,6 @@ export async function sendBookingNotification(
     deliverWhatsappToCustomer(booking, kind),
     deliverEmailToCustomer(booking, kind),
   ]);
-
-  return summarizeDeliveries(deliveries);
-}
-
-export async function sendStaffBookingNotification(
-  bookingId: string,
-  kind: Extract<NotificationKind, "BOOKING_STAFF_NEW_BOOKING" | "BOOKING_STAFF_PENDING_REQUEST">,
-) {
-  const booking = await loadBookingNotificationPayload(bookingId);
-
-  if (!booking) {
-    return { status: "missing" as const, channels: [] as DeliveryResult[] };
-  }
-
-  if (!booking.staffMember) {
-    return { status: "skipped" as const, channels: [] as DeliveryResult[] };
-  }
-
-  const deliveries: DeliveryResult[] = [];
-  const staffPhone = booking.staffMember.phone?.trim() || null;
-
-  if (staffPhone) {
-    deliveries.push(await sendWhatsappForKind(booking, kind, staffPhone));
-  } else {
-    await createSkippedNotification(booking, "WHATSAPP", kind, "STAFF_PHONE_MISSING");
-  }
 
   return summarizeDeliveries(deliveries);
 }

@@ -55,6 +55,9 @@ model Business {
   slotIntervalMinutes     Int            @default(30)
   cancellationWindowHours Int            @default(2)
   autoAcceptBookings      Boolean        @default(false)
+  whatsappNumber          String?
+  whatsappPhoneNumberId   String?
+  reminderLeadMinutes     Int?
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
 
@@ -69,21 +72,8 @@ model Business {
   scheduleBlocks ScheduleBlock[]
   notifications  NotificationLog[]
   subscription   Subscription?
-  automation     BusinessAutomation?
 
   @@index([ownerId])
-}
-
-model BusinessAutomation {
-  id                           String   @id @default(cuid())
-  businessId                   String   @unique
-  reminderEnabled              Boolean  @default(true)
-  reminderMinutesBefore        Int      @default(30)
-  confirmationToleranceMinutes Int      @default(10)
-  createdAt                    DateTime @default(now())
-  updatedAt                    DateTime @updatedAt
-
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 model BusinessMembership {
@@ -278,7 +268,6 @@ model Booking {
   customerEmail       String?
   customerPhone       String?
   internalNotes       String?
-  customerConfirmedAt DateTime?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
@@ -333,25 +322,6 @@ model NotificationLog {
   // porque ele nao aparece aqui — remover esse DROP da migration gerada.
 }
 
-model ReminderRunLog {
-  id                   String            @id @default(cuid())
-  source               ReminderRunSource
-  status               ReminderRunStatus
-  authorizationSource  String?
-  userAgent            String?
-  reminderStartMinutes Int               @default(25)
-  reminderEndMinutes   Int               @default(35)
-  scanned              Int               @default(0)
-  sent                 Int               @default(0)
-  skipped              Int               @default(0)
-  failed               Int               @default(0)
-  errorMessage         String?
-  createdAt            DateTime          @default(now())
-
-  @@index([createdAt])
-  @@index([status, createdAt])
-}
-
 model Subscription {
   id                 String             @id @default(cuid())
   businessId         String             @unique
@@ -382,11 +352,7 @@ enum NotificationKind {
   BOOKING_CANCELLED
   BOOKING_CANCELLED_INTERNAL
   BOOKING_RESCHEDULED
-  BOOKING_REMINDER
   BOOKING_CONFIRMATION_REQUEST
-  BOOKING_ADVANCEMENT
-  BOOKING_STAFF_NEW_BOOKING
-  BOOKING_STAFF_PENDING_REQUEST
 }
 
 enum NotificationStatus {
@@ -394,18 +360,6 @@ enum NotificationStatus {
   SENT
   FAILED
   SKIPPED
-}
-
-enum ReminderRunSource {
-  CRON
-  DASHBOARD
-}
-
-enum ReminderRunStatus {
-  SUCCESS
-  FAILED
-  UNAUTHORIZED
-  MISCONFIGURED
 }
 
 enum BusinessStatus {

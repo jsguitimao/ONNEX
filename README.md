@@ -86,13 +86,10 @@ O ficheiro [.env.example](./.env.example) contem todos os valores esperados pelo
 
 ### WhatsApp
 
-- `TWILIO_ACCOUNT_SID`
-- `TWILIO_AUTH_TOKEN`
-- `TWILIO_WHATSAPP_FROM`
+- `WHATSAPP_ACCESS_TOKEN` (token da WhatsApp Cloud API / Meta)
+- `WHATSAPP_API_VERSION` (opcional, default `v21.0`)
 
-### Cron
-
-- `CRON_SECRET`
+O `phone_number_id` de cada barbearia fica na BD (`Business.whatsappPhoneNumberId`), nao em env.
 
 ### Observabilidade opcional
 
@@ -111,24 +108,11 @@ O ficheiro [.env.example](./.env.example) contem todos os valores esperados pelo
 
 As notificacoes sao disparadas a partir de `src/lib/notifications.ts`.
 
-- WhatsApp usa Twilio
-- lembretes sao enviados pelo endpoint `POST /api/cron/send-reminders`
-- o cron exige `CRON_SECRET` no header `x-cron-secret` ou `Authorization: Bearer`
-- chamadas ao provider fazem retry simples em respostas `429` e `5xx`, com timeout
+- WhatsApp usa a WhatsApp Cloud API oficial da Meta (mensagens de template aprovadas)
+- so a confirmacao de reserva e enviada ao cliente (email + WhatsApp); nao ha lembretes automaticos por aqui
+- o canal WhatsApp exige `WHATSAPP_ACCESS_TOKEN` + o `whatsappPhoneNumberId` da barbearia
 
 Sem credenciais de WhatsApp, o sistema nao quebra. Em vez disso, regista `SKIPPED` em `NotificationLog`.
-
-### Scheduler de producao
-
-Como o plano Hobby da Vercel nao cobre o agendamento que precisamos aqui, o projeto usa um scheduler externo via GitHub Actions em [.github/workflows/send-reminders.yml](./.github/workflows/send-reminders.yml).
-
-Para ativar os lembretes automaticos em producao:
-
-1. Define `CRON_SECRET` na Vercel.
-2. Cria o secret `REMINDER_CRON_SECRET` no repositorio GitHub com exatamente o mesmo valor.
-3. Opcionalmente, cria a variable `REMINDER_CRON_URL` no GitHub se quiseres usar um dominio/URL diferente de `https://www.onnex.pt/api/cron/send-reminders`.
-
-O workflow chama o endpoint de 10 em 10 minutos. O backend calcula a janela operacional de lembretes com base na configuracao de automacao de cada negocio.
 
 ## Seguranca publica
 
@@ -183,7 +167,7 @@ vercel link
 
 ## Testes
 
-Esta base inclui testes custom, Vitest e smoke tests Playwright para rotas publicas, auth, cron, upload, dashboard, multi-tenant e regras de booking.
+Esta base inclui testes custom, Vitest e smoke tests Playwright para rotas publicas, auth, upload, dashboard, multi-tenant e regras de booking.
 
 ## Estrutura principal
 
@@ -192,7 +176,6 @@ Esta base inclui testes custom, Vitest e smoke tests Playwright para rotas publi
 - `src/lib/business-modules/*` dominio principal
 - `src/lib/notifications.ts` entregas WhatsApp/lembretes
 - `src/lib/rate-limit.ts` protecao das rotas publicas e mutacoes sensiveis
-- `src/lib/cron-auth.ts` validacao do cron
 - `prisma/schema.prisma` modelo de dados
 
 ## Proximas melhorias de arquitetura

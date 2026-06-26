@@ -24,6 +24,8 @@ import { AppointmentPanel } from "./crm-appointment-panel";
 import { CustomersPanel } from "./crm-customers-panel";
 import { sections } from "./crm-data";
 import { FinancePanel } from "./crm-finance-panel";
+import { WhatsappPanel } from "./crm-whatsapp-panel";
+import type { WhatsappConfig } from "@/lib/crm/whatsapp";
 import type { CrmActionKind, CrmSectionId } from "./crm-types";
 
 type Props = {
@@ -40,6 +42,7 @@ type Props = {
   initialFinancialSummary: CrmFinancialSummary;
   services: CrmServiceOption[];
   editorDraft: EditorDraft;
+  whatsappConfig: WhatsappConfig;
 };
 
 export function CrmWorkspace({
@@ -56,6 +59,7 @@ export function CrmWorkspace({
   initialFinancialSummary,
   services,
   editorDraft,
+  whatsappConfig,
 }: Props) {
   const [active, setActive] = useState<CrmSectionId>("painel-visual");
   const [actionPanel, setActionPanel] = useState<CrmActionKind | null>(null);
@@ -240,6 +244,8 @@ export function CrmWorkspace({
               onScheduleBlockCreated={handleScheduleBlockCreated}
               onScheduleBlockDeleted={handleScheduleBlockDeleted}
             />
+          ) : active === "whatsapp" ? (
+            <WhatsappPanel config={whatsappConfig} />
           ) : (
             <FinancePanel staff={staffList} initialSummary={initialFinancialSummary} />
           )}

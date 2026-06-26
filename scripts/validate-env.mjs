@@ -36,8 +36,8 @@ const REQUIRED_PRODUCTION = [
 
 const OPTIONAL_PROVIDER_GROUPS = [
   {
-    name: "Twilio WhatsApp",
-    keys: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM"],
+    name: "WhatsApp Cloud API",
+    keys: ["WHATSAPP_ACCESS_TOKEN"],
   },
   {
     name: "Sentry",

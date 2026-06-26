@@ -581,14 +581,17 @@ body::before {
   z-index: 2;
 }
 
-.consumer-name {
+.consumer-hero .consumer-name {
   font-family: 'Inter', sans-serif;
   font-weight: 900;
-  font-size: 30px;
-  letter-spacing: -0.04em;
-  line-height: 0.95;
+  font-size: 23px;
+  letter-spacing: -0.03em;
+  line-height: 1;
   text-align: center;
   margin-bottom: 8px;
+  padding: 0 8px;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .consumer-headline {
@@ -937,7 +940,7 @@ body::before {
   .iphone-screen, .consumer-viewport { border-radius: 36px; }
   .iphone-notch { width: 92px; height: 26px; top: 16px; }
   .consumer-hero { height: 360px; }
-  .consumer-name { font-size: 26px; }
+  .consumer-hero .consumer-name { font-size: 20px; }
 }
 
 
@@ -2019,12 +2022,12 @@ footer {
   <div class="announce-track">
     <span class="announce-item">✦ Agendamentos ilimitados no plano Pro</span>
     <span class="announce-item">✦ Página pública em 2 minutos</span>
-    <span class="announce-item">✦ Notificações automáticas SMS e Email</span>
+    <span class="announce-item">✦ Notificações automáticas WhatsApp e Email</span>
     <span class="announce-item">✦ Sem comissões por reserva</span>
     <span class="announce-item">✦ Suporte 100% em português</span>
     <span class="announce-item">✦ Agendamentos ilimitados no plano Pro</span>
     <span class="announce-item">✦ Página pública em 2 minutos</span>
-    <span class="announce-item">✦ Notificações automáticas SMS e Email</span>
+    <span class="announce-item">✦ Notificações automáticas WhatsApp e Email</span>
     <span class="announce-item">✦ Sem comissões por reserva</span>
     <span class="announce-item">✦ Suporte 100% em português</span>
   </div>
@@ -2321,7 +2324,7 @@ footer {
           <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
         </div>
         <h3 class="feature-title">Notificações automáticas</h3>
-        <p class="feature-desc">SMS e Email automáticos — confirmação, lembrete 30min antes e reagendamento.</p>
+        <p class="feature-desc">WhatsApp e Email automáticos — confirmação, lembrete 30min antes e reagendamento.</p>
       </div>
 
       <div class="feature-card wide-half" data-glow>
@@ -2432,13 +2435,13 @@ footer {
       <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Cliente recorrente — 8ª visita <span class="live-place">The Blade Club</span></div>
       <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Nova reserva — Corte Infantil <span class="live-place">Barbearia Moderna</span></div>
       <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>5 estrelas recebidas <span class="live-place">Fade Studio</span></div>
-      <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Notificação SMS enviada <span class="live-place">Urban Cut</span></div>
+      <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Notificação WhatsApp enviada <span class="live-place">Urban Cut</span></div>
       <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Página visitada 47x hoje <span class="live-place">GroomLab</span></div>
       <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>12 reservas hoje <span class="live-place">Barber District</span></div>
       <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Cliente recorrente — 8ª visita <span class="live-place">The Blade Club</span></div>
       <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Nova reserva — Corte Infantil <span class="live-place">Barbearia Moderna</span></div>
       <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>5 estrelas recebidas <span class="live-place">Fade Studio</span></div>
-      <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Notificação SMS enviada <span class="live-place">Urban Cut</span></div>
+      <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Notificação WhatsApp enviada <span class="live-place">Urban Cut</span></div>
       <div class="live-card"><div class="live-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Página visitada 47x hoje <span class="live-place">GroomLab</span></div>
     </div>
   </div>
@@ -2454,12 +2457,11 @@ footer {
 
     <div class="pricing-grid reveal reveal-stagger">
       <div class="price-card">
-        <div class="price-label">Free</div>
         <div class="price-value">€0<span class="price-value-period">/mês</span></div>
         <div class="price-sub">Experimenta tudo · 7 dias grátis</div>
         <ul class="price-features">
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Reservas ilimitadas</li>
-          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>SMS + Email automáticos</li>
+          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>WhatsApp + Email automáticos</li>
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>CRM completo de clientes</li>
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Dashboard operacional</li>
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Todas as funcionalidades Pro</li>
@@ -2474,7 +2476,7 @@ footer {
         <div class="price-sub">Faturado mensalmente</div>
         <ul class="price-features">
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Reservas ilimitadas</li>
-          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>SMS + Email automáticos</li>
+          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>WhatsApp + Email automáticos</li>
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>CRM completo de clientes</li>
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Dashboard operacional</li>
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Suporte prioritário</li>
@@ -2520,7 +2522,7 @@ footer {
         </div>
         <div class="testimonial">
           <div class="testimonial-stars">★★★★★</div>
-          <p class="testimonial-quote">Os SMS automáticos reduziram as faltas a zero. Literalmente zero no último mês.</p>
+          <p class="testimonial-quote">O WhatsApp automático reduziu as faltas a zero. Literalmente zero no último mês.</p>
           <div class="testimonial-author">
             <div class="author-avatar">MS</div>
             <div>
@@ -2577,7 +2579,7 @@ footer {
         </div>
         <div class="testimonial" aria-hidden="true">
           <div class="testimonial-stars">★★★★★</div>
-          <p class="testimonial-quote">Os SMS automáticos reduziram as faltas a zero. Literalmente zero no último mês.</p>
+          <p class="testimonial-quote">O WhatsApp automático reduziu as faltas a zero. Literalmente zero no último mês.</p>
           <div class="testimonial-author">
             <div class="author-avatar">MS</div>
             <div>
@@ -2772,7 +2774,7 @@ footer {
         <div class="faq-a">Podes exportar todos os teus dados a qualquer momento. Sem lock-in.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-q">As notificações SMS são incluídas no plano?<span class="faq-icon"></span></button>
+        <button class="faq-q">As notificações WhatsApp são incluídas no plano?<span class="faq-icon"></span></button>
         <div class="faq-a">No plano Pro sim — com volume generoso incluído. No plano Free, apenas email.</div>
       </div>
       <div class="faq-item">

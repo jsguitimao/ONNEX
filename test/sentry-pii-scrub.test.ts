@@ -16,8 +16,8 @@ describe("scrubString mascara PII por valor", () => {
   });
 
   it("mascara telefone embutido numa mensagem livre", () => {
-    expect(scrubString("Falha ao enviar para +351912345678 via Twilio")).toBe(
-      `Falha ao enviar para ${PHONE_MASK} via Twilio`,
+    expect(scrubString("Falha ao enviar para +351912345678 via WhatsApp")).toBe(
+      `Falha ao enviar para ${PHONE_MASK} via WhatsApp`,
     );
   });
 
@@ -35,8 +35,8 @@ describe("scrubString mascara PII por valor", () => {
   });
 
   it("mascara telefone em formato local (sem +) embutido numa mensagem", () => {
-    expect(scrubString("Twilio recusou o numero 924057914")).toBe(
-      `Twilio recusou o numero ${PHONE_MASK}`,
+    expect(scrubString("WhatsApp recusou o numero 924057914")).toBe(
+      `WhatsApp recusou o numero ${PHONE_MASK}`,
     );
   });
 

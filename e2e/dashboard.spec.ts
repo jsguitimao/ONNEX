@@ -30,20 +30,6 @@ test.describe("Dashboard - acesso sem autenticacao", () => {
   });
 });
 
-test.describe("API cron - seguranca", () => {
-  test("rejeita request sem secret", async ({ request }) => {
-    const response = await request.get("/api/cron/send-reminders");
-    expect([401, 403, 404, 405, 503]).toContain(response.status());
-  });
-
-  test("rejeita request com secret errado", async ({ request }) => {
-    const response = await request.post("/api/cron/send-reminders", {
-      headers: { "x-cron-secret": "wrong-secret" },
-    });
-    expect([401, 403, 404, 503]).toContain(response.status());
-  });
-});
-
 test.describe("API publica - booking", () => {
   test("availability retorna resposta controlada para request incompleto", async ({ request }) => {
     const response = await request.get("/api/public/buk-barbearia/availability");
