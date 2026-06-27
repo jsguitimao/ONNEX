@@ -293,15 +293,7 @@ function ServicesSection({
     onSelect?.(serviceId);
   }
 
-  const headerAction = showSeeAll ? (
-    <Drawer.Trigger
-      className={`flex shrink-0 items-center gap-1 font-bold uppercase transition hover:opacity-70 ${palette.pageText}`}
-      style={sectionActionStyle}
-    >
-      VER TODOS
-      <ChevronRight className="size-3.5" />
-    </Drawer.Trigger>
-  ) : null;
+  const headerAction = showSeeAll ? <SeeAllTrigger palette={palette} /> : null;
 
   return (
     <Drawer.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -468,15 +460,7 @@ function GallerySection({
     onOpen?.(index);
   }
 
-  const headerAction = showSeeAll ? (
-    <Drawer.Trigger
-      className={`flex shrink-0 items-center gap-1 font-bold uppercase transition hover:opacity-70 ${palette.pageText}`}
-      style={sectionActionStyle}
-    >
-      VER TODOS
-      <ChevronRight className="size-3.5" />
-    </Drawer.Trigger>
-  ) : null;
+  const headerAction = showSeeAll ? <SeeAllTrigger palette={palette} /> : null;
 
   return (
     <Drawer.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -502,6 +486,19 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
       <h2 className="text-[20px] font-bold leading-[26px] tracking-[-0.4px]">{title}</h2>
       {action ?? null}
     </header>
+  );
+}
+
+// Botão "VER TODOS" partilhado pelas secções com drawer (Serviços, Galeria).
+function SeeAllTrigger({ palette }: { palette: Palette }) {
+  return (
+    <Drawer.Trigger
+      className={`-mr-2 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 font-semibold uppercase transition active:scale-[0.97] ${palette.pageText} ${palette.buttonHoverBg}`}
+      style={sectionActionStyle}
+    >
+      VER TODOS
+      <ChevronRight className="size-3.5" />
+    </Drawer.Trigger>
   );
 }
 
