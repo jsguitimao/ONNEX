@@ -23,10 +23,14 @@ export async function startProCheckoutAction(): Promise<CheckoutResult> {
       null;
     if (!email) return { ok: false, error: "Não encontrámos o teu email." };
 
+    // Em localhost usamos o host do pedido; em produção usamos SEMPRE o domínio
+    // canónico (www.onnex.pt). O apex `onnex.pt` não tem a sessão do Clerk e dá
+    // erro, por isso o success_url nunca deve apontar para lá.
     const requestHeaders = await headers();
     const host = requestHeaders.get("host");
     const proto = requestHeaders.get("x-forwarded-proto") ?? "http";
-    const origin = host ? `${proto}://${host}` : getAppUrl();
+    const origin =
+      host && host.includes("localhost") ? `${proto}://${host}` : getAppUrl();
 
     const { url } = await createProCheckoutSession({
       businessId: business.id,
