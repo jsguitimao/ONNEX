@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { LogOut, Plus } from "lucide-react";
+import { useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PageEditor } from "@/components/page-editor/page-editor";
@@ -61,6 +62,7 @@ export function CrmWorkspace({
   editorDraft,
   whatsappConfig,
 }: Props) {
+  const { signOut } = useClerk();
   const [active, setActive] = useState<CrmSectionId>("painel-visual");
   const [actionPanel, setActionPanel] = useState<CrmActionKind | null>(null);
   const [customerList, setCustomerList] = useState(customers);
@@ -127,12 +129,17 @@ export function CrmWorkspace({
       <header className="border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              Onnex CRM
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- "/" é a landing estática (rewrite p/ landing.html, sem app/page.tsx); precisa de navegação real, não client-side */}
+            <a
+              href="/"
+              aria-label="Onnex — voltar à página inicial"
+              className="inline-block rounded text-3xl font-bold tracking-tight transition hover:opacity-70 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Onnex
+            </a>
+            <p className="mt-0.5 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Gestão comercial
-            </h1>
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {showActionButton ? (
@@ -141,6 +148,14 @@ export function CrmWorkspace({
                 {activeSection.action ?? "Configurar"}
               </Button>
             ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void signOut({ redirectUrl: "/" })}
+            >
+              <LogOut className="size-4" />
+              Sair
+            </Button>
           </div>
         </div>
       </header>
