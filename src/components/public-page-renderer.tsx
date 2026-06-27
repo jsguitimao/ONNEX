@@ -147,7 +147,7 @@ export function PublicPageRenderer({ viewModel }: Props) {
             <header className="flex flex-col items-center px-4 text-center">
               <h1
                 className="font-bold"
-                style={{ fontSize: "40px", lineHeight: "56px", letterSpacing: "-1.6px" }}
+                style={{ fontSize: "34px", lineHeight: "41px", letterSpacing: "-0.4px" }}
               >
                 {viewModel.name || "—"}
               </h1>
@@ -568,7 +568,7 @@ function BottomSheet({
     <Drawer.Portal>
       <Drawer.Backdrop className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
       <Drawer.Popup
-        className={`fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85vh] w-full max-w-[var(--bio-card-width)] flex-col overflow-hidden rounded-t-[20px] ${palette.cardBg} ${palette.pageText} shadow-[0_-12px_40px_rgba(0,0,0,0.6)] transition-transform duration-300 data-[ending-style]:translate-y-full data-[starting-style]:translate-y-full`}
+        className={`fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85vh] w-full max-w-[var(--bio-card-width)] flex-col overflow-hidden rounded-t-[20px] ${palette.cardBg} ${palette.pageText} shadow-[0_-16px_48px_rgba(0,0,0,0.16)] transition-transform duration-300 data-[ending-style]:translate-y-full data-[starting-style]:translate-y-full`}
       >
         <div className="my-2.5 flex justify-center">
           <span

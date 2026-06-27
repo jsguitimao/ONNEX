@@ -306,7 +306,7 @@ export function BookingSheetDialog({
         <Drawer.Backdrop className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
         <Drawer.Popup
           data-theme={business.theme}
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85vh] w-full max-w-[var(--bio-card-width)] flex-col overflow-hidden rounded-t-[20px] bg-card text-foreground shadow-[0_-12px_40px_rgba(0,0,0,0.6)] transition-transform duration-300 data-[ending-style]:translate-y-full data-[starting-style]:translate-y-full"
+          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85vh] w-full max-w-[var(--bio-card-width)] flex-col overflow-hidden rounded-t-[20px] bg-card text-foreground shadow-[0_-16px_48px_rgba(0,0,0,0.16)] transition-transform duration-300 data-[ending-style]:translate-y-full data-[starting-style]:translate-y-full"
           style={bookingThemeVars(business.theme)}
         >
           <DrawerHandle />
@@ -502,7 +502,7 @@ function StepRow({ stepRef, step, state, doneSummary, onEdit, children }: StepRo
         >
           <StepIcon step={stepNumber(step)} state="done" />
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-medium uppercase leading-[14px] tracking-[0.06em] text-muted-foreground">
+            <p className="text-[11px] font-semibold uppercase leading-[14px] tracking-[0.08em] text-muted-foreground">
               {label}
             </p>
             <p className="mt-0.5 truncate text-[15px] font-semibold leading-5 tracking-[-0.2px] text-foreground">
@@ -523,6 +523,7 @@ function StepRow({ stepRef, step, state, doneSummary, onEdit, children }: StepRo
               style={{
                 fontSize: "var(--text-bio-tab)",
                 lineHeight: "var(--text-bio-tab-line)",
+                letterSpacing: "-0.2px",
               }}
             >
               {label}

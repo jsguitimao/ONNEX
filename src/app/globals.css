@@ -122,20 +122,20 @@
     --bio-card-width: 460px;
     --bio-page-gutter: 0.5rem;
 
-    /* Type scale — bio surfaces (mock + slug). Major-second ish (1.25). */
-    --text-bio-tab: 16px;
-    --text-bio-tab-line: 24px;
+    /* Type scale — bio surfaces (mock + slug). Alinhado com a referência barber-bio. */
+    --text-bio-tab: 15px;
+    --text-bio-tab-line: 20px;
     --text-bio-section: 20px;
-    --text-bio-section-line: 24px;
-    --text-bio-section-tracking: -0.3px;
-    --text-bio-label: 12px;
+    --text-bio-section-line: 26px;
+    --text-bio-section-tracking: -0.4px;
+    --text-bio-label: 11px;
     --text-bio-label-line: 14px;
-    --text-bio-label-tracking: 0.06em;
+    --text-bio-label-tracking: 0.08em;
 
-    /* Selection accent — bio surfaces (Serviços, Barbeiros, Horários, etc.) */
-    --bio-accent: oklch(0.62 0.19 255);
-    --bio-accent-foreground: oklch(0.99 0 0);
-    --bio-accent-ring: oklch(0.62 0.19 255 / 25%);
+    /* Selection accent — bio surfaces. iOS blue (#007AFF) para igualar a referência barber-bio. */
+    --bio-accent: #007aff;
+    --bio-accent-foreground: #ffffff;
+    --bio-accent-ring: rgb(0 122 255 / 25%);
   }
   * {
     @apply border-border outline-ring/50;
