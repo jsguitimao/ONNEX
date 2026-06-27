@@ -116,6 +116,8 @@ export async function POST(req: Request, { params }: RouteProps) {
             ? { status: 409, error: "Já tens uma marcação activa nesta barbearia. Cancela a anterior antes de criar uma nova." }
             : message === "ONLINE_BOOKING_DISABLED"
             ? { status: 403, error: "As reservas online estão desativadas para esta página." }
+            : message === "SUBSCRIPTION_INACTIVE"
+            ? { status: 403, error: "Esta barbearia não está a aceitar reservas de momento." }
             : message === "DATA_INVALIDA"
               ? { status: 400, error: "Escolhe um horário dentro da antecedência e da janela permitidas." }
               : message === "HORARIO_BLOQUEADO"

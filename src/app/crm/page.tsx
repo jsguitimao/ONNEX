@@ -23,6 +23,7 @@ import {
 import { computeFinancialSummary } from "@/lib/crm/finance";
 import { loadEditorDraft } from "@/lib/page-editor/load";
 import { getWhatsappConfig } from "@/lib/crm/whatsapp";
+import { hasActiveAccess } from "@/lib/subscription-access";
 import { captureException } from "@/lib/observability";
 
 export const metadata = {
@@ -47,6 +48,11 @@ export default async function CrmPage() {
     }
     captureException("crm.page.load_business_failed", error, { userId });
     throw error;
+  }
+
+  // Paywall: sem subscrição ativa (trial expirado / não assinado) → bloqueia o CRM.
+  if (!hasActiveAccess(business.subscription)) {
+    redirect("/billing");
   }
 
   const [

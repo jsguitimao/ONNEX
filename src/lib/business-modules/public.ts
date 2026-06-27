@@ -5,6 +5,7 @@ import { assertSlotAvailable, runBookingTransaction } from "@/lib/booking-transa
 import { after } from "next/server";
 import { sendBookingNotification } from "@/lib/notifications";
 import { captureException } from "@/lib/observability";
+import { hasActiveAccess } from "@/lib/subscription-access";
 import { isSupportedMediaUrl } from "@/lib/media-url";
 import {
   createPublicBookingToken,
@@ -410,6 +411,15 @@ export async function createPublicBooking(input: {
   }
   if (!business.onlineBooking) {
     throw new Error("ONLINE_BOOKING_DISABLED");
+  }
+
+  // Paywall: barbearia sem subscrição ativa não recebe reservas.
+  const accessSubscription = await db.subscription.findUnique({
+    where: { businessId: business.id },
+    select: { status: true, providerCustomerId: true, currentPeriodEnd: true },
+  });
+  if (!hasActiveAccess(accessSubscription)) {
+    throw new Error("SUBSCRIPTION_INACTIVE");
   }
 
   // Idempotency: se o cliente envia uma chave (retries de rede), procuramos

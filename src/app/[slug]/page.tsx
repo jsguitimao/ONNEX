@@ -6,6 +6,8 @@ import { getAppUrl } from "@/lib/app-config";
 import { getBusinessBySlug, getPublicBusinessPayload } from "@/lib/business";
 import { inferMediaKindFromUrl, isSupportedMediaUrl } from "@/lib/media-url";
 import { fromPublicBusiness } from "@/lib/public-page/from-public-business";
+import { hasActiveAccess } from "@/lib/subscription-access";
+import { db } from "@/lib/db";
 import { serializeJsonLd } from "@/lib/safe-json-ld";
 
 export const revalidate = 60;
@@ -124,6 +126,17 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
     })(),
   };
 
+  // Paywall: uma barbearia sem subscrição ativa continua VISÍVEL, mas não
+  // recebe reservas (esconde o "Agendar"). O intake server-side também rejeita.
+  const subscription = await db.subscription.findUnique({
+    where: { businessId: business.id },
+    select: { status: true, providerCustomerId: true, currentPeriodEnd: true },
+  });
+  const viewModel = fromPublicBusiness(publicBusiness);
+  if (!hasActiveAccess(subscription)) {
+    viewModel.onlineBooking = false;
+  }
+
   return (
     <>
       <script
@@ -131,9 +144,7 @@ export default async function PublicBookingPage({ params }: PublicPageProps) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <BookingSheetProvider business={publicBusiness}>
-        <PublicPageRenderer
-          viewModel={fromPublicBusiness(publicBusiness)}
-        />
+        <PublicPageRenderer viewModel={viewModel} />
       </BookingSheetProvider>
     </>
   );

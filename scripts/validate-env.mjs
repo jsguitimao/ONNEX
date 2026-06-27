@@ -40,6 +40,10 @@ const OPTIONAL_PROVIDER_GROUPS = [
     keys: ["WHATSAPP_ACCESS_TOKEN"],
   },
   {
+    name: "Stripe",
+    keys: ["STRIPE_SECRET_KEY", "STRIPE_PRICE_ID", "STRIPE_WEBHOOK_SECRET"],
+  },
+  {
     name: "Sentry",
     keys: ["SENTRY_DSN"],
   },

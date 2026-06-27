@@ -16,6 +16,7 @@ import { DEFAULT_AVAILABILITY } from "./types";
 
 const currentBusinessInclude = {
   bookingPage: true,
+  subscription: true,
   services: {
     where: { deletedAt: null },
     orderBy: { displayOrder: "asc" },
