@@ -16,14 +16,11 @@ const PLAYABLE_VIDEO_EXTENSIONS = new Set(["mp4", "webm"]);
 type Props = {
   hero: EditorHeroMedia | null;
   onChange: (hero: EditorHeroMedia | null) => void;
-  /** Demo mode: usa data URL local (sem chamar /api/upload). */
-  readOnly?: boolean;
 };
 
-export function SectionHero({ hero, onChange, readOnly = false }: Props) {
+export function SectionHero({ hero, onChange }: Props) {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
-  const localObjectUrlRef = useRef<string | null>(null);
   const uploadRunRef = useRef(0);
   const [busy, setBusy] = useState<null | "image" | "video">(null);
   const [progress, setProgress] = useState<number | null>(null);
@@ -35,10 +32,6 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
     setUrlValue(hero?.url ?? "");
     setMediaFailed(false);
   }, [hero?.url]);
-
-  useEffect(() => {
-    return () => revokeLocalObjectUrl();
-  }, []);
 
   async function handleFile(file: File, kind: "image" | "video") {
     const uploadRun = uploadRunRef.current + 1;
@@ -57,14 +50,6 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
     setError(null);
     setMediaFailed(false);
 
-    if (readOnly) {
-      revokeLocalObjectUrl();
-      const url = URL.createObjectURL(file);
-      localObjectUrlRef.current = url;
-      onChange({ kind, url, posterUrl: null });
-      return;
-    }
-
     try {
       setBusy(kind);
       setProgress(0);
@@ -73,7 +58,6 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
         setProgress(p.percent);
       });
       if (uploadRunRef.current !== uploadRun) return;
-      revokeLocalObjectUrl();
       onChange({ kind, url, posterUrl: null });
     } catch (err) {
       if (uploadRunRef.current !== uploadRun) return;
@@ -92,7 +76,6 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
     const trimmed = urlValue.trim();
     if (!trimmed) {
       setError(null);
-      revokeLocalObjectUrl();
       onChange(null);
       return;
     }
@@ -109,17 +92,10 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
       }
       setError(null);
       setMediaFailed(false);
-      revokeLocalObjectUrl();
       onChange({ kind, url: trimmed, posterUrl: null });
     } catch {
       setError("Usa um URL válido que comece por http:// ou https://.");
     }
-  }
-
-  function revokeLocalObjectUrl() {
-    if (!localObjectUrlRef.current) return;
-    URL.revokeObjectURL(localObjectUrlRef.current);
-    localObjectUrlRef.current = null;
   }
 
   return (
@@ -223,7 +199,6 @@ export function SectionHero({ hero, onChange, readOnly = false }: Props) {
               uploadRunRef.current += 1;
               setBusy(null);
               setMediaFailed(false);
-              revokeLocalObjectUrl();
               onChange(null);
             }}
           >

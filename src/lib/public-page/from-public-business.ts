@@ -24,8 +24,6 @@ function buildHero(business: PublicBusinessPayload): PublicPageMedia | null {
 }
 
 export function fromPublicBusiness(business: PublicBusinessPayload): PublicPageViewModel {
-  const locationLine1 = business.mapsAddress?.split(",")[0]?.trim() || null;
-
   return {
     name: business.name,
     slug: business.slug,
@@ -61,7 +59,5 @@ export function fromPublicBusiness(business: PublicBusinessPayload): PublicPageV
     })),
     galleryImages: business.galleryImages.filter(isSupportedMediaUrl),
     mapsAddress: business.mapsAddress,
-    locationLine1,
-    locationCity: business.city,
   };
 }

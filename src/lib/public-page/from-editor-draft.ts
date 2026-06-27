@@ -46,7 +46,5 @@ export function fromEditorDraft(draft: EditorDraft): PublicPageViewModel {
     })),
     galleryImages: draft.galleryImages.filter(isSupportedMediaUrl),
     mapsAddress: draft.mapsAddress || null,
-    locationLine1: draft.mapsAddress || null,
-    locationCity: draft.city || null,
   };
 }

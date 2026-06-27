@@ -62,6 +62,11 @@ export function BookingSheetDialog({
   const [success, setSuccess] = useState<{ serviceName: string; startsAt: string } | null>(null);
   const [manageUrl, setManageUrl] = useState("");
 
+  // Idempotency: gerada na 1a tentativa, reutilizada se a chamada falhar e o
+  // cliente tentar de novo (rede / refresh do botao). Limpa apos sucesso ou
+  // quando o cliente volta atras a editar — assim cada submit novo tem chave nova.
+  const idempotencyKeyRef = useRef<string | null>(null);
+
   // ---------- derived ----------
   const selectedService = useMemo(
     () => business.services.find((s) => s.id === serviceId) ?? null,
@@ -191,6 +196,9 @@ export function BookingSheetDialog({
   };
 
   const goBackTo = (step: StepId) => {
+    // Editar dados apos uma tentativa exige uma chave de idempotencia nova,
+    // senao o servidor poderia devolver o resultado da tentativa anterior.
+    idempotencyKeyRef.current = null;
     setActiveStep(step);
   };
 
@@ -236,12 +244,6 @@ export function BookingSheetDialog({
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) &&
     customerPhone.trim().length > 0 &&
     !submitting;
-
-  // Idempotency: gerada na 1a tentativa, reutilizada se a chamada falhar e
-  // o cliente tentar de novo (rede / refresh do botao). Limpa apos sucesso
-  // ou quando o utilizador volta atras a editar dados — assim cada submit
-  // novo tem chave nova.
-  const idempotencyKeyRef = useRef<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ArrowLeft, ExternalLink, Loader2, Save, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { IphonePreview } from "@/components/page-editor/iphone-preview";
@@ -17,14 +17,9 @@ import { SectionOperations } from "@/components/page-editor/section-operations";
 import { SectionSeo } from "@/components/page-editor/section-seo";
 import { DraftPreviewFrame } from "@/components/page-editor/draft-preview-frame";
 import type { EditorDraft } from "@/lib/page-editor/draft";
-import { captureException } from "@/lib/observability";
-
-const DEMO_DRAFT_STORAGE_KEY = "onnex:page-editor-demo-draft";
 
 type Props = {
   initialDraft: EditorDraft;
-  /** Quando true, o botao Guardar fica local ao navegador. */
-  readOnly?: boolean;
   /** Quando true, renderiza embutido dentro de outro layout (CRM): sem `min-h-screen`, sem link "Gestao comercial" (ja la estas). */
   embedded?: boolean;
 };
@@ -35,25 +30,11 @@ type SaveState =
   | { status: "success"; at: number }
   | { status: "error"; message: string };
 
-export function PageEditor({ initialDraft, readOnly = false, embedded = false }: Props) {
+export function PageEditor({ initialDraft, embedded = false }: Props) {
   const [draft, setDraft] = useState<EditorDraft>(initialDraft);
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(initialDraft));
   const [save, setSave] = useState<SaveState>({ status: "idle" });
   const [previewOpen, setPreviewOpen] = useState(false);
-
-  useEffect(() => {
-    if (!readOnly) return;
-    const stored = window.localStorage.getItem(DEMO_DRAFT_STORAGE_KEY);
-    if (!stored) return;
-    try {
-      const restored = JSON.parse(stored) as EditorDraft;
-      setDraft(restored);
-      setSavedSnapshot(JSON.stringify(restored));
-    } catch (error) {
-      captureException("page_editor.localstorage_corrupt", error);
-      window.localStorage.removeItem(DEMO_DRAFT_STORAGE_KEY);
-    }
-  }, [readOnly]);
 
   const patch = useCallback((partial: Partial<EditorDraft>) => {
     setDraft((prev) => ({ ...prev, ...partial }));
@@ -68,17 +49,6 @@ export function PageEditor({ initialDraft, readOnly = false, embedded = false }:
     if (!isDirty || save.status === "saving") return;
     setSave({ status: "saving" });
     try {
-      if (readOnly) {
-        const draftToStore = stripLocalBlobMedia(draft);
-        window.localStorage.setItem(
-          DEMO_DRAFT_STORAGE_KEY,
-          JSON.stringify(draftToStore),
-        );
-        setSavedSnapshot(JSON.stringify(draft));
-        setSave({ status: "success", at: Date.now() });
-        return;
-      }
-
       const response = await fetch("/api/dashboard", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -118,9 +88,7 @@ export function PageEditor({ initialDraft, readOnly = false, embedded = false }:
           <div>
             <h1 className="text-sm font-semibold">Página pública</h1>
             <p className="text-xs text-muted-foreground">
-              {readOnly
-                ? "Modo demo · alterações guardadas neste navegador"
-                : "Edita à esquerda · vê em tempo real à direita"}
+              Edita à esquerda · vê em tempo real à direita
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -169,7 +137,6 @@ export function PageEditor({ initialDraft, readOnly = false, embedded = false }:
           <SectionHero
             hero={draft.hero}
             onChange={(hero) => patch({ hero })}
-            readOnly={readOnly}
           />
           <SectionAppearance
             theme={draft.theme}
@@ -211,12 +178,10 @@ export function PageEditor({ initialDraft, readOnly = false, embedded = false }:
           <SectionTeam
             staff={draft.staffMembers}
             onChange={(staffMembers) => patch({ staffMembers })}
-            readOnly={readOnly}
           />
           <SectionGallery
             images={draft.galleryImages}
             onChange={(galleryImages) => patch({ galleryImages })}
-            readOnly={readOnly}
           />
           <SectionLocation
             draft={{ mapsAddress: draft.mapsAddress }}
@@ -268,9 +233,4 @@ export function PageEditor({ initialDraft, readOnly = false, embedded = false }:
       ) : null}
     </div>
   );
-}
-
-function stripLocalBlobMedia(draft: EditorDraft): EditorDraft {
-  if (!draft.hero?.url.startsWith("blob:")) return draft;
-  return { ...draft, hero: null };
 }

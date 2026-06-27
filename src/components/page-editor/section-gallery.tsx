@@ -14,10 +14,9 @@ const MAX_CONCURRENT_UPLOADS = 3;
 type Props = {
   images: string[];
   onChange: (images: string[]) => void;
-  readOnly?: boolean;
 };
 
-export function SectionGallery({ images, onChange, readOnly = false }: Props) {
+export function SectionGallery({ images, onChange }: Props) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,30 +38,6 @@ export function SectionGallery({ images, onChange, readOnly = false }: Props) {
     }
     if (candidates.length === 0) return;
     if (tooLarge.length === 0) setError(null);
-
-    if (readOnly) {
-      try {
-        const urls = await Promise.all(
-          candidates.map(
-            (file) =>
-              new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                  if (typeof reader.result === "string") resolve(reader.result);
-                  else reject(new Error("read-failed"));
-                };
-                reader.onerror = () =>
-                  reject(reader.error ?? new Error("read-failed"));
-                reader.readAsDataURL(file);
-              }),
-          ),
-        );
-        onChange([...images, ...urls]);
-      } catch {
-        setError("Falha a carregar uma das imagens.");
-      }
-      return;
-    }
 
     try {
       setBusy(true);

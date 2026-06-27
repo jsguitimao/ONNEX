@@ -15,10 +15,9 @@ const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 type Props = {
   staff: EditorStaff[];
   onChange: (staff: EditorStaff[]) => void;
-  readOnly?: boolean;
 };
 
-export function SectionTeam({ staff, onChange, readOnly = false }: Props) {
+export function SectionTeam({ staff, onChange }: Props) {
   function addMember() {
     const next: EditorStaff = {
       id: crypto.randomUUID(),
@@ -52,7 +51,6 @@ export function SectionTeam({ staff, onChange, readOnly = false }: Props) {
             key={member.id}
             member={member}
             index={index}
-            readOnly={readOnly}
             onPatch={(patch) => patchMember(member.id, patch)}
             onRemove={() => removeMember(member.id)}
           />
@@ -70,13 +68,11 @@ export function SectionTeam({ staff, onChange, readOnly = false }: Props) {
 function MemberCard({
   member,
   index,
-  readOnly,
   onPatch,
   onRemove,
 }: {
   member: EditorStaff;
   index: number;
-  readOnly: boolean;
   onPatch: (patch: Partial<EditorStaff>) => void;
   onRemove: () => void;
 }) {
@@ -90,17 +86,6 @@ function MemberCard({
       return;
     }
     setError(null);
-
-    if (readOnly) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === "string") {
-          onPatch({ avatarUrl: reader.result });
-        }
-      };
-      reader.readAsDataURL(file);
-      return;
-    }
 
     try {
       setBusy(true);

@@ -43,6 +43,4 @@ export type PublicPageViewModel = {
   staffMembers: PublicPageStaffMember[];
   galleryImages: string[];
   mapsAddress: string | null;
-  locationLine1: string | null;
-  locationCity: string | null;
 };
