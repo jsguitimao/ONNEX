@@ -56,19 +56,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async redirects() {
-    // Apex onnex.pt -> www.onnex.pt (dominio canonico). O apex nao tem a sessao
-    // do Clerk; sem este redirect, qualquer pagina com login (CRM, etc.) da erro
-    // no apex. O match de host e exato, por isso nao apanha www (sem loop).
-    return [
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "onnex.pt" }],
-        destination: "https://www.onnex.pt/:path*",
-        permanent: true,
-      },
-    ];
-  },
   async rewrites() {
     // A homepage (/) serve a landing estatica em public/landing.html.
     // Mantem o URL "/" (rewrite, nao redirect) e fica isolada do design da app.
