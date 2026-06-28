@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { Check } from "lucide-react";
 import { SubscribeButton } from "@/components/billing/subscribe-button";
+import { ManageSubscriptionButton } from "@/components/billing/manage-subscription-button";
+import { getCurrentBusiness } from "@/lib/business-modules/core";
 
 export const metadata = {
   title: "Plano Pro",
@@ -22,6 +24,16 @@ export default async function BillingPage() {
   const { userId } = await auth();
   if (!userId) {
     redirect("/sign-in?redirect_url=/billing");
+  }
+
+  // Se o dono já tem um cliente Stripe (passou pelo checkout), oferecemos o
+  // portal para gerir/atualizar o pagamento (ex.: PAST_DUE). Senão, subscrever.
+  let hasStripeCustomer = false;
+  try {
+    const business = await getCurrentBusiness();
+    hasStripeCustomer = Boolean(business.subscription?.providerCustomerId);
+  } catch {
+    // Sem negócio/sessão válida: mostramos o fluxo de subscrição normal.
   }
 
   return (
@@ -49,7 +61,16 @@ export default async function BillingPage() {
         </ul>
 
         <div className="mt-8">
-          <SubscribeButton />
+          {hasStripeCustomer ? (
+            <ManageSubscriptionButton
+              label="Gerir subscrição / pagamento"
+              variant="default"
+              size="lg"
+              fullWidth
+            />
+          ) : (
+            <SubscribeButton />
+          )}
         </div>
 
         <p className="mt-4 text-center text-xs leading-5 text-muted-foreground">

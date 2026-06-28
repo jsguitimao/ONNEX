@@ -107,30 +107,51 @@ async function syncCurrentUserProfile(input: {
     where: { clerkUserId: input.clerkUserId },
   });
 
-  if (!existingUser) {
-    return db.user.create({
-      data: input,
+  if (existingUser) {
+    const hasChanges =
+      existingUser.email !== input.email ||
+      existingUser.firstName !== input.firstName ||
+      existingUser.lastName !== input.lastName ||
+      existingUser.avatarUrl !== input.avatarUrl;
+
+    if (!hasChanges) {
+      return existingUser;
+    }
+
+    return db.user.update({
+      where: { id: existingUser.id },
+      data: {
+        email: input.email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        avatarUrl: input.avatarUrl,
+      },
     });
   }
 
-  const hasChanges =
-    existingUser.email !== input.email ||
-    existingUser.firstName !== input.firstName ||
-    existingUser.lastName !== input.lastName ||
-    existingUser.avatarUrl !== input.avatarUrl;
+  // Não existe conta com este clerkUserId, mas o email pode já existir sob outro
+  // clerkUserId — acontece quando a identidade Clerk muda (migração de instância
+  // test<->live, ou nova sessão com o mesmo email). Re-ligamos a conta existente
+  // (encontrada pelo email) ao novo clerkUserId, em vez de criar — o que rebentaria
+  // no unique do email (era a causa do "ERRO INESPERADO" no /crm).
+  const userWithSameEmail = await db.user.findUnique({
+    where: { email: input.email },
+  });
 
-  if (!hasChanges) {
-    return existingUser;
+  if (userWithSameEmail) {
+    return db.user.update({
+      where: { id: userWithSameEmail.id },
+      data: {
+        clerkUserId: input.clerkUserId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        avatarUrl: input.avatarUrl,
+      },
+    });
   }
 
-  return db.user.update({
-    where: { id: existingUser.id },
-    data: {
-      email: input.email,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      avatarUrl: input.avatarUrl,
-    },
+  return db.user.create({
+    data: input,
   });
 }
 

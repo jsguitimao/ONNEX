@@ -20,6 +20,7 @@ export type CrmServiceOption = {
   durationMinutes: number;
   priceCents: number;
 };
+import { ManageSubscriptionButton } from "@/components/billing/manage-subscription-button";
 import { ActionConfigPanel } from "./crm-action-panel";
 import { AppointmentPanel } from "./crm-appointment-panel";
 import { CustomersPanel } from "./crm-customers-panel";
@@ -148,6 +149,7 @@ export function CrmWorkspace({
                 {activeSection.action ?? "Configurar"}
               </Button>
             ) : null}
+            <ManageSubscriptionButton label="Subscrição" />
             <Button
               type="button"
               variant="outline"

@@ -50,3 +50,27 @@ export async function createProCheckoutSession(input: {
   if (!session.url) throw new Error("STRIPE_SESSION_NO_URL");
   return { url: session.url };
 }
+
+// Abre o Customer Portal da Stripe (página alojada) para o dono gerir/cancelar
+// a subscrição, atualizar o cartão e ver faturas. Requer um cliente Stripe já
+// existente (providerCustomerId) e o portal ativado no painel Stripe.
+export async function createBillingPortalSession(input: {
+  businessId: string;
+  origin: string;
+}): Promise<{ url: string }> {
+  const stripe = requireStripe();
+
+  const subscription = await db.subscription.findUnique({
+    where: { businessId: input.businessId },
+    select: { providerCustomerId: true },
+  });
+  if (!subscription?.providerCustomerId) {
+    throw new Error("NO_STRIPE_CUSTOMER");
+  }
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: subscription.providerCustomerId,
+    return_url: `${input.origin}/crm`,
+  });
+  return { url: session.url };
+}
