@@ -61,6 +61,15 @@ const h = vi.hoisted(() => {
         staff.find((s) => s.id === where.id && s.businessId === where.businessId) ?? null
       ),
     },
+    // Paywall: o createPublicBooking verifica a subscrição. Devolvemos sempre
+    // uma subscrição ATIVA para os testes de idempotência seguirem o fluxo normal.
+    subscription: {
+      findUnique: vi.fn(async () => ({
+        status: "ACTIVE",
+        providerCustomerId: "cus_test",
+        currentPeriodEnd: null,
+      })),
+    },
   };
 
   return {
