@@ -27,7 +27,7 @@ export default async function BillingPage() {
   }
 
   // Se o dono já tem um cliente Stripe (passou pelo checkout), oferecemos o
-  // portal para gerir/atualizar o pagamento (ex.: PAST_DUE). Senão, subscrever.
+  // portal para gerir/atualizar o pagamento (ex.: PAST_DUE). Senão, escolher plano.
   let hasStripeCustomer = false;
   try {
     const business = await getCurrentBusiness();
@@ -42,11 +42,13 @@ export default async function BillingPage() {
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
           Onnex Pro
         </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          €25,99<span className="text-base font-medium text-muted-foreground">/mês</span>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">
+          {hasStripeCustomer ? "Gerir a tua subscrição" : "Escolhe o teu plano"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Começa com <span className="font-medium text-foreground">7 dias grátis</span>. Cancela quando quiseres.
+          {hasStripeCustomer
+            ? "Atualiza o pagamento, vê faturas ou cancela quando quiseres."
+            : "Começa com 7 dias grátis. Cancela quando quiseres."}
         </p>
 
         <ul className="mt-6 flex flex-col gap-3">
@@ -60,22 +62,59 @@ export default async function BillingPage() {
           ))}
         </ul>
 
-        <div className="mt-8">
-          {hasStripeCustomer ? (
+        {hasStripeCustomer ? (
+          <div className="mt-8">
             <ManageSubscriptionButton
               label="Gerir subscrição / pagamento"
               variant="default"
               size="lg"
               fullWidth
             />
-          ) : (
-            <SubscribeButton />
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="mt-7 flex flex-col gap-4">
+            {/* Plano Trimestral — promocional (destaque) */}
+            <div className="relative rounded-xl border-2 border-primary bg-primary/[0.03] p-4 pt-5">
+              <span className="absolute -top-3 left-4 rounded-full bg-primary px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-primary-foreground shadow-sm">
+                Promoção −14%
+              </span>
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="font-semibold">Trimestral</p>
+                  <p className="text-xs text-muted-foreground">antes €77,97</p>
+                </div>
+                <p className="shrink-0 text-right">
+                  <span className="text-2xl font-bold tracking-tight">€66,99</span>
+                  <span className="block text-xs font-medium text-muted-foreground">por 3 meses</span>
+                </p>
+              </div>
+              <div className="mt-4">
+                <SubscribeButton plan="trimestral" />
+              </div>
+            </div>
 
-        <p className="mt-4 text-center text-xs leading-5 text-muted-foreground">
-          Pagamento seguro via Stripe. Após os 7 dias, são cobrados €25,99/mês — a conta fica
-          bloqueada se não houver assinatura ativa.
+            {/* Plano Mensal */}
+            <div className="rounded-xl border border-border p-4">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="font-semibold">Mensal</p>
+                  <p className="text-xs text-muted-foreground">Flexível, sem compromisso</p>
+                </div>
+                <p className="shrink-0 text-right">
+                  <span className="text-2xl font-bold tracking-tight">€25,99</span>
+                  <span className="block text-xs font-medium text-muted-foreground">por mês</span>
+                </p>
+              </div>
+              <div className="mt-4">
+                <SubscribeButton plan="monthly" variant="outline" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <p className="mt-5 text-center text-xs leading-5 text-muted-foreground">
+          Pagamento seguro via Stripe. Após os 7 dias grátis, a subscrição é cobrada
+          automaticamente — a conta fica bloqueada se não houver assinatura ativa.
         </p>
       </div>
     </main>

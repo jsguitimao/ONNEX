@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { getAppUrl } from "@/lib/app-config";
 import { getCurrentBusiness } from "@/lib/business-modules/core";
 import { createBillingPortalSession, createProCheckoutSession } from "@/lib/billing";
+import type { PlanId } from "@/lib/stripe";
 import { captureException } from "@/lib/observability";
 
 type CheckoutResult = { ok: true; url: string } | { ok: false; error: string };
@@ -19,7 +20,7 @@ async function resolveOrigin(): Promise<string> {
   return host && host.includes("localhost") ? `${proto}://${host}` : getAppUrl();
 }
 
-export async function startProCheckoutAction(): Promise<CheckoutResult> {
+export async function startProCheckoutAction(plan: PlanId = "monthly"): Promise<CheckoutResult> {
   const { userId } = await auth();
   if (!userId) return { ok: false, error: "Sessão expirada. Inicia sessão novamente." };
 
@@ -37,6 +38,7 @@ export async function startProCheckoutAction(): Promise<CheckoutResult> {
       businessId: business.id,
       ownerEmail: email,
       origin: await resolveOrigin(),
+      plan,
     });
     return { ok: true, url };
   } catch (error) {

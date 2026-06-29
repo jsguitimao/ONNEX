@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { getStripePriceId, requireStripe } from "./stripe";
+import { getStripePriceId, requireStripe, type PlanId } from "./stripe";
 
 const TRIAL_DAYS = 7;
 
@@ -10,9 +10,10 @@ export async function createProCheckoutSession(input: {
   businessId: string;
   ownerEmail: string;
   origin: string;
+  plan?: PlanId;
 }): Promise<{ url: string }> {
   const stripe = requireStripe();
-  const priceId = getStripePriceId();
+  const priceId = getStripePriceId(input.plan ?? "monthly");
   if (!priceId) throw new Error("STRIPE_PRICE_ID_MISSING");
 
   const subscription = await db.subscription.findUnique({
