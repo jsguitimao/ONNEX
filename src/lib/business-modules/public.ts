@@ -41,7 +41,6 @@ async function sendPostBookingNotifications(booking: CreatedPublicBooking, autoA
     await sendBookingNotification(
       booking.id,
       autoAccept ? "BOOKING_CONFIRMED" : "BOOKING_CREATED",
-      { notifyStaff: true },
     );
   } catch (error) {
     captureException("public.create_booking.customer_notification_failed", error, {

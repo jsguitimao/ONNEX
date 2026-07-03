@@ -36,7 +36,6 @@ type BookingNotificationPayload = {
     name: string;
     slug: string;
     contactPhone: string | null;
-    whatsappNumber: string | null;
     owner: {
       email: string;
       firstName: string | null;
@@ -467,38 +466,6 @@ async function sendWhatsappTemplateForKind(
   return runWhatsappDelivery(booking, kind, recipient, template.name, template.build(booking));
 }
 
-// Aviso ao BARBEIRO quando entra uma reserva nova. Template próprio (4 variáveis) e
-// destinatário = número de WhatsApp da barbearia (ou, em alternativa, o contacto).
-// Registamos o log com kind=BOOKING_CREATED (já existente no enum da BD): o dedupe
-// distingue-o do aviso ao cliente porque o recipient é o do barbeiro.
-const STAFF_ALERT_TEMPLATE = {
-  name: "nova_reserva_barbeiro",
-  build: (booking: BookingNotificationPayload) => [
-    booking.business.name,
-    booking.customerName,
-    booking.service.name,
-    format(booking.startsAt, "dd/MM 'às' HH:mm"),
-  ],
-};
-
-async function deliverWhatsappToBarber(
-  booking: BookingNotificationPayload,
-): Promise<DeliveryResult> {
-  const recipient =
-    booking.business.whatsappNumber?.trim() || booking.business.contactPhone?.trim() || "";
-  if (!recipient) {
-    await createSkippedNotification(booking, "WHATSAPP", "BOOKING_CREATED", "BARBER_PHONE_MISSING");
-    return { channel: "WHATSAPP", status: "skipped", reason: "BARBER_PHONE_MISSING" };
-  }
-  return runWhatsappDelivery(
-    booking,
-    "BOOKING_CREATED",
-    recipient,
-    STAFF_ALERT_TEMPLATE.name,
-    STAFF_ALERT_TEMPLATE.build(booking),
-  );
-}
-
 async function deliverWhatsappToCustomer(
   booking: BookingNotificationPayload,
   kind: NotificationKind,
@@ -524,7 +491,6 @@ async function deliverEmailToCustomer(
 export async function sendBookingNotification(
   bookingId: string,
   kind: NotificationKind,
-  options?: { notifyStaff?: boolean },
 ) {
   const booking = await loadBookingNotificationPayload(bookingId);
 
@@ -532,13 +498,11 @@ export async function sendBookingNotification(
     return { status: "missing" as const, channels: [] as DeliveryResult[] };
   }
 
-  // Notificações ao cliente (email + WhatsApp) e, se pedido, aviso ao barbeiro —
-  // tudo em paralelo. Cada canal regista o seu próprio NotificationLog e nenhum
-  // bloqueia o outro. `notifyStaff` só é ativado nas reservas novas (site público).
+  // Notificações ao cliente (email + WhatsApp) em paralelo. Cada canal regista o
+  // seu próprio NotificationLog e nenhum bloqueia o outro.
   const deliveries = await Promise.all([
     deliverWhatsappToCustomer(booking, kind),
     deliverEmailToCustomer(booking, kind),
-    ...(options?.notifyStaff ? [deliverWhatsappToBarber(booking)] : []),
   ]);
 
   return summarizeDeliveries(deliveries);
