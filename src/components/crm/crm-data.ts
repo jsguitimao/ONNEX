@@ -1,4 +1,4 @@
-import { CalendarDays, LayoutDashboard, MessageCircle, UsersRound, WalletCards } from "lucide-react";
+import { CalendarDays, LayoutDashboard, UsersRound, WalletCards } from "lucide-react";
 import type { SectionConfig } from "./crm-types";
 
 export const sections: SectionConfig[] = [
@@ -21,12 +21,6 @@ export const sections: SectionConfig[] = [
     description: "Marcações, estado, origem e equipa.",
     icon: CalendarDays,
     action: "Marcação manual",
-  },
-  {
-    id: "whatsapp",
-    label: "WhatsApp",
-    description: "Confirmações e lembretes automáticos.",
-    icon: MessageCircle,
   },
   {
     id: "financeiro",

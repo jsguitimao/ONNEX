@@ -22,7 +22,6 @@ import {
 } from "@/lib/crm/schedule-blocks";
 import { computeFinancialSummary } from "@/lib/crm/finance";
 import { loadEditorDraft } from "@/lib/page-editor/load";
-import { getWhatsappConfig } from "@/lib/crm/whatsapp";
 import { hasActiveAccess } from "@/lib/subscription-access";
 import { captureException } from "@/lib/observability";
 
@@ -65,7 +64,6 @@ export default async function CrmPage() {
     scheduleBlocks,
     financialSummary,
     editorDraft,
-    whatsappConfig,
   ] = await Promise.all([
     listCustomers(business.id),
     computeCustomerKpis(business.id),
@@ -80,7 +78,6 @@ export default async function CrmPage() {
       timezone: business.timezone,
     }),
     loadEditorDraft(),
-    getWhatsappConfig(business.id),
   ]);
 
   const availabilityByStaff = await listWeeklyAvailabilityForStaffIds(
@@ -110,7 +107,6 @@ export default async function CrmPage() {
       initialFinancialSummary={financialSummary}
       services={services}
       editorDraft={editorDraft}
-      whatsappConfig={whatsappConfig}
     />
   );
 }

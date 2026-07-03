@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-export type CrmSectionId = "painel-visual" | "clientes" | "agendamentos" | "whatsapp" | "financeiro";
+export type CrmSectionId = "painel-visual" | "clientes" | "agendamentos" | "financeiro";
 export type CrmActionKind = "clientes" | "agendamentos";
 export type AcceptanceMode = "automatico" | "manual";
 

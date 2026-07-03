@@ -36,7 +36,7 @@ type BookingNotificationPayload = {
     name: string;
     slug: string;
     contactPhone: string | null;
-    whatsappPhoneNumberId: string | null;
+    whatsappNumber: string | null;
     owner: {
       email: string;
       firstName: string | null;
@@ -356,25 +356,22 @@ const WHATSAPP_TEMPLATES: Partial<
   },
 };
 
-async function sendWhatsappTemplateForKind(
+// Número ÚNICO da Onnex (Cloud API) que envia por TODAS as barbearias. O remetente
+// mostra sempre "Onnex"; o nome da barbearia vai dentro do texto do template.
+// Vem do ambiente (WHATSAPP_PHONE_NUMBER_ID), não mais por barbearia.
+function getWhatsappPhoneNumberId(): string | null {
+  return process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() || null;
+}
+
+// Núcleo de envio partilhado (cliente e barbeiro): valida destinatário, usa o número
+// global, faz reserva idempotente do envio e regista o resultado no NotificationLog.
+async function runWhatsappDelivery(
   booking: BookingNotificationPayload,
   kind: NotificationKind,
   recipient: string,
+  templateName: string,
+  variables: string[],
 ): Promise<DeliveryResult> {
-  const template = WHATSAPP_TEMPLATES[kind];
-  if (!template) {
-    await createNotificationLog({
-      bookingId: booking.id,
-      businessId: booking.business.id,
-      channel: "WHATSAPP",
-      kind,
-      recipient,
-      status: "SKIPPED",
-      errorMessage: "WHATSAPP_KIND_NO_TEMPLATE",
-    });
-    return { channel: "WHATSAPP", status: "skipped", reason: "WHATSAPP_KIND_NO_TEMPLATE" };
-  }
-
   if (!isValidWhatsappRecipient(recipient)) {
     await createNotificationLog({
       bookingId: booking.id,
@@ -388,7 +385,7 @@ async function sendWhatsappTemplateForKind(
     return { channel: "WHATSAPP", status: "skipped", reason: "WHATSAPP_RECIPIENT_INVALID_FORMAT" };
   }
 
-  const phoneNumberId = booking.business.whatsappPhoneNumberId?.trim() || null;
+  const phoneNumberId = getWhatsappPhoneNumberId();
   if (!phoneNumberId) {
     await createNotificationLog({
       bookingId: booking.id,
@@ -397,9 +394,9 @@ async function sendWhatsappTemplateForKind(
       kind,
       recipient,
       status: "SKIPPED",
-      errorMessage: "WHATSAPP_BUSINESS_NOT_CONNECTED",
+      errorMessage: "WHATSAPP_NOT_CONFIGURED",
     });
-    return { channel: "WHATSAPP", status: "skipped", reason: "WHATSAPP_BUSINESS_NOT_CONNECTED" };
+    return { channel: "WHATSAPP", status: "skipped", reason: "WHATSAPP_NOT_CONFIGURED" };
   }
 
   const reservation = await reserveNotificationDelivery({
@@ -416,8 +413,8 @@ async function sendWhatsappTemplateForKind(
   const result = await sendWhatsappTemplate({
     phoneNumberId,
     to: recipient.trim().replace(/^whatsapp:/, ""),
-    template: template.name,
-    variables: template.build(booking),
+    template: templateName,
+    variables,
     languageCode: "pt_PT",
   });
 
@@ -447,6 +444,61 @@ async function sendWhatsappTemplateForKind(
   return { channel: "WHATSAPP", status: "sent" };
 }
 
+// Envio ao CLIENTE: escolhe o template pelo tipo de notificação (só os que existem
+// em WHATSAPP_TEMPLATES têm envio; os outros são registados como SKIPPED).
+async function sendWhatsappTemplateForKind(
+  booking: BookingNotificationPayload,
+  kind: NotificationKind,
+  recipient: string,
+): Promise<DeliveryResult> {
+  const template = WHATSAPP_TEMPLATES[kind];
+  if (!template) {
+    await createNotificationLog({
+      bookingId: booking.id,
+      businessId: booking.business.id,
+      channel: "WHATSAPP",
+      kind,
+      recipient,
+      status: "SKIPPED",
+      errorMessage: "WHATSAPP_KIND_NO_TEMPLATE",
+    });
+    return { channel: "WHATSAPP", status: "skipped", reason: "WHATSAPP_KIND_NO_TEMPLATE" };
+  }
+  return runWhatsappDelivery(booking, kind, recipient, template.name, template.build(booking));
+}
+
+// Aviso ao BARBEIRO quando entra uma reserva nova. Template próprio (4 variáveis) e
+// destinatário = número de WhatsApp da barbearia (ou, em alternativa, o contacto).
+// Registamos o log com kind=BOOKING_CREATED (já existente no enum da BD): o dedupe
+// distingue-o do aviso ao cliente porque o recipient é o do barbeiro.
+const STAFF_ALERT_TEMPLATE = {
+  name: "nova_reserva_barbeiro",
+  build: (booking: BookingNotificationPayload) => [
+    booking.business.name,
+    booking.customerName,
+    booking.service.name,
+    format(booking.startsAt, "dd/MM 'às' HH:mm"),
+  ],
+};
+
+async function deliverWhatsappToBarber(
+  booking: BookingNotificationPayload,
+): Promise<DeliveryResult> {
+  const recipient =
+    booking.business.whatsappNumber?.trim() || booking.business.contactPhone?.trim() || "";
+  if (!recipient) {
+    await createSkippedNotification(booking, "WHATSAPP", "BOOKING_CREATED", "BARBER_PHONE_MISSING");
+    return { channel: "WHATSAPP", status: "skipped", reason: "BARBER_PHONE_MISSING" };
+  }
+  return runWhatsappDelivery(
+    booking,
+    "BOOKING_CREATED",
+    recipient,
+    STAFF_ALERT_TEMPLATE.name,
+    STAFF_ALERT_TEMPLATE.build(booking),
+  );
+}
+
 async function deliverWhatsappToCustomer(
   booking: BookingNotificationPayload,
   kind: NotificationKind,
@@ -472,6 +524,7 @@ async function deliverEmailToCustomer(
 export async function sendBookingNotification(
   bookingId: string,
   kind: NotificationKind,
+  options?: { notifyStaff?: boolean },
 ) {
   const booking = await loadBookingNotificationPayload(bookingId);
 
@@ -479,11 +532,13 @@ export async function sendBookingNotification(
     return { status: "missing" as const, channels: [] as DeliveryResult[] };
   }
 
-  // Confirmação ao cliente: email + WhatsApp em paralelo. Cada canal regista o
-  // seu próprio NotificationLog e nenhum bloqueia o outro.
+  // Notificações ao cliente (email + WhatsApp) e, se pedido, aviso ao barbeiro —
+  // tudo em paralelo. Cada canal regista o seu próprio NotificationLog e nenhum
+  // bloqueia o outro. `notifyStaff` só é ativado nas reservas novas (site público).
   const deliveries = await Promise.all([
     deliverWhatsappToCustomer(booking, kind),
     deliverEmailToCustomer(booking, kind),
+    ...(options?.notifyStaff ? [deliverWhatsappToBarber(booking)] : []),
   ]);
 
   return summarizeDeliveries(deliveries);

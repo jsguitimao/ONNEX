@@ -48,7 +48,6 @@ import {
   createManualBooking,
   type CrmManualBookingInput,
 } from "@/lib/crm/manual-booking";
-import { updateWhatsappConfig } from "@/lib/crm/whatsapp";
 import { captureException } from "@/lib/observability";
 import { consumeRateLimit } from "@/lib/rate-limit";
 
@@ -864,61 +863,6 @@ function sanitizeScheduleBlockInput(value: unknown): CrmScheduleBlockInput | nul
     endTime,
     reason,
   };
-}
-
-export type SaveWhatsappConfigResult = { ok: true } | { ok: false; error: string };
-
-export async function saveWhatsappConfigAction(input: {
-  whatsappNumber?: unknown;
-  reminderLeadMinutes?: unknown;
-}): Promise<SaveWhatsappConfigResult> {
-  const { userId } = await auth();
-  if (!userId) {
-    return { ok: false, error: "Sessão expirada. Inicia sessão novamente." };
-  }
-
-  const rateLimit = await consumeRateLimit({
-    namespace: "crm-save-whatsapp",
-    identifier: userId,
-    limit: 30,
-    windowMs: 60_000,
-  });
-  if (!rateLimit.ok) {
-    return { ok: false, error: "Demasiadas tentativas. Aguarda um momento." };
-  }
-
-  let whatsappNumber: string | null = null;
-  if (typeof input.whatsappNumber === "string") {
-    const trimmed = input.whatsappNumber.trim();
-    if (trimmed.length > 0) {
-      if (!/^\+?[0-9\s()-]{6,20}$/.test(trimmed)) {
-        return { ok: false, error: "Número de WhatsApp inválido." };
-      }
-      whatsappNumber = trimmed;
-    }
-  }
-
-  let reminderLeadMinutes: number | null = null;
-  if (input.reminderLeadMinutes !== undefined && input.reminderLeadMinutes !== null) {
-    const n = Number(input.reminderLeadMinutes);
-    if (!Number.isInteger(n) || n < 5 || n > 10080) {
-      return { ok: false, error: "Tempo de lembrete: entre 5 minutos e 7 dias." };
-    }
-    reminderLeadMinutes = n;
-  }
-
-  try {
-    const business = await getCurrentBusiness();
-    await updateWhatsappConfig(business.id, { whatsappNumber, reminderLeadMinutes });
-    revalidatePath("/crm");
-    return { ok: true };
-  } catch (error) {
-    if (error instanceof Error && error.message === "AUTH_REQUIRED") {
-      return { ok: false, error: "Sessão expirada. Inicia sessão novamente." };
-    }
-    captureException("crm.save_whatsapp_config.failed", error, { userId });
-    return { ok: false, error: "Erro ao guardar. Tenta novamente." };
-  }
 }
 
 function sanitizeShiftsInput(value: unknown): CrmShift[] | null {
