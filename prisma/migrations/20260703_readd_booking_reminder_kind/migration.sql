@@ -1,0 +1,14 @@
+-- Re-adiciona o valor de enum BOOKING_REMINDER ao tipo NotificationKind.
+--
+-- Este valor tinha sido removido na limpeza destrutiva de 2026-06-26 (quando os
+-- lembretes antigos foram descontinuados). O lembrete voltou — agora via WhatsApp
+-- Cloud API (template lembrete_marcacao), disparado por src/lib/reminders.ts a
+-- partir do cron /api/cron/send-reminders.
+--
+-- Operação ADITIVA e cirúrgica: só ALTER TYPE ... ADD VALUE. Não toca em tabelas
+-- nem em índices — em particular NÃO mexe nos índices parciais geridos à mão
+-- (Booking_reminder_scan_idx, NotificationLog_delivery_dedupe_active_key).
+--
+-- Aplicado à mão via `prisma db execute` nas branches Neon dev (ep-still-sun) e
+-- prod (ep-noisy-cell). `IF NOT EXISTS` torna a operação idempotente.
+ALTER TYPE "NotificationKind" ADD VALUE IF NOT EXISTS 'BOOKING_REMINDER';

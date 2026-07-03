@@ -10,7 +10,8 @@ type NotificationKind =
   | "BOOKING_CREATED"
   | "BOOKING_CONFIRMED"
   | "BOOKING_CANCELLED"
-  | "BOOKING_RESCHEDULED";
+  | "BOOKING_RESCHEDULED"
+  | "BOOKING_REMINDER";
 
 type NotificationChannel = "EMAIL" | "WHATSAPP";
 
@@ -340,13 +341,21 @@ function summarizeDeliveries(results: DeliveryResult[]) {
 }
 
 // Mensagens ao cliente via WhatsApp Cloud API. Só os tipos com template aprovado
-// na Meta podem ser enviados (regra da Meta). Por agora: confirmação de reserva.
-// O lembrete (lembrete_marcacao) será disparado pelo agendador, não por aqui.
+// na Meta podem ser enviados (regra da Meta). Confirmação de reserva (na hora) e
+// lembrete da marcação (disparado pelo agendador — ver src/lib/reminders.ts).
 const WHATSAPP_TEMPLATES: Partial<
   Record<NotificationKind, { name: string; build: (booking: BookingNotificationPayload) => string[] }>
 > = {
   BOOKING_CONFIRMED: {
     name: "reserva_confirmada",
+    build: (booking) => [
+      booking.customerName,
+      booking.business.name,
+      format(booking.startsAt, "dd/MM 'às' HH:mm"),
+    ],
+  },
+  BOOKING_REMINDER: {
+    name: "lembrete_marcacao",
     build: (booking) => [
       booking.customerName,
       booking.business.name,
@@ -506,4 +515,18 @@ export async function sendBookingNotification(
   ]);
 
   return summarizeDeliveries(deliveries);
+}
+
+// Lembrete da marcação ao cliente — SÓ WhatsApp (template lembrete_marcacao).
+// Chamado pelo agendador (src/lib/reminders.ts). O dedupe do NotificationLog
+// (kind=BOOKING_REMINDER) garante que cada reserva só é lembrada uma vez.
+export async function sendBookingReminder(bookingId: string) {
+  const booking = await loadBookingNotificationPayload(bookingId);
+
+  if (!booking) {
+    return { status: "missing" as const, channels: [] as DeliveryResult[] };
+  }
+
+  const delivery = await deliverWhatsappToCustomer(booking, "BOOKING_REMINDER");
+  return summarizeDeliveries([delivery]);
 }

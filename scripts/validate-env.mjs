@@ -47,6 +47,10 @@ const OPTIONAL_PROVIDER_GROUPS = [
     name: "Sentry",
     keys: ["SENTRY_DSN"],
   },
+  {
+    name: "Cron de lembretes",
+    keys: ["CRON_SECRET"],
+  },
 ];
 
 function hasValue(key) {
