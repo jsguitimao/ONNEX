@@ -37,7 +37,7 @@ const REQUIRED_PRODUCTION = [
 const OPTIONAL_PROVIDER_GROUPS = [
   {
     name: "WhatsApp Cloud API",
-    keys: ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID"],
+    keys: ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_WEBHOOK_VERIFY_TOKEN"],
   },
   {
     name: "Stripe",
