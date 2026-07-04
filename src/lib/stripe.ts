@@ -7,13 +7,19 @@ const secretKey = process.env.STRIPE_SECRET_KEY?.trim() || null;
 
 export const stripe = secretKey ? new Stripe(secretKey) : null;
 
-/** Planos Pro disponíveis: mensal (€25,99/mês) e trimestral (€66,99/3 meses, promo -14%). */
-export type PlanId = "monthly" | "trimestral";
+/**
+ * Planos Pro disponíveis: mensal (€25,99/mês), trimestral (€66,99/3 meses,
+ * promo -14%) e anual (€249,99/ano, poupa ~20%).
+ */
+export type PlanId = "monthly" | "trimestral" | "anual";
 
 /** O ID do preço (Price) Stripe do plano escolhido. */
 export function getStripePriceId(plan: PlanId = "monthly"): string | null {
   if (plan === "trimestral") {
     return process.env.STRIPE_PRICE_ID_TRIMESTRAL?.trim() || null;
+  }
+  if (plan === "anual") {
+    return process.env.STRIPE_PRICE_ID_ANUAL?.trim() || null;
   }
   return process.env.STRIPE_PRICE_ID?.trim() || null;
 }

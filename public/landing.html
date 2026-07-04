@@ -1487,6 +1487,18 @@ section {
   .price-badge.promo { animation: none; }
 }
 
+/* Cartão anual: alerta distinto do promo (verde esmeralda, glow fixo — poupança) */
+.price-card.annual {
+  border: 2px solid #059669;
+}
+
+.price-badge.annual {
+  background: #059669;
+  color: #fff;
+  border-color: #059669;
+  box-shadow: 0 0 14px 2px rgba(5,150,105,0.45);
+}
+
 .price-old {
   text-decoration: line-through;
   color: var(--text-muted);
@@ -2477,24 +2489,11 @@ footer {
     </div>
 
     <div class="pricing-grid reveal reveal-stagger">
-      <div class="price-card">
-        <div class="price-value">€0</div>
-        <div class="price-sub">Experimenta tudo, 7 dias grátis</div>
-        <ul class="price-features">
-          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Reservas ilimitadas</li>
-          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>WhatsApp + Email automáticos</li>
-          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>CRM completo de clientes</li>
-          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Dashboard operacional</li>
-          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Todas as funcionalidades Pro</li>
-        </ul>
-        <a href="/sign-up" class="btn btn-ghost price-cta">Começar grátis</a>
-      </div>
-
       <div class="price-card featured">
         <div class="price-badge">Mais popular</div>
-        <div class="price-label">Pro</div>
+        <div class="price-label">Pro Mensal</div>
         <div class="price-value">€25,99</div>
-        <div class="price-sub">por mês</div>
+        <div class="price-sub">por mês · 7 dias grátis</div>
         <ul class="price-features">
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Reservas ilimitadas</li>
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>WhatsApp + Email automáticos</li>
@@ -2503,7 +2502,7 @@ footer {
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Suporte prioritário</li>
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Analytics de reservas</li>
         </ul>
-        <a href="/sign-up" class="btn btn-filled price-cta">Começar Pro</a>
+        <a href="/sign-up" class="btn btn-filled price-cta">7 dias grátis</a>
       </div>
 
       <div class="price-card promo">
@@ -2520,6 +2519,22 @@ footer {
           <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Analytics de reservas</li>
         </ul>
         <a href="/sign-up" class="btn btn-filled price-cta">Aproveitar promoção</a>
+      </div>
+
+      <div class="price-card annual">
+        <div class="price-badge annual">Poupa 20%</div>
+        <div class="price-label">Pro Anual</div>
+        <div class="price-value">€249,99</div>
+        <div class="price-sub">por ano · equivale a €20,83/mês</div>
+        <ul class="price-features">
+          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Reservas ilimitadas</li>
+          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>WhatsApp + Email automáticos</li>
+          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>CRM completo de clientes</li>
+          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Dashboard operacional</li>
+          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Suporte prioritário</li>
+          <li><span class="price-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Analytics de reservas</li>
+        </ul>
+        <a href="/sign-up" class="btn btn-filled price-cta">Escolher anual</a>
       </div>
     </div>
   </div>
@@ -2812,7 +2827,7 @@ footer {
       </div>
       <div class="faq-item">
         <button class="faq-q">As notificações WhatsApp são incluídas no plano?<span class="faq-icon"></span></button>
-        <div class="faq-a">No plano Pro sim — com volume generoso incluído. No plano Free, apenas email.</div>
+        <div class="faq-a">Sim — WhatsApp e email automáticos estão incluídos em todos os planos Pro, com volume generoso.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q">Posso ter múltiplas barbearias?<span class="faq-icon"></span></button>

@@ -93,6 +93,26 @@ export default async function BillingPage() {
               </div>
             </div>
 
+            {/* Plano Anual — melhor valor (poupa ~20%) */}
+            <div className="relative rounded-xl border-2 border-emerald-600 bg-emerald-600/[0.03] p-4 pt-5">
+              <span className="absolute -top-3 left-4 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white shadow-sm">
+                Poupa 20%
+              </span>
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="font-semibold">Anual</p>
+                  <p className="text-xs text-muted-foreground">equivale a €20,83/mês</p>
+                </div>
+                <p className="shrink-0 text-right">
+                  <span className="text-2xl font-bold tracking-tight">€249,99</span>
+                  <span className="block text-xs font-medium text-muted-foreground">por ano</span>
+                </p>
+              </div>
+              <div className="mt-4">
+                <SubscribeButton plan="anual" variant="outline" />
+              </div>
+            </div>
+
             {/* Plano Mensal */}
             <div className="rounded-xl border border-border p-4">
               <div className="flex items-end justify-between gap-3">
