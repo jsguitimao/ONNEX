@@ -90,7 +90,7 @@ export default function PrivacyPage() {
         </ul>
       </section>
 
-      <section className="grid gap-3">
+      <section id="cookies" className="grid gap-3">
         <h2>8. Cookies</h2>
         <p>
           A plataforma utiliza apenas cookies tecnicamente necessarios (autenticacao, sessao, prevencao
