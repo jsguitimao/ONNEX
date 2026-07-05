@@ -9,13 +9,28 @@ import type { CrmStaffRow } from "@/lib/crm/staff";
 
 const ALL_OPTION = "Todos";
 
+const PERIOD_OPTIONS: { value: CrmFinancePeriod; label: string }[] = [
+  { value: "semanal", label: "Semanal" },
+  { value: "mensal", label: "Mensal" },
+  { value: "trimestral", label: "Trimestral" },
+  { value: "custom", label: "Custom" },
+];
+
 type Props = {
   staff: CrmStaffRow[];
   initialSummary: CrmFinancialSummary;
 };
 
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export function FinancePanel({ staff, initialSummary }: Props) {
   const [period, setPeriod] = useState<CrmFinancePeriod>(initialSummary.period);
+  const [customMonth, setCustomMonth] = useState<string>(
+    initialSummary.customMonth ?? currentMonthKey(),
+  );
   const [professionalLabel, setProfessionalLabel] = useState<string>(ALL_OPTION);
   const [summary, setSummary] = useState(initialSummary);
   const [error, setError] = useState<string | null>(null);
@@ -26,12 +41,20 @@ export function FinancePanel({ staff, initialSummary }: Props) {
     [staff],
   );
 
-  function refresh(nextPeriod: CrmFinancePeriod, nextProfessional: string) {
+  function refresh(
+    nextPeriod: CrmFinancePeriod,
+    nextProfessional: string,
+    nextCustomMonth: string,
+  ) {
     setError(null);
     const staffMember = staff.find((member) => member.fullName === nextProfessional);
     const staffMemberId = nextProfessional === ALL_OPTION ? null : staffMember?.id ?? null;
     startTransition(async () => {
-      const result = await getFinancialSummaryAction(nextPeriod, staffMemberId);
+      const result = await getFinancialSummaryAction(
+        nextPeriod,
+        staffMemberId,
+        nextPeriod === "custom" ? nextCustomMonth : null,
+      );
       if (!result.ok) {
         setError(result.error);
         return;
@@ -43,13 +66,21 @@ export function FinancePanel({ staff, initialSummary }: Props) {
   function selectPeriod(next: CrmFinancePeriod) {
     if (next === period && !error) return;
     setPeriod(next);
-    refresh(next, professionalLabel);
+    refresh(next, professionalLabel, customMonth);
+  }
+
+  function selectCustomMonth(next: string) {
+    setCustomMonth(next);
+    if (period !== "custom") setPeriod("custom");
+    if (/^\d{4}-\d{2}$/.test(next)) {
+      refresh("custom", professionalLabel, next);
+    }
   }
 
   function selectProfessional(next: string) {
     if (next === professionalLabel && !error) return;
     setProfessionalLabel(next);
-    refresh(period, next);
+    refresh(period, next, customMonth);
   }
 
   return (
@@ -63,20 +94,37 @@ export function FinancePanel({ staff, initialSummary }: Props) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {(["semanal", "mensal"] as CrmFinancePeriod[]).map((item) => (
+            {PERIOD_OPTIONS.map((item) => (
               <Button
-                key={item}
+                key={item.value}
                 type="button"
                 size="sm"
-                variant={period === item ? "default" : "outline"}
+                variant={period === item.value ? "default" : "outline"}
                 disabled={isPending}
-                onClick={() => selectPeriod(item)}
+                onClick={() => selectPeriod(item.value)}
               >
-                {item === "semanal" ? "Semanal" : "Mensal"}
+                {item.label}
               </Button>
             ))}
           </div>
         </div>
+
+        {period === "custom" ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <label htmlFor="finance-custom-month" className="text-xs text-muted-foreground">
+              Escolhe o mês
+            </label>
+            <input
+              id="finance-custom-month"
+              type="month"
+              value={customMonth}
+              max={currentMonthKey()}
+              disabled={isPending}
+              onChange={(event) => selectCustomMonth(event.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+            />
+          </div>
+        ) : null}
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">Profissional</span>
@@ -115,9 +163,7 @@ export function FinancePanel({ staff, initialSummary }: Props) {
           </div>
           <div className="rounded-lg border border-border bg-background p-4">
             <p className="text-xs text-muted-foreground">Período selecionado</p>
-            <p className="mt-2 text-3xl font-semibold">
-              {period === "semanal" ? "Semana atual" : "Mês atual"}
-            </p>
+            <p className="mt-2 text-2xl font-semibold">{periodLabel(period, customMonth)}</p>
           </div>
         </div>
 
@@ -129,6 +175,21 @@ export function FinancePanel({ staff, initialSummary }: Props) {
       </div>
     </div>
   );
+}
+
+function periodLabel(period: CrmFinancePeriod, customMonth: string) {
+  if (period === "semanal") return "Semana atual";
+  if (period === "mensal") return "Mês atual";
+  if (period === "trimestral") return "Trimestre atual";
+  return formatMonthLabel(customMonth);
+}
+
+function formatMonthLabel(key: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(key);
+  if (!match) return "Mês";
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+  const label = new Intl.DateTimeFormat("pt-PT", { month: "long", year: "numeric" }).format(date);
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 function formatCurrency(valueCents: number) {

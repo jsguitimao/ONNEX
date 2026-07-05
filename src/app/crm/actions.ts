@@ -623,15 +623,26 @@ export type FinancialSummaryResult =
 export async function getFinancialSummaryAction(
   period: unknown,
   staffMemberId: unknown,
+  customMonth: unknown = null,
 ): Promise<FinancialSummaryResult> {
   const { userId } = await auth();
   if (!userId) {
     return { ok: false, error: "Sessão expirada. Inicia sessão novamente." };
   }
 
-  if (period !== "semanal" && period !== "mensal") {
+  const validPeriods: CrmFinancePeriod[] = ["semanal", "mensal", "trimestral", "custom"];
+  if (typeof period !== "string" || !validPeriods.includes(period as CrmFinancePeriod)) {
     return { ok: false, error: "Período inválido." };
   }
+
+  let customMonthValue: string | null = null;
+  if (period === "custom") {
+    if (typeof customMonth !== "string" || !/^\d{4}-\d{2}$/.test(customMonth)) {
+      return { ok: false, error: "Mês inválido." };
+    }
+    customMonthValue = customMonth;
+  }
+
   const staffId =
     staffMemberId == null
       ? null
@@ -655,6 +666,7 @@ export async function getFinancialSummaryAction(
       period: period as CrmFinancePeriod,
       staffMemberId: staffId,
       timezone: business.timezone,
+      customMonth: customMonthValue,
     });
     return { ok: true, summary };
   } catch (error) {
