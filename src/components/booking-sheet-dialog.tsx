@@ -350,9 +350,13 @@ export function BookingSheetDialog({
                   state={isDone("service") ? "done" : "active"}
                   doneSummary={
                     selectedService
-                      ? `${selectedService.name} · ${selectedService.durationMinutes} min · ${formatEuro(
-                          selectedService.priceCents,
-                        )}`
+                      ? [
+                          selectedService.name,
+                          business.showDurations ? `${selectedService.durationMinutes} min` : null,
+                          business.showPrices ? formatEuro(selectedService.priceCents) : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")
                       : ""
                   }
                   onEdit={() => goBackTo("service")}
@@ -360,6 +364,8 @@ export function BookingSheetDialog({
                   <ServiceStep
                     services={business.services}
                     selectedId={serviceId}
+                    showPrices={business.showPrices}
+                    showDurations={business.showDurations}
                     onPick={pickService}
                   />
                 </StepRow>
@@ -578,10 +584,14 @@ function StepIcon({
 function ServiceStep({
   services,
   selectedId,
+  showPrices,
+  showDurations,
   onPick,
 }: {
   services: PublicBusinessPayload["services"];
   selectedId: string;
+  showPrices: boolean;
+  showDurations: boolean;
   onPick: (id: string) => void;
 }) {
   return (
@@ -606,13 +616,17 @@ function ServiceStep({
                 <p className="truncate text-[15px] font-semibold leading-5 tracking-[-0.2px]">
                   {service.name}
                 </p>
-                <p className="mt-0.5 text-[13px] leading-[18px] text-muted-foreground">
-                  {service.durationMinutes} min
-                </p>
+                {showDurations ? (
+                  <p className="mt-0.5 text-[13px] leading-[18px] text-muted-foreground">
+                    {service.durationMinutes} min
+                  </p>
+                ) : null}
               </div>
-              <p className="shrink-0 text-[15px] font-semibold leading-5 tracking-[-0.2px] tabular-nums">
-                {formatEuro(service.priceCents)}
-              </p>
+              {showPrices ? (
+                <p className="shrink-0 text-[15px] font-semibold leading-5 tracking-[-0.2px] tabular-nums">
+                  {formatEuro(service.priceCents)}
+                </p>
+              ) : null}
             </button>
           </li>
         );
