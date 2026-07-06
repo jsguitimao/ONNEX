@@ -13,5 +13,5 @@ export default async function OnboardingPage() {
     redirect("/sign-in?redirect_url=/onboarding");
   }
 
-  redirect("/dashboard");
+  redirect("/crm");
 }
