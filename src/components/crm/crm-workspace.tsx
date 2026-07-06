@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LogOut, Plus } from "lucide-react";
-import { useClerk } from "@clerk/nextjs";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PageEditor } from "@/components/page-editor/page-editor";
@@ -20,7 +19,7 @@ export type CrmServiceOption = {
   durationMinutes: number;
   priceCents: number;
 };
-import { ManageSubscriptionButton } from "@/components/billing/manage-subscription-button";
+import { AccountPanel, type CrmSubscriptionInfo } from "./crm-account-panel";
 import { ActionConfigPanel } from "./crm-action-panel";
 import { AppointmentPanel } from "./crm-appointment-panel";
 import { CustomersPanel } from "./crm-customers-panel";
@@ -42,6 +41,7 @@ type Props = {
   initialFinancialSummary: CrmFinancialSummary;
   services: CrmServiceOption[];
   editorDraft: EditorDraft;
+  subscription: CrmSubscriptionInfo;
 };
 
 export function CrmWorkspace({
@@ -58,8 +58,8 @@ export function CrmWorkspace({
   initialFinancialSummary,
   services,
   editorDraft,
+  subscription,
 }: Props) {
-  const { signOut } = useClerk();
   const [active, setActive] = useState<CrmSectionId>("painel-visual");
   const [actionPanel, setActionPanel] = useState<CrmActionKind | null>(null);
   const [customerList, setCustomerList] = useState(customers);
@@ -145,15 +145,6 @@ export function CrmWorkspace({
                 {activeSection.action ?? "Configurar"}
               </Button>
             ) : null}
-            <ManageSubscriptionButton label="Subscrição" />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => void signOut({ redirectUrl: "/" })}
-            >
-              <LogOut className="size-4" />
-              Sair
-            </Button>
           </div>
         </div>
       </header>
@@ -257,6 +248,8 @@ export function CrmWorkspace({
               onScheduleBlockCreated={handleScheduleBlockCreated}
               onScheduleBlockDeleted={handleScheduleBlockDeleted}
             />
+          ) : active === "conta" ? (
+            <AccountPanel subscription={subscription} />
           ) : (
             <FinancePanel staff={staffList} initialSummary={initialFinancialSummary} />
           )}

@@ -1,4 +1,4 @@
-import { CalendarDays, LayoutDashboard, UsersRound, WalletCards } from "lucide-react";
+import { CalendarDays, LayoutDashboard, UserCog, UsersRound, WalletCards } from "lucide-react";
 import type { SectionConfig } from "./crm-types";
 
 export const sections: SectionConfig[] = [
@@ -27,5 +27,11 @@ export const sections: SectionConfig[] = [
     label: "Financeiro",
     description: "Valores lançados quando o profissional finaliza o serviço.",
     icon: WalletCards,
+  },
+  {
+    id: "conta",
+    label: "Conta",
+    description: "Subscrição, dados pessoais e gestão da conta.",
+    icon: UserCog,
   },
 ];

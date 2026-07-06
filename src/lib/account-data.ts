@@ -2,6 +2,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { collectBusinessAssetUrls, deleteManagedBlobs } from "@/lib/blob-cleanup";
 import { captureException, logWarning } from "@/lib/observability";
+import { stripe } from "@/lib/stripe";
 
 async function getCurrentAppUser() {
   const { userId } = await auth();
@@ -79,9 +80,15 @@ export async function deleteAccount() {
       staffMembers: {
         select: { avatarUrl: true, portfolioImages: true },
       },
+      subscription: {
+        select: { providerCustomerId: true },
+      },
     },
   });
   const blobUrls = collectBusinessAssetUrls(ownedBusinesses);
+  const stripeCustomerIds = ownedBusinesses
+    .map((business) => business.subscription?.providerCustomerId)
+    .filter((customerId): customerId is string => Boolean(customerId));
 
   // DB cascade: User -> Businesses -> all relations (per schema onDelete: Cascade).
   // Inclui NotificationLog (businessId Cascade), cujo `payload` pode conter PII
@@ -98,6 +105,23 @@ export async function deleteAccount() {
         deleted: cleanup.deleted,
         failed: cleanup.failed,
       });
+    }
+  }
+
+  // Stripe: apagar o cliente cancela de imediato qualquer subscrição ativa e
+  // remove os dados pessoais da Stripe (as faturas ficam para contabilidade).
+  // Best-effort: uma falha não bloqueia a erasure, mas fica registada — sem
+  // isto o ex-cliente continuaria a ser cobrado depois de apagar a conta.
+  if (stripe && stripeCustomerIds.length > 0) {
+    for (const customerId of stripeCustomerIds) {
+      try {
+        await stripe.customers.del(customerId);
+      } catch (error) {
+        captureException("account.delete.stripe_customer_delete_failed", error, {
+          userId: user.id,
+          customerId,
+        });
+      }
     }
   }
 

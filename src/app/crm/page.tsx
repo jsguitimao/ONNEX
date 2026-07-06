@@ -23,7 +23,9 @@ import {
 import { computeFinancialSummary } from "@/lib/crm/finance";
 import { loadEditorDraft } from "@/lib/page-editor/load";
 import { hasActiveAccess } from "@/lib/subscription-access";
+import { getStripePriceId } from "@/lib/stripe";
 import { captureException } from "@/lib/observability";
+import type { CrmSubscriptionInfo } from "@/components/crm/crm-account-panel";
 
 export const metadata = {
   title: "CRM",
@@ -31,6 +33,47 @@ export const metadata = {
 };
 
 export const dynamic = "force-dynamic";
+
+const SUBSCRIPTION_STATUS_LABELS: Record<string, { label: string; tone: "ok" | "warn" | "bad" }> = {
+  TRIALING: { label: "Período de teste", tone: "ok" },
+  ACTIVE: { label: "Ativa", tone: "ok" },
+  PAST_DUE: { label: "Pagamento em atraso", tone: "warn" },
+  CANCELLED: { label: "Cancelada", tone: "bad" },
+};
+
+// Nome comercial do plano a partir do Price da Stripe guardado pelo webhook.
+function resolvePlanLabel(providerPriceId: string | null): string {
+  if (providerPriceId) {
+    if (providerPriceId === getStripePriceId("monthly")) return "Pro Mensal — 25,99 €/mês";
+    if (providerPriceId === getStripePriceId("trimestral")) return "Pro Trimestral — 66,99 €/3 meses";
+    if (providerPriceId === getStripePriceId("anual")) return "Pro Anual — 249,99 €/ano";
+    return "Pro";
+  }
+  return "Sem plano ativo";
+}
+
+function toSubscriptionInfo(
+  subscription: {
+    status: string;
+    providerPriceId: string | null;
+    providerCustomerId: string | null;
+    currentPeriodEnd: Date | null;
+    cancelAtPeriodEnd: boolean;
+  } | null,
+): CrmSubscriptionInfo {
+  const status = SUBSCRIPTION_STATUS_LABELS[subscription?.status ?? ""] ?? {
+    label: "Sem subscrição",
+    tone: "bad" as const,
+  };
+  return {
+    statusLabel: status.label,
+    statusTone: status.tone,
+    planLabel: resolvePlanLabel(subscription?.providerPriceId ?? null),
+    periodEnd: subscription?.currentPeriodEnd?.toISOString() ?? null,
+    cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
+    hasStripeCustomer: Boolean(subscription?.providerCustomerId),
+  };
+}
 
 export default async function CrmPage() {
   const { userId } = await auth();
@@ -107,6 +150,7 @@ export default async function CrmPage() {
       initialFinancialSummary={financialSummary}
       services={services}
       editorDraft={editorDraft}
+      subscription={toSubscriptionInfo(business.subscription)}
     />
   );
 }
