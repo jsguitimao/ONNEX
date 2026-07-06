@@ -6,7 +6,7 @@ import { loadEditorDraft } from "@/lib/page-editor/load";
 import { hasActiveAccess } from "@/lib/subscription-access";
 
 export const metadata = {
-  title: "Editor da pagina",
+  title: "Editor da página",
   robots: { index: false, follow: false },
 };
 

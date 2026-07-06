@@ -11,7 +11,7 @@ import { buildRateLimitHeaders, consumeRateLimit } from "@/lib/rate-limit";
 export async function GET() {
   const { userId, isAuthenticated } = await auth();
   if (!isAuthenticated || !userId) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const rateLimit = await consumeRateLimit({
@@ -22,7 +22,7 @@ export async function GET() {
   });
   if (!rateLimit.ok) {
     return NextResponse.json(
-      { error: "Demasiados pedidos de exportacao. Tenta novamente mais tarde." },
+      { error: "Demasiados pedidos de exportação. Tenta novamente mais tarde." },
       { status: 429, headers: buildRateLimitHeaders(rateLimit) },
     );
   }
@@ -40,14 +40,14 @@ export async function GET() {
     });
   } catch (error) {
     if (error instanceof Error && error.message === "AUTH_REQUIRED") {
-      return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
     if (error instanceof Error && error.message === "USER_NOT_FOUND") {
-      return NextResponse.json({ error: "Utilizador nao encontrado." }, { status: 404 });
+      return NextResponse.json({ error: "Utilizador não encontrado." }, { status: 404 });
     }
     captureException("account.export.route_failed", error, { userId });
     return NextResponse.json(
-      { error: "Nao foi possivel exportar os dados." },
+      { error: "Não foi possível exportar os dados." },
       { status: 500 },
     );
   }

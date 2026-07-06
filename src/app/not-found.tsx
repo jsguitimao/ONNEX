@@ -13,15 +13,15 @@ export default function NotFound() {
           </div>
           <p className="mt-6 text-sm font-medium uppercase tracking-[0.18em] text-primary">404</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight">
-            A pagina que procuras nao esta disponivel.
+            A página que procuras não está disponível.
           </h1>
           <p className="mt-4 max-w-xl text-muted-foreground">
-            Verifica o endereco da barbearia ou volta ao site principal para continuar a navegar.
+            Verifica o endereço da barbearia ou volta ao site principal para continuar a navegar.
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/" className={buttonVariants()}>
-              Voltar ao inicio
+              Voltar ao início
             </Link>
             <Link href="/sign-up" className={buttonVariants({ variant: "outline" })}>
               Criar conta

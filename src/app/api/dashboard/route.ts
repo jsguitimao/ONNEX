@@ -46,7 +46,7 @@ export async function PUT(req: Request) {
   const originValidation = validateAuthenticatedMutationOrigin(req);
   if (!originValidation.ok) {
     return NextResponse.json(
-      { error: "Origem nao autorizada.", code: originValidation.reason },
+      { error: "Origem não autorizada.", code: originValidation.reason },
       { status: 403, headers: buildRateLimitHeaders(rateLimit) },
     );
   }

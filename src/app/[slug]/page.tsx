@@ -55,14 +55,14 @@ export async function generateMetadata({ params }: PublicPageProps): Promise<Met
 
   if (!business) {
     return {
-      title: "Pagina nao encontrada | ONNEX.PT",
-      description: "A pagina publica pedida nao esta disponivel.",
+      title: "Página não encontrada | ONNEX.PT",
+      description: "A página pública pedida não está disponível.",
     };
   }
 
   const title =
     business.bookingPage?.seoTitle?.trim() ||
-    `${business.name} - Marcacao online`;
+    `${business.name} - Marcação online`;
   const description =
     business.bookingPage?.seoDescription?.trim() ||
     business.bookingPage?.headline?.trim() ||

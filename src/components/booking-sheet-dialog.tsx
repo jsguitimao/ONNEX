@@ -779,7 +779,7 @@ function DateStep({
           type="button"
           onClick={() => jumpMonth(-1)}
           disabled={!canPrevMonth}
-          aria-label="Mes anterior"
+          aria-label="Mês anterior"
           className="flex size-7 items-center justify-center rounded-full bg-foreground/[0.08] text-foreground transition hover:bg-foreground/[0.12] active:bg-foreground/[0.16] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-foreground/[0.08]"
         >
           <ChevronLeft className="size-3.5" strokeWidth={2.25} />
@@ -791,7 +791,7 @@ function DateStep({
           type="button"
           onClick={() => jumpMonth(1)}
           disabled={!canNextMonth}
-          aria-label="Mes seguinte"
+          aria-label="Mês seguinte"
           className="flex size-7 items-center justify-center rounded-full bg-foreground/[0.08] text-foreground transition hover:bg-foreground/[0.12] active:bg-foreground/[0.16] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-foreground/[0.08]"
         >
           <ChevronRight className="size-3.5" strokeWidth={2.25} />

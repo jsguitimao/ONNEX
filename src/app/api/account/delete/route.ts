@@ -16,13 +16,13 @@ const deleteAccountSchema = z.object({
 export async function POST(req: Request) {
   const { userId, isAuthenticated } = await auth();
   if (!isAuthenticated || !userId) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const origin = validateAuthenticatedMutationOrigin(req);
   if (!origin.ok) {
     return NextResponse.json(
-      { error: "Origem nao autorizada.", code: origin.reason },
+      { error: "Origem não autorizada.", code: origin.reason },
       { status: 403 },
     );
   }
@@ -47,13 +47,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_JSON_BODY") {
-      return NextResponse.json({ error: "Corpo JSON invalido." }, { status: 400 });
+      return NextResponse.json({ error: "Corpo JSON inválido." }, { status: 400 });
     }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          error: `Confirmacao invalida. Escreve exatamente "${DELETE_CONFIRMATION}".`,
+          error: `Confirmação inválida. Escreve exatamente "${DELETE_CONFIRMATION}".`,
           code: "INVALID_CONFIRMATION",
         },
         { status: 400 },
@@ -61,14 +61,14 @@ export async function POST(req: Request) {
     }
 
     if (error instanceof Error && error.message === "AUTH_REQUIRED") {
-      return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
     if (error instanceof Error && error.message === "USER_NOT_FOUND") {
-      return NextResponse.json({ error: "Utilizador nao encontrado." }, { status: 404 });
+      return NextResponse.json({ error: "Utilizador não encontrado." }, { status: 404 });
     }
 
     captureException("account.delete.route_failed", error, { userId });
-    return NextResponse.json({ error: "Nao foi possivel apagar a conta." }, { status: 500 });
+    return NextResponse.json({ error: "Não foi possível apagar a conta." }, { status: 500 });
   }
 }

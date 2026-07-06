@@ -1,19 +1,19 @@
 # ONNEX.PT
 
-ONNEX.PT e uma plataforma de agendamentos para barbearias, com area privada para operacao e pagina publica estilo link-in-bio para converter visitas em reservas.
+ONNEX.PT é uma plataforma de agendamentos para barbearias, com área privada para operação e página pública estilo link-in-bio para converter visitas em reservas.
 
-## O que ja existe
+## O que já existe
 
-- autenticacao com Clerk para dashboard e onboarding
-- persistencia com Prisma + PostgreSQL/Neon
-- pagina publica por slug em `/{slug}`
-- fluxo de reserva publica ponta a ponta
-- gestao publica por token com confirmacao, cancelamento e remarcacao
-- agenda operacional com reservas manuais, bloqueios e mudanca de estado
-- CRM basico de clientes
-- notificacoes por WhatsApp
-- sitemap e robots para SEO tecnico
-- rate limiting basico nas rotas publicas
+- autenticação com Clerk para dashboard e onboarding
+- persistência com Prisma + PostgreSQL/Neon
+- página pública por slug em `/{slug}`
+- fluxo de reserva pública ponta a ponta
+- gestão pública por token com confirmação, cancelamento e remarcação
+- agenda operacional com reservas manuais, bloqueios e mudança de estado
+- CRM básico de clientes
+- notificações por WhatsApp
+- sitemap e robots para SEO técnico
+- rate limiting básico nas rotas públicas
 
 ## Stack
 
@@ -27,7 +27,7 @@ ONNEX.PT e uma plataforma de agendamentos para barbearias, com area privada para
 
 ## Como correr localmente
 
-1. Instala as dependencias:
+1. Instala as dependências:
 
 ```bash
 npm install
@@ -62,22 +62,22 @@ npm run dev
 ## Scripts
 
 - `npm run dev` inicia o ambiente local
-- `npm run build` gera o build de producao
+- `npm run build` gera o build de produção
 - `npm run lint` executa o ESLint
 - `npm run test` executa a suite base com `node:test`
 - `npm run test:e2e` executa os smoke tests Playwright
-- `npm run test:staging` executa smoke tests contra staging/producao-like
-- `npm run test:load` executa um load smoke HTTP read-only configuravel
-- `npm run env:check` valida o contrato minimo de variaveis de ambiente
+- `npm run test:staging` executa smoke tests contra staging/produção-like
+- `npm run test:load` executa um load smoke HTTP read-only configurável
+- `npm run env:check` valida o contrato mínimo de variáveis de ambiente
 - `npm run db:generate` gera o cliente Prisma
 - `npm run db:push` sincroniza o schema com a base de dados
-- `npm run db:migrate:deploy` aplica migrations em producao/staging
+- `npm run db:migrate:deploy` aplica migrations em produção/staging
 
-## Variaveis de ambiente
+## Variáveis de ambiente
 
-O ficheiro [.env.example](./.env.example) contem todos os valores esperados pelo projeto.
+O ficheiro [.env.example](./.env.example) contém todos os valores esperados pelo projeto.
 
-### Obrigatorias
+### Obrigatórias
 
 - `DATABASE_URL`
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
@@ -89,7 +89,7 @@ O ficheiro [.env.example](./.env.example) contem todos os valores esperados pelo
 - `WHATSAPP_ACCESS_TOKEN` (token da WhatsApp Cloud API / Meta)
 - `WHATSAPP_API_VERSION` (opcional, default `v21.0`)
 
-O `phone_number_id` de cada barbearia fica na BD (`Business.whatsappPhoneNumberId`), nao em env.
+O `phone_number_id` de cada barbearia fica na BD (`Business.whatsappPhoneNumberId`), não em env.
 
 ### Observabilidade opcional
 
@@ -104,19 +104,19 @@ O `phone_number_id` de cada barbearia fica na BD (`Business.whatsappPhoneNumberI
 - `NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE`
 - `NEXT_PUBLIC_SENTRY_REPLAY_ERROR_SAMPLE_RATE`
 
-## Notificacoes
+## Notificações
 
-As notificacoes sao disparadas a partir de `src/lib/notifications.ts`.
+As notificações são disparadas a partir de `src/lib/notifications.ts`.
 
 - WhatsApp usa a WhatsApp Cloud API oficial da Meta (mensagens de template aprovadas)
-- so a confirmacao de reserva e enviada ao cliente (email + WhatsApp); nao ha lembretes automaticos por aqui
+- só a confirmação de reserva é enviada ao cliente (email + WhatsApp); não há lembretes automáticos por aqui
 - o canal WhatsApp exige `WHATSAPP_ACCESS_TOKEN` + o `whatsappPhoneNumberId` da barbearia
 
-Sem credenciais de WhatsApp, o sistema nao quebra. Em vez disso, regista `SKIPPED` em `NotificationLog`.
+Sem credenciais de WhatsApp, o sistema não quebra. Em vez disso, regista `SKIPPED` em `NotificationLog`.
 
-## Seguranca publica
+## Segurança pública
 
-As rotas publicas mais sensiveis tem rate limiting basico em memoria:
+As rotas públicas mais sensíveis têm rate limiting básico em memória:
 
 - `GET /api/public/[slug]`
 - `GET /api/public/[slug]/availability`
@@ -124,42 +124,42 @@ As rotas publicas mais sensiveis tem rate limiting basico em memoria:
 - `GET/PATCH /api/public/booking/[token]`
 - `GET /api/public/booking/[token]/availability`
 
-Em producao, o rate limit deve usar Redis/Upstash. O contrato de env falha em modo estrito se estas variaveis estiverem ausentes.
+Em produção, o rate limit deve usar Redis/Upstash. O contrato de env falha em modo estrito se estas variáveis estiverem ausentes.
 
-## SEO tecnico
+## SEO técnico
 
 - `src/app/robots.ts`
 - `src/app/sitemap.ts`
 
-O sitemap lista a landing e as paginas publicas ativas por slug.
+O sitemap lista a landing e as páginas públicas ativas por slug.
 
 ## Observabilidade
 
 O projeto agora suporta Sentry de forma real:
 
-- inicializacao de servidor em `src/sentry.server.config.ts`
-- inicializacao edge em `src/sentry.edge.config.ts`
-- inicializacao cliente em `src/instrumentation-client.ts`
+- inicialização de servidor em `src/sentry.server.config.ts`
+- inicialização edge em `src/sentry.edge.config.ts`
+- inicialização cliente em `src/instrumentation-client.ts`
 - hook de request errors em `src/instrumentation.ts`
 - captura de erros globais em `src/app/global-error.tsx`
 - wrapper de logs aplicacionais em `src/lib/observability.ts`
 
-Sem DSN configurado, a app continua funcional e mantem apenas logs locais.
+Sem DSN configurado, a app continua funcional e mantém apenas logs locais.
 
 ## Deploy
 
-O projeto esta preparado para Vercel, mas o diretorio `.vercel/` continua ignorado de proposito. Isso e normal: a ligacao local a um projeto Vercel nao deve ser versionada.
+O projeto está preparado para Vercel, mas o diretório `.vercel/` continua ignorado de propósito. Isso é normal: a ligação local a um projeto Vercel não deve ser versionada.
 
 Checklist operacional completo: [docs/PRODUCTION_READINESS.md](./docs/PRODUCTION_READINESS.md).
 
-Exemplo de validacao de staging:
+Exemplo de validação de staging:
 
 ```bash
 STAGING_BASE_URL=https://staging.example.com STAGING_PUBLIC_SLUG=demo npm run test:staging
 LOAD_TEST_BASE_URL=https://staging.example.com LOAD_TEST_PUBLIC_SLUG=demo npm run test:load
 ```
 
-Se precisares ligar o repositorio local a outro projeto Vercel, usa:
+Se precisares ligar o repositório local a outro projeto Vercel, usa:
 
 ```bash
 vercel link
@@ -167,18 +167,18 @@ vercel link
 
 ## Testes
 
-Esta base inclui testes custom, Vitest e smoke tests Playwright para rotas publicas, auth, upload, dashboard, multi-tenant e regras de booking.
+Esta base inclui testes custom, Vitest e smoke tests Playwright para rotas públicas, auth, upload, dashboard, multi-tenant e regras de booking.
 
 ## Estrutura principal
 
 - `src/app` rotas App Router
 - `src/components` interface do produto
-- `src/lib/business-modules/*` dominio principal
+- `src/lib/business-modules/*` domínio principal
 - `src/lib/notifications.ts` entregas WhatsApp/lembretes
-- `src/lib/rate-limit.ts` protecao das rotas publicas e mutacoes sensiveis
+- `src/lib/rate-limit.ts` proteção das rotas públicas e mutações sensíveis
 - `prisma/schema.prisma` modelo de dados
 
-## Proximas melhorias de arquitetura
+## Próximas melhorias de arquitetura
 
-- instrumentar spans de dominio e queries mais criticas
+- instrumentar spans de domínio e queries mais críticas
 - implementar pagamentos e planos

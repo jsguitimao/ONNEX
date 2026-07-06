@@ -123,7 +123,7 @@ export async function POST(req: Request, { params }: RouteProps) {
               : message === "HORARIO_BLOQUEADO"
                 ? { status: 409, error: "Este horário está bloqueado na agenda." }
                 : message === "FORA_DA_DISPONIBILIDADE"
-                  ? { status: 400, error: "Este horario nao esta dentro da disponibilidade do profissional." }
+                  ? { status: 400, error: "Este horário não está dentro da disponibilidade do profissional." }
                   : message === "PROFISSIONAL_INCOMPATIVEL"
                   ? { status: 400, error: "Este profissional não executa o serviço escolhido." }
                   : message === "DADOS_INVALIDOS"

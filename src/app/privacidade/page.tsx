@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { LegalPageShell } from "@/components/legal-page-shell";
 
 export const metadata: Metadata = {
-  title: "Privacidade",
-  description: "Informacao sobre recolha, utilizacao e conservacao de dados na plataforma ONNEX.PT.",
+  title: "Política de Privacidade",
+  description: "Informação sobre recolha, utilização e conservação de dados na plataforma ONNEX.PT.",
   alternates: {
     canonical: "/privacidade",
   },
@@ -13,16 +13,16 @@ export default function PrivacyPage() {
   return (
     <LegalPageShell
       eyebrow="Privacidade"
-      title="Politica de Privacidade"
-      description="Explicamos de forma direta como os dados sao tratados na plataforma para suportar marcacoes, comunicacao com clientes e operacao da barbearia."
+      title="Política de Privacidade"
+      description="Explicamos de forma direta como os dados são tratados na plataforma para suportar marcações, comunicação com clientes e operação da barbearia."
       updatedAt="14 de abril de 2026"
     >
       <section className="grid gap-3">
         <h2>1. Que dados recolhemos</h2>
         <p>
-          O ONNEX.PT trata os dados necessarios para operar a agenda online das
-          barbearias, incluindo nome, email, telefone, servicos marcados, historico de reservas e
-          dados internos de configuracao do negocio.
+          O ONNEX.PT trata os dados necessários para operar a agenda online das
+          barbearias, incluindo nome, email, telefone, serviços marcados, histórico de reservas e
+          dados internos de configuração do negócio.
         </p>
       </section>
 
@@ -30,46 +30,46 @@ export default function PrivacyPage() {
         <h2>2. Para que usamos os dados</h2>
         <ul>
           <li>criar, confirmar, remarcar e cancelar reservas</li>
-          <li>apresentar a pagina publica de cada negocio</li>
-          <li>enviar emails operacionais e lembretes relacionados com a marcacao</li>
-          <li>dar ao negocio visibilidade sobre agenda, clientes e historico</li>
-          <li>proteger a seguranca, integridade e disponibilidade do servico</li>
+          <li>apresentar a página pública de cada negócio</li>
+          <li>enviar emails operacionais e lembretes relacionados com a marcação</li>
+          <li>dar ao negócio visibilidade sobre agenda, clientes e histórico</li>
+          <li>proteger a segurança, integridade e disponibilidade do serviço</li>
         </ul>
       </section>
 
       <section className="grid gap-3">
         <h2>3. Papel da plataforma e da barbearia</h2>
         <p>
-          Cada barbearia e responsavel pelos dados dos seus clientes e pela informacao publicada na
-          sua pagina. O ONNEX.PT atua como plataforma de suporte tecnico e operacional para
-          disponibilizar reservas online, acessos autenticados e comunicacao transacional.
+          Cada barbearia é responsável pelos dados dos seus clientes e pela informação publicada na
+          sua página. O ONNEX.PT atua como plataforma de suporte técnico e operacional para
+          disponibilizar reservas online, acessos autenticados e comunicação transacional.
         </p>
       </section>
 
       <section className="grid gap-3">
-        <h2>4. Conservacao e seguranca</h2>
+        <h2>4. Conservação e segurança</h2>
         <p>
-          Os dados sao conservados pelo tempo necessario para operar o servico, cumprir obrigacoes
-          legais e manter historico operacional do negocio. Aplicamos controlos tecnicos de acesso,
-          autenticacao e protecao de infraestrutura adequados ao contexto do produto.
+          Os dados são conservados pelo tempo necessário para operar o serviço, cumprir obrigações
+          legais e manter histórico operacional do negócio. Aplicamos controlos técnicos de acesso,
+          autenticação e proteção de infraestrutura adequados ao contexto do produto.
         </p>
       </section>
 
       <section className="grid gap-3">
         <h2>5. Partilha com terceiros</h2>
         <p>
-          A plataforma pode recorrer a prestadores externos para autenticacao, base de dados,
+          A plataforma pode recorrer a prestadores externos para autenticação, base de dados,
           alojamento e envio de emails transacionais. Esses prestadores apenas recebem os dados
-          estritamente necessarios para executar a sua funcao tecnica.
+          estritamente necessários para executar a sua função técnica.
         </p>
       </section>
 
       <section className="grid gap-3">
         <h2>6. Direitos dos titulares</h2>
         <p>
-          Os titulares dos dados podem pedir acesso, retificacao, apagamento ou limitacao do
-          tratamento nos termos aplicaveis. Sempre que o pedido diga respeito a uma reserva numa
-          barbearia especifica, o negocio responsavel deve ser o primeiro ponto de contacto.
+          Os titulares dos dados podem pedir acesso, retificação, apagamento ou limitação do
+          tratamento nos termos aplicáveis. Sempre que o pedido diga respeito a uma reserva numa
+          barbearia específica, o negócio responsável deve ser o primeiro ponto de contacto.
         </p>
       </section>
 
@@ -80,12 +80,12 @@ export default function PrivacyPage() {
         </p>
         <ul>
           <li>
-            <strong>Exportar dados</strong>: descarregar um ficheiro JSON com utilizador, negocios,
-            servicos, equipa, clientes e marcacoes.
+            <strong>Exportar dados</strong>: descarregar um ficheiro JSON com utilizador, negócios,
+            serviços, equipa, clientes e marcações.
           </li>
           <li>
-            <strong>Apagar conta</strong>: eliminar de forma permanente o utilizador, o negocio e todos
-            os dados relacionados (cascade). A operacao requer confirmacao explicita e nao e reversivel.
+            <strong>Apagar conta</strong>: eliminar de forma permanente o utilizador, o negócio e todos
+            os dados relacionados (cascade). A operação requer confirmação explícita e não é reversível.
           </li>
         </ul>
       </section>
@@ -93,8 +93,8 @@ export default function PrivacyPage() {
       <section id="cookies" className="grid gap-3">
         <h2>8. Cookies</h2>
         <p>
-          A plataforma utiliza apenas cookies tecnicamente necessarios (autenticacao, sessao, prevencao
-          de abuso). Nao utilizamos cookies de tracking publicitario. Na primeira visita e mostrado um
+          A plataforma utiliza apenas cookies tecnicamente necessários (autenticação, sessão, prevenção
+          de abuso). Não utilizamos cookies de tracking publicitário. Na primeira visita é mostrado um
           aviso para registo do consentimento.
         </p>
       </section>

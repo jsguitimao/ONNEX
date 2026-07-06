@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       const originValidation = validateAuthenticatedMutationOrigin(req);
       if (!originValidation.ok) {
         return NextResponse.json(
-          { error: "Origem nao autorizada.", code: originValidation.reason },
+          { error: "Origem não autorizada.", code: originValidation.reason },
           { status: 403, headers: buildRateLimitHeaders(rateLimit) },
         );
       }
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 
         if (!rule) {
           throw new Error(
-            "Formato nao suportado. Imagens: JPG, PNG, WEBP, AVIF, HEIC. Videos: MP4, WEBM, MOV, M4V.",
+            "Formato não suportado. Imagens: JPG, PNG, WEBP, AVIF, HEIC. Vídeos: MP4, WEBM, MOV, M4V.",
           );
         }
 
@@ -100,18 +100,18 @@ export async function POST(req: Request) {
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith("Formato nao suportado")) {
+    if (error instanceof Error && error.message.startsWith("Formato não suportado")) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     if (error instanceof Error && error.message === "AUTH_REQUIRED") {
-      return NextResponse.json({ error: "Autenticacao requerida." }, { status: 401 });
+      return NextResponse.json({ error: "Autenticação requerida." }, { status: 401 });
     }
 
     captureException("upload.failed", error);
 
     return NextResponse.json(
-      { error: "Nao foi possivel carregar o ficheiro." },
+      { error: "Não foi possível carregar o ficheiro." },
       { status: 500 },
     );
   }

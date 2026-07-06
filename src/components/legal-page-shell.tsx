@@ -32,7 +32,7 @@ export function LegalPageShell({
             <p className="text-sm font-medium uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight">{title}</h1>
             <p className="mt-4 max-w-2xl text-muted-foreground">{description}</p>
-            <p className="mt-4 text-sm text-muted-foreground">Ultima atualizacao: {updatedAt}</p>
+            <p className="mt-4 text-sm text-muted-foreground">Última atualização: {updatedAt}</p>
           </section>
 
           <section className="rounded-[2rem] border bg-card p-8 shadow-sm">
