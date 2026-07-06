@@ -58,11 +58,6 @@ export async function uploadMedia(
         access: "public",
         handleUploadUrl: "/api/upload",
         onUploadProgress: (event) => {
-          console.debug("[uploadMedia] progress", {
-            percent: Math.round(event.percentage),
-            loaded: event.loaded,
-            total: event.total,
-          });
           if (onProgress) {
             onProgress({
               percent: Math.round(event.percentage),

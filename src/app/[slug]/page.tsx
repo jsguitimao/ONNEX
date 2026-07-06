@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: PublicPageProps): Promise<Met
 
   if (!business) {
     return {
-      title: "Página não encontrada | ONNEX.PT",
+      title: "Página não encontrada",
       description: "A página pública pedida não está disponível.",
     };
   }
