@@ -1,59 +1,11 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { db } from "@/lib/db";
 import { captureException } from "@/lib/observability";
 import { requireStripe } from "@/lib/stripe";
+import { syncSubscription } from "@/lib/stripe-sync";
 
 export const runtime = "nodejs";
-
-// Mapeia o estado da subscrição Stripe para o nosso enum SubscriptionStatus.
-function mapStatus(status: Stripe.Subscription.Status) {
-  switch (status) {
-    case "trialing":
-      return "TRIALING" as const;
-    case "active":
-      return "ACTIVE" as const;
-    case "past_due":
-    case "unpaid":
-      return "PAST_DUE" as const;
-    default:
-      // canceled, incomplete, incomplete_expired, paused
-      return "CANCELLED" as const;
-  }
-}
-
-function toDate(seconds: number | null | undefined): Date | null {
-  return typeof seconds === "number" ? new Date(seconds * 1000) : null;
-}
-
-async function syncSubscription(sub: Stripe.Subscription) {
-  const businessId =
-    typeof sub.metadata?.businessId === "string" ? sub.metadata.businessId : null;
-  const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-  const item = sub.items.data[0];
-  const status = mapStatus(sub.status);
-
-  const data = {
-    status,
-    tier: status === "CANCELLED" || status === "PAST_DUE" ? undefined : ("PRO" as const),
-    provider: "stripe",
-    providerCustomerId: customerId,
-    providerPriceId: item?.price?.id ?? null,
-    billingCycle:
-      item?.price?.recurring?.interval === "year" ? ("YEARLY" as const) : ("MONTHLY" as const),
-    currentPeriodStart: toDate(item?.current_period_start ?? sub.start_date),
-    currentPeriodEnd: toDate(item?.current_period_end),
-    cancelAtPeriodEnd: sub.cancel_at_period_end,
-  };
-
-  // Encontra a barbearia por businessId (metadata) ou pelo cliente Stripe.
-  if (businessId) {
-    await db.subscription.updateMany({ where: { businessId }, data });
-    return;
-  }
-  await db.subscription.updateMany({ where: { providerCustomerId: customerId }, data });
-}
 
 export async function POST(req: Request) {
   const stripe = requireStripe();

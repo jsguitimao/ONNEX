@@ -19,9 +19,13 @@ export function hasActiveAccess(sub: AccessSubscription): boolean {
   if (sub.status === "TRIALING") {
     // Trial só conta se for um trial real da Stripe (cartão recolhido).
     if (!sub.providerCustomerId) return false;
+    // O cliente Stripe é criado ao ABRIR o checkout, antes do cartão — por isso
+    // não chega como prova. currentPeriodEnd só é escrito pelo webhook quando a
+    // subscrição existe mesmo; sem ele (checkout abandonado) não há acesso.
+    if (!sub.currentPeriodEnd) return false;
     // Margem de segurança: se o fim do período já passou e o webhook ainda
     // não transitou o estado, tratamos como sem acesso.
-    if (sub.currentPeriodEnd && sub.currentPeriodEnd.getTime() < Date.now()) return false;
+    if (sub.currentPeriodEnd.getTime() < Date.now()) return false;
     return true;
   }
   // PAST_DUE, CANCELLED, ou qualquer outro → bloqueado.

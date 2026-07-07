@@ -23,6 +23,7 @@ import {
 import { computeFinancialSummary } from "@/lib/crm/finance";
 import { loadEditorDraft } from "@/lib/page-editor/load";
 import { hasActiveAccess } from "@/lib/subscription-access";
+import { syncSubscriptionFromStripe } from "@/lib/stripe-sync";
 import { getStripePriceId } from "@/lib/stripe";
 import { captureException } from "@/lib/observability";
 import type { CrmSubscriptionInfo } from "@/components/crm/crm-account-panel";
@@ -93,7 +94,20 @@ export default async function CrmPage() {
   }
 
   // Paywall: sem subscrição ativa (trial expirado / não assinado) → bloqueia o CRM.
-  if (!hasActiveAccess(business.subscription)) {
+  let subscription = business.subscription;
+  if (!hasActiveAccess(subscription) && subscription?.providerCustomerId) {
+    // Rede de segurança: acabado de pagar mas o webhook ainda não chegou?
+    // Consulta a Stripe ao vivo antes de bloquear. Checkout abandonado (cliente
+    // sem subscrição) devolve null e continua bloqueado.
+    try {
+      subscription =
+        (await syncSubscriptionFromStripe(business.id, subscription.providerCustomerId)) ??
+        subscription;
+    } catch (error) {
+      captureException("crm.page.stripe_access_recheck_failed", error, { userId });
+    }
+  }
+  if (!hasActiveAccess(subscription)) {
     redirect("/billing");
   }
 
@@ -150,7 +164,7 @@ export default async function CrmPage() {
       initialFinancialSummary={financialSummary}
       services={services}
       editorDraft={editorDraft}
-      subscription={toSubscriptionInfo(business.subscription)}
+      subscription={toSubscriptionInfo(subscription)}
     />
   );
 }

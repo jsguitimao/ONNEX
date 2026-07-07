@@ -26,12 +26,21 @@ export default async function BillingPage() {
     redirect("/sign-in?redirect_url=/billing");
   }
 
-  // Se o dono já tem um cliente Stripe (passou pelo checkout), oferecemos o
-  // portal para gerir/atualizar o pagamento (ex.: PAST_DUE). Senão, escolher plano.
-  let hasStripeCustomer = false;
+  // Só oferecemos o portal quando existe uma subscrição REAL na Stripe
+  // (priceId escrito pelo webhook) que faça sentido gerir: trial/ativa ou em
+  // atraso (PAST_DUE → atualizar cartão). Ter apenas um cliente Stripe não
+  // chega — ele é criado ao abrir o checkout mesmo que este seja abandonado
+  // sem cartão, e nesse caso o portal não teria nada para gerir (o dono
+  // ficava preso sem forma de assinar). CANCELLED volta aos planos.
+  let hasManageableSubscription = false;
   try {
     const business = await getCurrentBusiness();
-    hasStripeCustomer = Boolean(business.subscription?.providerCustomerId);
+    const sub = business.subscription;
+    hasManageableSubscription = Boolean(
+      sub?.providerCustomerId &&
+        sub.providerPriceId &&
+        (sub.status === "TRIALING" || sub.status === "ACTIVE" || sub.status === "PAST_DUE"),
+    );
   } catch {
     // Sem negócio/sessão válida: mostramos o fluxo de subscrição normal.
   }
@@ -43,10 +52,10 @@ export default async function BillingPage() {
           Onnex Pro
         </p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight">
-          {hasStripeCustomer ? "Gerir a tua subscrição" : "Escolhe o teu plano"}
+          {hasManageableSubscription ? "Gerir a tua subscrição" : "Escolhe o teu plano"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {hasStripeCustomer
+          {hasManageableSubscription
             ? "Atualiza o pagamento, vê faturas ou cancela quando quiseres."
             : "Começa com 7 dias grátis. Cancela quando quiseres."}
         </p>
@@ -62,7 +71,7 @@ export default async function BillingPage() {
           ))}
         </ul>
 
-        {hasStripeCustomer ? (
+        {hasManageableSubscription ? (
           <div className="mt-8">
             <ManageSubscriptionButton
               label="Gerir subscrição / pagamento"
