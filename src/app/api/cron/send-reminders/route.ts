@@ -8,6 +8,16 @@ import { captureException } from "@/lib/observability";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+// A BD Neon (plano free) adormece após inatividade; à hora do cron a primeira
+// ligação pode falhar enquanto ela acorda ("Can't reach database server").
+function isDbWakeError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.name === "PrismaClientInitializationError" ||
+    error.message.includes("Can't reach database server")
+  );
+}
+
 function isAuthorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) return false;
@@ -25,7 +35,16 @@ export async function GET(req: Request) {
   }
 
   try {
-    const result = await sendDueReminders();
+    let result;
+    try {
+      result = await sendDueReminders();
+    } catch (error) {
+      if (!isDbWakeError(error)) throw error;
+      // Espera pelo acordar da BD e repete uma vez. O envio é idempotente
+      // (dedupe em NotificationLog), por isso repetir é seguro.
+      await new Promise((resolve) => setTimeout(resolve, 8000));
+      result = await sendDueReminders();
+    }
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     captureException("cron.send_reminders.failed", error);
