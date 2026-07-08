@@ -1,11 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { sendDueReminders } from "@/lib/reminders";
-import { captureException, logWarning } from "@/lib/observability";
+import { captureException, logEvent, logWarning } from "@/lib/observability";
 
 // Endpoint chamado por um cron externo (cron-job.org) de X em X minutos. Protegido
 // por CRON_SECRET — aceita o segredo no header `Authorization: Bearer <secret>`
 // (recomendado) ou em `?secret=<secret>`. Sempre dinâmico (nunca em cache).
+//
+// IMPORTANTE: a resposta é enviada IMEDIATAMENTE e o trabalho corre em `after()`.
+// O cron-job.org (free) desiste ao fim de 30s ("Timeout"), mas o cold start da
+// Neon pode demorar mais do que isso — o warm-up paciente não pode ficar no
+// caminho da resposta. Falhas reais continuam a ir para o Sentry.
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
@@ -47,11 +52,7 @@ function isAuthorized(req: Request): boolean {
   return fromQuery === secret;
 }
 
-export async function GET(req: Request) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  }
-
+async function processReminders() {
   try {
     const warmupAttempts = await warmUpDatabase();
     if (warmupAttempts > 1) {
@@ -68,9 +69,20 @@ export async function GET(req: Request) {
       await new Promise((resolve) => setTimeout(resolve, 8000));
       result = await sendDueReminders();
     }
-    return NextResponse.json({ ok: true, warmupAttempts, ...result });
+    // Registo do resultado nos logs da Vercel (a resposta HTTP já foi enviada).
+    logEvent("cron.send_reminders.completed", { warmupAttempts, ...result });
   } catch (error) {
     captureException("cron.send_reminders.failed", error);
-    return NextResponse.json({ error: "Erro ao processar lembretes." }, { status: 500 });
   }
+}
+
+export async function GET(req: Request) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
+  // Responde já (o cron-job.org só quer saber que a chamada chegou); o
+  // processamento continua em background até maxDuration.
+  after(processReminders);
+  return NextResponse.json({ ok: true, accepted: true });
 }
