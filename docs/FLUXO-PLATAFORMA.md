@@ -82,12 +82,18 @@ escolhe um serviço e reserva.
 
 **Veredicto:** ✅ Render ok, SEO ok, defesas da API ok.
 
-> ⚠️ **Achado (soft-404):** um slug inexistente mostra a página "não
-> encontrada" correta, MAS com código HTTP **200** em vez de **404** (confirmado
-> em produção). O conteúdo está certo; o status não. Isto faz o Google indexar
-> páginas-fantasma. O teste `journey-03` fixa o comportamento atual e traz uma
-> nota para trocar para `toBe(404)` quando for corrigido. **Recomendado como
-> próxima correção.**
+> ℹ️ **Soft-404 (investigado — comportamento correto, NÃO é bug):** um slug
+> inexistente mostra a página "não encontrada" com código HTTP **200** em vez de
+> **404**. Causa: a rota `[slug]` tem um `loading.tsx`, por isso a resposta é
+> transmitida em *streaming*; quando o streaming começa, os headers (incl. o
+> status 200) já foram enviados e o `notFound()` não os pode alterar — este é o
+> comportamento documentado do Next 16. **Não há dano de SEO:** o Next injeta
+> automaticamente `<meta name="robots" content="noindex">` na resposta, o que
+> impede o Google de indexar essas páginas (verificado em produção em 3 slugs:
+> HTTP 200 + noindex + conteúdo correto). O teste `journey-03` prova os três.
+> Só valeria forçar um 404 real (removendo o `loading.tsx`, à custa do esqueleto
+> de carregamento) se surgir uma necessidade concreta de compliance/analytics
+> por código HTTP — não é o caso hoje.
 
 ---
 
@@ -102,8 +108,10 @@ escolhe um serviço e reserva.
 
 ## Pendente conhecido
 
-1. **Soft-404** (Etapa 3): `notFound()` serve conteúdo com HTTP 200. Corrigir
-   para devolver 404 real (SEO).
-2. Fluxo autenticado end-to-end (dentro do CRM logado) não é coberto por e2e —
+1. Fluxo autenticado end-to-end (dentro do CRM logado) não é coberto por e2e —
    exigiria sessão Clerk programática. Coberto indiretamente pelos unitários das
    server actions e pela verificação manual do dono.
+
+(O "soft-404" da Etapa 3 foi investigado e **não é pendente**: é comportamento
+correto do Next, sem dano de SEO graças ao noindex automático — ver a nota na
+Etapa 3.)

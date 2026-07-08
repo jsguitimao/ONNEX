@@ -33,16 +33,22 @@ test.describe("Etapa 3 — Página pública: front-end", () => {
     expect(parsed["@type"]).toBeTruthy();
   });
 
-  test("slug inexistente mostra página de 'não encontrada'", async ({ page }) => {
+  test("slug inexistente mostra 'não encontrada' e é noindex (SEO seguro)", async ({
+    page,
+  }) => {
     const response = await page.goto("/slug-que-nao-existe-xyz", {
       waitUntil: "domcontentloaded",
     });
-    // NOTA: o conteúdo de não-encontrado é servido corretamente, MAS o código
-    // HTTP é 200 e não 404 — soft-404 conhecido (ver documento de fluxo, Etapa
-    // 3). Este teste fixa o comportamento atual; quando o soft-404 for
-    // corrigido, trocar para expect(...).toBe(404).
+    // Comportamento verificado e correto: por a rota ter loading.tsx, a resposta
+    // é transmitida em streaming e o Next não pode mudar o status para 404 depois
+    // dos headers (fica 200). MAS o Next injeta <meta name="robots" noindex>, o
+    // que impede a indexação pelo Google — logo, não há dano de SEO. Ver o
+    // documento de fluxo (Etapa 3) para a explicação completa.
     expect(response?.status()).toBeLessThan(500);
     await expect(page.getByText(/não está disponível/i).first()).toBeVisible();
+    // O Next injeta o meta no streaming, podendo aparecer em <head> e <body>;
+    // basta confirmar que existe pelo menos um.
+    await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached();
   });
 });
 
