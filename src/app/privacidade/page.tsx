@@ -69,7 +69,12 @@ export default function PrivacyPage() {
         <p>
           Os titulares dos dados podem pedir acesso, retificação, apagamento ou limitação do
           tratamento nos termos aplicáveis. Sempre que o pedido diga respeito a uma reserva numa
-          barbearia específica, o negócio responsável deve ser o primeiro ponto de contacto.
+          barbearia específica, o negócio responsável deve ser o primeiro ponto de contacto. Para
+          questões sobre a própria plataforma, contacta{" "}
+          <a href="mailto:onnex.pt@gmail.com" className="font-medium underline underline-offset-2">
+            onnex.pt@gmail.com
+          </a>
+          .
         </p>
       </section>
 

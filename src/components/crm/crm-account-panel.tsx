@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Loader2, LogOut, Trash2, TriangleAlert } from "lucide-react";
+import { Download, Loader2, LogOut, Mail, Trash2, TriangleAlert } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -190,6 +190,34 @@ export function AccountPanel({ subscription }: Props) {
           <Button type="button" variant="outline" onClick={() => void signOut({ redirectUrl: "/" })}>
             <LogOut className="size-4" />
             Sair
+          </Button>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold">Ajuda e suporte</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Encontraste um problema ou precisas de ajuda? Escreve-nos para{" "}
+              <a
+                href="mailto:onnex.pt@gmail.com"
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                onnex.pt@gmail.com
+              </a>
+              .
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              window.location.href = "mailto:onnex.pt@gmail.com?subject=Ajuda%20ONNEX";
+            }}
+          >
+            <Mail className="size-4" />
+            Contactar suporte
           </Button>
         </div>
       </section>
