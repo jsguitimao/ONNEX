@@ -507,12 +507,25 @@ export async function sendBookingNotification(
     return { status: "missing" as const, channels: [] as DeliveryResult[] };
   }
 
-  // Notificações ao cliente (email + WhatsApp) em paralelo. Cada canal regista o
-  // seu próprio NotificationLog e nenhum bloqueia o outro.
-  const deliveries = await Promise.all([
-    deliverWhatsappToCustomer(booking, kind),
-    deliverEmailToCustomer(booking, kind),
-  ]);
+  // Notificações ao cliente (WhatsApp + email) em SEQUÊNCIA, não em paralelo.
+  // Cada canal abre uma transação Serializable sobre os NotificationLog DESTA
+  // mesma reserva (reserveNotificationDelivery); duas em paralelo colidiam
+  // intermitentemente (serialization failure P2034), fazendo rollback de um dos
+  // canais e abandonando o envio do outro — confirmação perdida. Sequencial
+  // elimina a colisão. Corre em after() (pós-resposta), por isso não afeta o
+  // tempo de resposta ao cliente. Cada canal é isolado: um erro inesperado num
+  // não impede o outro.
+  const deliveries: DeliveryResult[] = [];
+  try {
+    deliveries.push(await deliverWhatsappToCustomer(booking, kind));
+  } catch (error) {
+    captureException("notification.whatsapp_crashed", error, { bookingId, kind });
+  }
+  try {
+    deliveries.push(await deliverEmailToCustomer(booking, kind));
+  } catch (error) {
+    captureException("notification.email_crashed", error, { bookingId, kind });
+  }
 
   return summarizeDeliveries(deliveries);
 }
