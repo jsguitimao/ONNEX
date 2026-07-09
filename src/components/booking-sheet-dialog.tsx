@@ -59,6 +59,9 @@ export function BookingSheetDialog({
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // Quando o cliente já tem marcação activa, oferecemos gerir a existente.
+  const [alreadyHasBooking, setAlreadyHasBooking] = useState(false);
+  const [openingExisting, setOpeningExisting] = useState(false);
   const [success, setSuccess] = useState<{ serviceName: string; startsAt: string } | null>(null);
   const [manageUrl, setManageUrl] = useState("");
 
@@ -250,6 +253,7 @@ export function BookingSheetDialog({
     if (!canSubmit) return;
     setSubmitting(true);
     setError("");
+    setAlreadyHasBooking(false);
 
     if (mockMode) {
       setTimeout(() => {
@@ -281,11 +285,15 @@ export function BookingSheetDialog({
       });
       const data = (await res.json()) as {
         error?: string;
+        code?: string;
         startsAt?: string;
         serviceName?: string;
         manageUrl?: string;
       };
-      if (!res.ok) throw new Error(data.error ?? "Não foi possível concluir a reserva.");
+      if (!res.ok) {
+        if (data.code === "CLIENTE_JA_TEM_MARCACAO") setAlreadyHasBooking(true);
+        throw new Error(data.error ?? "Não foi possível concluir a reserva.");
+      }
       setSuccess({
         serviceName: data.serviceName ?? "",
         startsAt: data.startsAt ?? "",
@@ -296,6 +304,32 @@ export function BookingSheetDialog({
       setError(e instanceof Error ? e.message : "Erro ao criar reserva.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Usa o telefone já preenchido para encontrar a marcação ativa e abrir a
+  // página de gestão (cancelar/remarcar). Sem re-escrever nada.
+  const openExistingBooking = async () => {
+    setOpeningExisting(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/public/${business.slug}/find-booking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: customerPhone }),
+      });
+      const data = (await res.json()) as { found?: boolean; token?: string; error?: string };
+      if (data.found && data.token) {
+        window.location.href = `/booking/${data.token}`;
+        return;
+      }
+      setError(
+        data.error ?? "Não encontrámos nenhuma marcação ativa com esse número.",
+      );
+    } catch {
+      setError("Não foi possível abrir a tua marcação. Tenta novamente.");
+    } finally {
+      setOpeningExisting(false);
     }
   };
 
@@ -449,6 +483,23 @@ export function BookingSheetDialog({
                     >
                       {error}
                     </p>
+                  ) : null}
+
+                  {alreadyHasBooking ? (
+                    <button
+                      type="button"
+                      onClick={openExistingBooking}
+                      disabled={openingExisting}
+                      className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-[15px] font-semibold leading-5 tracking-[-0.2px] text-foreground transition hover:bg-foreground/[0.06] active:bg-foreground/[0.1] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {openingExisting ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />A abrir…
+                        </>
+                      ) : (
+                        <>Gerir a minha marcação</>
+                      )}
+                    </button>
                   ) : null}
 
                   <button

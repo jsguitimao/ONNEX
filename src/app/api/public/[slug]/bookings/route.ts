@@ -143,7 +143,9 @@ export async function POST(req: Request, { params }: RouteProps) {
     }
 
     return NextResponse.json(
-      { error: mapped.error },
+      // O `code` (só para validações de negócio 4xx) permite ao cliente reagir
+      // — ex.: oferecer "gerir a marcação existente" quando já tem uma.
+      { error: mapped.error, ...(mapped.status < 500 ? { code: message } : {}) },
       { status: mapped.status, headers: buildRateLimitHeaders(rateLimit) }
     );
   }

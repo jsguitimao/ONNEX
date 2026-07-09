@@ -7,6 +7,7 @@ export type {
 export { ensureDemoBusiness, getBusinessBySlug } from "@/lib/business-modules/core";
 export {
   createPublicBooking,
+  findActiveBookingTokenByPhone,
   getAvailableSlots,
   getPublicBookingByToken,
   getPublicBookingRescheduleSlots,

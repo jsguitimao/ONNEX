@@ -1,5 +1,5 @@
 import { getBookableRange, getBookingPolicySettings, getCancellationDeadline } from "@/lib/booking-policy";
-import { sanitizeBookingCustomerInput } from "@/lib/customer-identity";
+import { normalizeCustomerPhone, sanitizeBookingCustomerInput } from "@/lib/customer-identity";
 import { db } from "@/lib/db";
 import { assertSlotAvailable, runBookingTransaction } from "@/lib/booking-transaction";
 import { after } from "next/server";
@@ -609,6 +609,35 @@ export async function getPublicBookingByToken(token: string): Promise<PublicBook
   if (!booking) return null;
 
   return buildPublicBookingDetails(booking);
+}
+
+// Procura a marcação ativa (futura, PENDING/CONFIRMED) de um cliente pelo
+// telefone e devolve o token de gestão, para o cliente cancelar/remarcar a
+// partir da página. Só devolve marcações ativas futuras. Segurança: expõe o
+// token a quem souber o telefone — mitigado por rate-limit apertado na rota.
+export async function findActiveBookingTokenByPhone(
+  slug: string,
+  phone: string,
+): Promise<{ token: string } | null> {
+  const normalizedPhone = normalizeCustomerPhone(phone);
+  if (!normalizedPhone) return null;
+
+  const business = await getBusinessBySlug(slug);
+  if (!business) return null;
+
+  const booking = await db.booking.findFirst({
+    where: {
+      businessId: business.id,
+      customerPhone: normalizedPhone,
+      status: { in: ["PENDING", "CONFIRMED"] },
+      startsAt: { gt: new Date() },
+    },
+    orderBy: { startsAt: "asc" },
+    select: { publicToken: true },
+  });
+
+  if (!booking?.publicToken) return null;
+  return { token: booking.publicToken };
 }
 
 export async function updatePublicBookingByToken(
