@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,31 @@ type Props = {
 };
 
 export function SectionServices({ services, onChange }: Props) {
+  // Enquanto o utilizador escreve, guardamos o texto CRU do campo e mostramo-lo
+  // tal e qual — sem reformatar a cada tecla. Sem isto, escrever "16" no preço
+  // reformatava "1" para "1.00" e o "6" caía nas casas decimais → "1.01". Ao
+  // sair do campo (blur) largamos o rascunho e voltamos a mostrar o valor
+  // normalizado do draft. undefined = mostrar o valor do draft.
+  const [priceDraft, setPriceDraft] = useState<Record<string, string>>({});
+  const [durationDraft, setDurationDraft] = useState<Record<string, string>>({});
+
+  function dropDraft(setter: typeof setPriceDraft, id: string) {
+    setter((prev) => {
+      if (!(id in prev)) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }
+
+  function priceDisplay(service: EditorService): string {
+    return priceDraft[service.id] ?? (service.priceCents ? (service.priceCents / 100).toFixed(2) : "");
+  }
+
+  function durationDisplay(service: EditorService): string {
+    return durationDraft[service.id] ?? (service.durationMinutes ? String(service.durationMinutes) : "");
+  }
+
   function addService() {
     const next: EditorService = {
       id: crypto.randomUUID(),
@@ -30,6 +56,8 @@ export function SectionServices({ services, onChange }: Props) {
 
   function removeService(id: string) {
     onChange(services.filter((s) => s.id !== id));
+    dropDraft(setPriceDraft, id);
+    dropDraft(setDurationDraft, id);
   }
 
   return (
@@ -76,26 +104,29 @@ export function SectionServices({ services, onChange }: Props) {
                   min={5}
                   max={240}
                   step={5}
-                  value={service.durationMinutes || ""}
-                  onChange={(e) =>
+                  value={durationDisplay(service)}
+                  onChange={(e) => {
+                    setDurationDraft((prev) => ({ ...prev, [service.id]: e.target.value }));
                     patchService(service.id, {
                       durationMinutes: clampInt(e.target.value, 5, 240),
-                    })
-                  }
+                    });
+                  }}
+                  onBlur={() => dropDraft(setDurationDraft, service.id)}
                 />
               </Field>
               <Field label="Preço (€)">
                 <Input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  min={0}
-                  step={0.5}
-                  value={service.priceCents ? (service.priceCents / 100).toFixed(2) : ""}
-                  onChange={(e) =>
+                  value={priceDisplay(service)}
+                  placeholder="0,00"
+                  onChange={(e) => {
+                    setPriceDraft((prev) => ({ ...prev, [service.id]: e.target.value }));
                     patchService(service.id, {
                       priceCents: euroStringToCents(e.target.value),
-                    })
-                  }
+                    });
+                  }}
+                  onBlur={() => dropDraft(setPriceDraft, service.id)}
                 />
               </Field>
             </div>
