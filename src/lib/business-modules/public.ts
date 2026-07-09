@@ -278,7 +278,7 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
   const policy = getBookingPolicySettings(business);
 
   const primaryLocation = business.locations[0];
-  const mapsAddress = primaryLocation
+  const derivedLocationAddress = primaryLocation
     ? [
         primaryLocation.addressLine1,
         primaryLocation.addressLine2,
@@ -288,6 +288,11 @@ export async function getPublicBusinessPayload(slug: string): Promise<PublicBusi
         .filter((part): part is string => Boolean(part?.trim()))
         .join(", ") || null
     : null;
+  // A secção "Onde estamos" mostra o campo de texto livre que o dono escreve no
+  // editor (bookingPage.mapsAddress). O editor prioriza-o (page-editor/load.ts);
+  // a página pública TEM de fazer o mesmo, senão ignora a morada escrita e mostra
+  // só a cidade derivada do registo estruturado de localização.
+  const mapsAddress = business.bookingPage?.mapsAddress?.trim() || derivedLocationAddress;
 
   return {
     id: business.id,
