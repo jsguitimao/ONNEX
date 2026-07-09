@@ -130,11 +130,17 @@ export async function POST(req: Request, { params }: RouteProps) {
                     ? { status: 400, error: "Serviço, profissional ou localização inválidos." }
                     : { status: 500, error: "Não foi possível criar a reserva." };
 
-    captureException("public_booking.create_failed", error, {
-      slug,
-      serviceId: parsed?.serviceId,
-      staffMemberId: parsed?.staffMemberId,
-    });
+    // Só reportamos ao Sentry erros INESPERADOS (500). As validações de negócio
+    // (horário ocupado, já tem marcação activa, subscrição inativa, fora da
+    // disponibilidade, etc.) são respostas normais ao cliente — não são falhas do
+    // servidor e não devem gerar alarmes/emails de erro.
+    if (mapped.status >= 500) {
+      captureException("public_booking.create_failed", error, {
+        slug,
+        serviceId: parsed?.serviceId,
+        staffMemberId: parsed?.staffMemberId,
+      });
+    }
 
     return NextResponse.json(
       { error: mapped.error },

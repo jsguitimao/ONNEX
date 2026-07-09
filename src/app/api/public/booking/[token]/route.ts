@@ -137,10 +137,15 @@ export async function PATCH(req: Request, { params }: RouteProps) {
                       ? { status: 400, error: "Escolhe um novo horário válido dentro da janela permitida." }
                       : { status: 500, error: "Não foi possível atualizar a reserva." };
 
-    captureException("public_booking.update_failed", error, {
-      token,
-      action,
-    });
+    // Só reportamos ao Sentry erros INESPERADOS (500). Validações esperadas
+    // (link expirado, prazo de cancelamento/remarcação esgotado, horário
+    // ocupado, etc.) são respostas normais ao cliente — não são falhas.
+    if (mapped.status >= 500) {
+      captureException("public_booking.update_failed", error, {
+        token,
+        action,
+      });
+    }
 
     return NextResponse.json(
       { error: mapped.error },
