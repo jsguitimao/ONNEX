@@ -143,7 +143,7 @@ export function PublicPageRenderer({ viewModel }: Props) {
           ) : null}
 
           <div className="flex flex-col gap-4 pb-4 pt-4">
-            {/* 2. Nome */}
+            {/* 2. Nome + headline + descrição */}
             <header className="flex flex-col items-center px-4 text-center">
               <h1
                 className="font-bold"
@@ -151,6 +151,16 @@ export function PublicPageRenderer({ viewModel }: Props) {
               >
                 {viewModel.name || "—"}
               </h1>
+              {viewModel.headline ? (
+                <p className={`mt-2 text-[15px] font-medium leading-5 ${palette.subtleText}`}>
+                  {viewModel.headline}
+                </p>
+              ) : null}
+              {viewModel.description ? (
+                <p className={`mt-3 max-w-[36ch] text-[14px] leading-[1.5] ${palette.subtleText}`}>
+                  {viewModel.description}
+                </p>
+              ) : null}
             </header>
 
             {/* 3. Redes sociais */}
