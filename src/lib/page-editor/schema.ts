@@ -58,7 +58,6 @@ export const editorDraftSchema = z.object({
     .min(2)
     .max(40)
     .regex(/^[a-z0-9-]+$/, "Apenas minúsculas, números e hífen"),
-  city: optionalString(40),
   headline: optionalString(80),
   description: optionalString(280),
 

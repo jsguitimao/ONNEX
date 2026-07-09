@@ -6,7 +6,7 @@ import { SectionShell } from "@/components/page-editor/section-shell";
 import type { EditorDraft } from "@/lib/page-editor/draft";
 
 type Props = {
-  draft: Pick<EditorDraft, "name" | "slug" | "city" | "headline" | "description">;
+  draft: Pick<EditorDraft, "name" | "slug" | "headline" | "description">;
   onChange: (patch: Partial<EditorDraft>) => void;
 };
 
@@ -59,13 +59,6 @@ export function SectionIdentity({ draft, onChange }: Props) {
         </div>
       </Field>
 
-      <Field label="Cidade">
-        <Input
-          value={draft.city}
-          onChange={(e) => onChange({ city: e.target.value })}
-          maxLength={40}
-        />
-      </Field>
       <Field label="Headline (opcional)" hint="Frase curta abaixo do nome.">
         <Input
           value={headline}

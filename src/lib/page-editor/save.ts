@@ -76,18 +76,6 @@ export async function saveEditorDraft(
       },
     });
 
-    // 3b) Update Location.city no default location.
-    const defaultLocation = await tx.location.findFirst({
-      where: { businessId, isDefault: true },
-      select: { id: true },
-    });
-    if (defaultLocation) {
-      await tx.location.update({
-        where: { id: defaultLocation.id },
-        data: { city: nullableString(draft.city) },
-      });
-    }
-
     // 4) Upsert BookingPage.
     await tx.bookingPage.upsert({
       where: { businessId },

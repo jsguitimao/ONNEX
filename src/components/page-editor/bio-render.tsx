@@ -28,7 +28,6 @@ function fromEditorDraftToPreviewBusiness(draft: EditorDraft): PublicBusinessPay
     id: "preview-business",
     name: draft.name,
     slug: draft.slug || mockBusiness.slug,
-    city: draft.city,
     mapsAddress: draft.mapsAddress || null,
     phone: draft.phone || null,
     instagramUrl: draft.instagramUrl || null,

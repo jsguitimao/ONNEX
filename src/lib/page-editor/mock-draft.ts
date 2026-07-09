@@ -10,7 +10,6 @@ export function buildInitialDraftFromMock(): EditorDraft {
   return {
     name: mockBusiness.name,
     slug: mockBusiness.slug,
-    city: mockBusiness.city,
     headline: mockBusiness.headline ?? "",
     description: mockBusiness.description ?? "",
 

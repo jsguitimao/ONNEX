@@ -33,7 +33,6 @@ export type EditorDraft = {
   // Identidade
   name: string;
   slug: string;
-  city: string;
   headline: string;
   description: string;
 

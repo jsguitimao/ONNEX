@@ -36,7 +36,6 @@ export async function loadEditorDraft(): Promise<EditorDraft> {
   return {
     name: business.name,
     slug: business.slug,
-    city: location?.city ?? "",
     headline: page?.headline ?? "",
     description: business.description ?? "",
 

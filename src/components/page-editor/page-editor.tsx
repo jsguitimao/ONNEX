@@ -146,7 +146,6 @@ export function PageEditor({ initialDraft, embedded = false }: Props) {
             draft={{
               name: draft.name,
               slug: draft.slug,
-              city: draft.city,
               headline: draft.headline,
               description: draft.description,
             }}
