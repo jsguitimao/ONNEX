@@ -6,14 +6,26 @@ import {
 } from "@/lib/rate-limit";
 
 describe("getClientIp", () => {
-  it("prefers cf-connecting-ip", () => {
+  it("prefers x-vercel-forwarded-for (infra-set, spoof-resistant)", () => {
     const req = new Request("https://example.com", {
       headers: {
-        "cf-connecting-ip": "198.51.100.10",
+        "x-vercel-forwarded-for": "198.51.100.10",
         "x-forwarded-for": "203.0.113.4",
       },
     });
     expect(getClientIp(req)).toBe("198.51.100.10");
+  });
+
+  it("ignores spoofable cf-connecting-ip when no Vercel header is present", () => {
+    // Não estamos atrás da Cloudflare: cf-connecting-ip é controlado pelo
+    // cliente e NÃO deve ser usado como identidade do rate-limit.
+    const req = new Request("https://example.com", {
+      headers: {
+        "cf-connecting-ip": "6.6.6.6",
+        "x-forwarded-for": "203.0.113.4",
+      },
+    });
+    expect(getClientIp(req)).toBe("203.0.113.4");
   });
 
   it("falls back to x-forwarded-for first entry", () => {

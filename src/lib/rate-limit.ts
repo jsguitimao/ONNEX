@@ -96,14 +96,23 @@ function sweepExpiredEntries(now: number) {
 }
 
 export function getClientIp(request: Request) {
-  const forwardedFor =
-    request.headers.get("cf-connecting-ip") ||
-    request.headers.get("x-vercel-forwarded-for") ||
-    request.headers.get("x-forwarded-for") ||
-    request.headers.get("x-real-ip") ||
-    "anonymous";
+  // Na Vercel (a nossa infra), `x-vercel-forwarded-for` é escrito pela própria
+  // plataforma com o IP real do cliente — NÃO é falsificável pelo pedido. É a
+  // única fonte de confiança para identificar o cliente no rate-limit.
+  //
+  // NÃO usar `cf-connecting-ip`, `x-forwarded-for` ou `x-real-ip` como primeira
+  // escolha: não estamos atrás da Cloudflare, por isso qualquer cliente pode
+  // enviá-los à mão. Se os usássemos, um atacante mudava o valor a cada pedido,
+  // rodava a chave do rate-limit e contornava o limite por completo.
+  const vercelForwardedFor = request.headers.get("x-vercel-forwarded-for");
+  if (vercelForwardedFor) {
+    return vercelForwardedFor.split(",")[0]?.trim() || "anonymous";
+  }
 
-  return forwardedFor.split(",")[0]?.trim() || "anonymous";
+  // Fallback apenas para ambientes SEM a infra da Vercel (dev/local, testes),
+  // onde `x-forwarded-for` é definido por um proxy de confiança ou não existe.
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  return forwardedFor?.split(",")[0]?.trim() || "anonymous";
 }
 
 function buildResult(

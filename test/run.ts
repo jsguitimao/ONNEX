@@ -111,11 +111,12 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "getClientIp prefers Cloudflare and forwarded headers",
+    name: "getClientIp trusts x-vercel-forwarded-for and ignores spoofable headers",
     run: () => {
       const request = new Request("https://example.com", {
         headers: {
-          "cf-connecting-ip": "198.51.100.10",
+          "x-vercel-forwarded-for": "198.51.100.10",
+          "cf-connecting-ip": "6.6.6.6",
           "x-forwarded-for": "203.0.113.4, 203.0.113.5",
         },
       });
