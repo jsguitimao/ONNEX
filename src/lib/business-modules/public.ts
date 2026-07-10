@@ -265,11 +265,23 @@ function ensureActivePublicToken<T extends { publicToken: string | null; endsAt:
   return booking;
 }
 
+// Só barbearias com acesso ATIVO (a pagar / trial com cartão) entram no sitemap.
+// Assim o Google não indexa a barbearia de demonstração nem trials vazios — que,
+// sem acesso, nem sequer recebem reservas (o "Agendar" está escondido). As páginas
+// continuam acessíveis por link direto; apenas não são anunciadas ao Google.
 export async function listPublicBusinessSlugs(): Promise<{ slug: string; updatedAt: Date }[]> {
-  return db.business.findMany({
+  const businesses = await db.business.findMany({
     where: { status: "ACTIVE" },
-    select: { slug: true, updatedAt: true },
+    select: {
+      slug: true,
+      updatedAt: true,
+      subscription: { select: { status: true, providerCustomerId: true, currentPeriodEnd: true } },
+    },
   });
+
+  return businesses
+    .filter((business) => hasActiveAccess(business.subscription))
+    .map(({ slug, updatedAt }) => ({ slug, updatedAt }));
 }
 
 export async function getPublicBusinessPayload(slug: string): Promise<PublicBusinessPayload | null> {

@@ -69,7 +69,7 @@ export async function generateMetadata({ params }: PublicPageProps): Promise<Met
     business.description?.trim() ||
     `Marca online com ${business.name}.`;
 
-  return buildPublicPageMetadata({
+  const metadata: Metadata = buildPublicPageMetadata({
     name: title,
     slug: business.slug,
     description,
@@ -82,6 +82,15 @@ export async function generateMetadata({ params }: PublicPageProps): Promise<Met
             (url): url is string => Boolean(url && isSupportedMediaUrl(url)),
           ),
   });
+
+  // Barbearias sem acesso ativo (demo, trial vazio, subscrição inativa) não
+  // recebem reservas — não devem ser indexadas pelo Google. Mantêm-se acessíveis
+  // por link direto, mas com noindex para não aparecerem na pesquisa.
+  if (!hasActiveAccess(business.subscription)) {
+    metadata.robots = { index: false, follow: false };
+  }
+
+  return metadata;
 }
 
 export default async function PublicBookingPage({ params }: PublicPageProps) {
