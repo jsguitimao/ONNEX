@@ -15,7 +15,3 @@ export function getAppUrl() {
 export function getEnvironmentName() {
   return process.env.VERCEL_ENV?.trim() || process.env.NODE_ENV?.trim() || "development";
 }
-
-export function isProductionEnvironment() {
-  return getEnvironmentName() === "production";
-}

@@ -23,14 +23,6 @@ type BookingSheetContextValue = {
 
 const BookingSheetContext = createContext<BookingSheetContextValue | null>(null);
 
-export function useBookingSheet(): BookingSheetContextValue {
-  const ctx = useContext(BookingSheetContext);
-  if (!ctx) {
-    throw new Error("useBookingSheet must be used inside <BookingSheetProvider>");
-  }
-  return ctx;
-}
-
 // Safe version for shared renderers that may be mounted outside booking pages.
 export function useBookingSheetOptional(): BookingSheetContextValue | null {
   return useContext(BookingSheetContext);

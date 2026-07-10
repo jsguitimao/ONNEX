@@ -69,5 +69,3 @@ export const demoBusiness: DemoBusiness = {
     },
   ],
 };
-
-export { formatEuro } from "@/lib/formatters";
