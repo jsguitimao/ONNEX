@@ -35,6 +35,9 @@ export function SectionSeo({ draft, onChange }: Props) {
     description.trim() ||
     `Marca online com ${draft.name || "este negócio"}.`;
   const previewUrl = `${getAppHost()}/${draft.slug || "slug"}`;
+  // Link real para abrir a página (com protocolo). Só clicável se já houver slug.
+  const hasSlug = Boolean(draft.slug?.trim());
+  const previewHref = `${getAppUrl()}/${draft.slug?.trim() ?? ""}`;
 
   return (
     <SectionShell
@@ -76,9 +79,20 @@ export function SectionSeo({ draft, onChange }: Props) {
           <p className="truncate text-xs text-emerald-700 dark:text-emerald-400">
             {previewUrl}
           </p>
-          <p className="mt-1 line-clamp-2 text-base font-medium leading-5 text-blue-700 dark:text-blue-400">
-            {previewTitle}
-          </p>
+          {hasSlug ? (
+            <a
+              href={previewHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 line-clamp-2 block text-base font-medium leading-5 text-blue-700 underline-offset-2 hover:underline dark:text-blue-400"
+            >
+              {previewTitle}
+            </a>
+          ) : (
+            <p className="mt-1 line-clamp-2 text-base font-medium leading-5 text-blue-700 dark:text-blue-400">
+              {previewTitle}
+            </p>
+          )}
           <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
             {previewDescription}
           </p>
