@@ -91,9 +91,9 @@ export function SectionGallery({ images, onChange }: Props) {
                 type="button"
                 onClick={() => removeAt(index)}
                 aria-label={`Remover foto ${index + 1}`}
-                className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 transition group-hover:opacity-100"
+                className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/75 text-white shadow-sm transition hover:bg-black/90 active:scale-95"
               >
-                <Trash2 className="size-3" />
+                <Trash2 className="size-3.5" />
               </button>
             </li>
           ))}
