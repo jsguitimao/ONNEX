@@ -1,4 +1,5 @@
 import { ClerkProvider } from "@clerk/nextjs";
+import { ptPT } from "@clerk/localizations";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { CookieBanner } from "@/components/cookie-banner";
@@ -30,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="pt-PT" className={cn("h-full antialiased", fontSans.variable)}>
       <body className="min-h-full bg-background font-sans text-foreground">
-        <ClerkProvider>
+        <ClerkProvider localization={ptPT}>
           {children}
           <CookieBanner />
         </ClerkProvider>
