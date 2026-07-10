@@ -199,10 +199,7 @@ export function PageEditor({ initialDraft, embedded = false }: Props) {
           />
         </div>
 
-        {/* Pré-visualização lado-a-lado só no desktop (lg+). No telemóvel seria um
-            iframe pesado a recompor durante o scroll (causava lag); aí usa-se o
-            botão "Ver página" (ecrã inteiro), que é mais útil num telemóvel. */}
-        <aside className="hidden lg:block">
+        <aside>
           <IphonePreview draft={draft} />
         </aside>
       </div>
