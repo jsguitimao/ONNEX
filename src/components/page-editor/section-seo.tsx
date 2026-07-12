@@ -1,5 +1,6 @@
 "use client";
 
+import { ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/page-editor/field";
 import { SectionShell } from "@/components/page-editor/section-shell";
@@ -79,24 +80,31 @@ export function SectionSeo({ draft, onChange }: Props) {
           <p className="truncate text-xs text-emerald-700 dark:text-emerald-400">
             {previewUrl}
           </p>
-          {hasSlug ? (
-            <a
-              href={previewHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 line-clamp-2 block text-base font-medium leading-5 text-blue-700 underline-offset-2 hover:underline dark:text-blue-400"
-            >
-              {previewTitle}
-            </a>
-          ) : (
-            <p className="mt-1 line-clamp-2 text-base font-medium leading-5 text-blue-700 dark:text-blue-400">
-              {previewTitle}
-            </p>
-          )}
+          <p className="mt-1 line-clamp-2 text-base font-medium leading-5 text-blue-700 dark:text-blue-400">
+            {previewTitle}
+          </p>
           <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
             {previewDescription}
           </p>
         </div>
+        {/* Botão grande e fiável (em vez de tornar o pequeno texto do título um
+            link — no telemóvel esse alvo minúsculo era difícil de acertar e o
+            separador abria por vezes em segundo plano, parecendo que não abriu). */}
+        {hasSlug ? (
+          <a
+            href={previewHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-semibold text-foreground transition-transform hover:bg-muted active:scale-[0.98]"
+          >
+            Abrir a minha página
+            <ExternalLink className="size-4" />
+          </a>
+        ) : (
+          <p className="mt-4 text-xs text-muted-foreground">
+            Guarda a página primeiro para a poderes abrir.
+          </p>
+        )}
       </div>
     </SectionShell>
   );
