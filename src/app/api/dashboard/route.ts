@@ -4,7 +4,7 @@ import { z } from "zod";
 import { auth } from "@clerk/nextjs/server";
 import { getCurrentBusiness } from "@/lib/business-modules/core";
 import { loadEditorDraft } from "@/lib/page-editor/load";
-import { editorDraftSchema } from "@/lib/page-editor/schema";
+import { describeEditorDraftError, editorDraftSchema } from "@/lib/page-editor/schema";
 import { PageEditorError, saveEditorDraft } from "@/lib/page-editor/save";
 import { captureException } from "@/lib/observability";
 import { buildRateLimitHeaders, checkRequestRateLimit } from "@/lib/rate-limit";
@@ -65,7 +65,7 @@ export async function PUT(req: Request) {
     }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.issues[0]?.message ?? "Dados inválidos." },
+        { error: describeEditorDraftError(error) },
         { status: 400 },
       );
     }

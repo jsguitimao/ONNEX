@@ -86,3 +86,38 @@ export const editorDraftSchema = z.object({
 });
 
 export type ValidatedDraft = z.infer<typeof editorDraftSchema>;
+
+// Traduz o 1º erro de validação do editor numa mensagem CLARA em português,
+// identificando a secção/campo. Substitui a mensagem técnica em inglês do Zod
+// (ex.: "Too small: expected string to have >=1 characters"), que enganava o
+// dono — parecia ser o link do Facebook quando na verdade era um serviço ou
+// profissional SEM NOME a bloquear o guardar.
+export function describeEditorDraftError(error: z.ZodError): string {
+  const issue = error.issues[0];
+  if (!issue) return "Dados inválidos.";
+  const top = String(issue.path[0] ?? "");
+  const sub = String(issue.path[2] ?? "");
+
+  if (top === "name") return "O nome da barbearia não pode ficar vazio.";
+  if (top === "slug")
+    return "O link da página só pode ter minúsculas, números e hífen (mínimo 2 caracteres).";
+  if (top === "services") {
+    if (sub === "name")
+      return "Há um serviço sem nome. Vai à secção Serviços e preenche o nome — ou remove esse serviço — antes de guardar.";
+    if (sub === "priceCents") return "Há um serviço com um preço inválido. Verifica a secção Serviços.";
+    if (sub === "durationMinutes") return "Há um serviço com uma duração inválida. Verifica a secção Serviços.";
+    return "Há um serviço com dados incompletos. Verifica a secção Serviços.";
+  }
+  if (top === "staffMembers") {
+    if (sub === "fullName")
+      return "Há um profissional sem nome. Vai à secção Equipa e preenche o nome — ou remove esse profissional — antes de guardar.";
+    return "Há um profissional com dados incompletos. Verifica a secção Equipa.";
+  }
+  if (top === "instagramUrl") return "O link do Instagram é inválido. Deve começar por https://";
+  if (top === "tiktokUrl") return "O link do TikTok é inválido. Deve começar por https://";
+  if (top === "facebookUrl") return "O link do Facebook é inválido. Deve começar por https://";
+  if (["headline", "description", "seoTitle", "seoDescription", "mapsAddress"].includes(top))
+    return "Um dos textos ultrapassa o limite de caracteres permitido.";
+
+  return issue.message || "Alguns campos estão incompletos. Verifica os Serviços, a Equipa e os links.";
+}
