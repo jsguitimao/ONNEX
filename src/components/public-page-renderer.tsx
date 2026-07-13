@@ -791,6 +791,25 @@ function SafeVideo({
   alt: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // iOS (ex.: modo de poupança de bateria) bloqueia autoplay fora de um gesto
+  // do utilizador; retomamos o vídeo ao primeiro toque na página.
+  useEffect(() => {
+    const kickstart = () => {
+      const el = videoRef.current;
+      if (el && el.paused) el.play().catch(() => {});
+    };
+    const events = ["touchend", "pointerdown"] as const;
+    for (const evt of events) {
+      document.addEventListener(evt, kickstart, { passive: true });
+    }
+    return () => {
+      for (const evt of events) {
+        document.removeEventListener(evt, kickstart);
+      }
+    };
+  }, []);
 
   if (failed) {
     return (
@@ -802,6 +821,7 @@ function SafeVideo({
 
   return (
     <video
+      ref={videoRef}
       key={hero.url}
       src={hero.url}
       poster={hero.posterUrl ?? undefined}

@@ -2970,14 +2970,16 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
     heroVid.muted = true;
     heroVid.playsInline = true;
     const tryPlay = () => {
+      if (!heroVid.paused) return;
       const p = heroVid.play();
-      if (p && p.catch) p.catch(() => {
-        // se falhar, tenta de novo em 500ms
-        setTimeout(tryPlay, 500);
-      });
+      if (p && p.catch) p.catch(() => {});
     };
-    if (heroVid.readyState >= 2) tryPlay();
-    else heroVid.addEventListener('loadeddata', tryPlay, { once: true });
+    tryPlay();
+    heroVid.addEventListener('loadeddata', tryPlay, { once: true });
+    // iOS (ex.: modo de poupança de bateria) só permite play dentro de um gesto do utilizador
+    ['touchend', 'pointerdown', 'keydown'].forEach(evt =>
+      document.addEventListener(evt, tryPlay, { passive: true })
+    );
     // fallback: esconder se realmente não conseguir
     heroVid.addEventListener('error', () => { heroVid.style.display = 'none'; });
   }
