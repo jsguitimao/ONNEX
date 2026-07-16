@@ -31,6 +31,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Self-hosting (VPS/Docker): gera .next/standalone com servidor mínimo.
+  // Na Vercel esta opção é ignorada (a plataforma usa o próprio adapter),
+  // por isso é segura em ambos os ambientes durante a migração.
+  output: "standalone",
   turbopack: {
     root: __dirname,
   },

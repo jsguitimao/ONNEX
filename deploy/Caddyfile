@@ -1,0 +1,28 @@
+# =============================================================================
+# Onnex — Caddy (reverse proxy + HTTPS automático via Let's Encrypt)
+#
+# SEGURANÇA (rate-limit): o Caddy, por omissão (sem trusted_proxies),
+# DESCARTA qualquer X-Forwarded-For enviado pelo cliente e escreve apenas o IP
+# real da ligação. O getClientIp() da app confia no primeiro valor deste header
+# quando não está na Vercel — este comportamento por omissão é o que torna o
+# rate-limit não-falsificável no VPS. NÃO configurar trusted_proxies aqui.
+# =============================================================================
+
+{
+	# Email para avisos de renovação de certificados
+	email onnex.pt@gmail.com
+}
+
+onnex.pt, www.onnex.pt {
+	encode zstd gzip
+	reverse_proxy app:3000
+}
+
+# --- Staging (fase de testes ANTES do flip de DNS) ---------------------------
+# Descomentar quando o registo A de vps.onnex.pt apontar para o VPS.
+# Depois do flip final, pode apagar-se este bloco.
+#
+# vps.onnex.pt {
+# 	encode zstd gzip
+# 	reverse_proxy app:3000
+# }

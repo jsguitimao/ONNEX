@@ -1,0 +1,96 @@
+# =============================================================================
+# Onnex — stack de produção no VPS
+#
+#   caddy — reverse proxy + HTTPS automático (Let's Encrypt)
+#   app   — Next.js 16 (standalone), porta interna 3000
+#   db    — PostgreSQL 17, SÓ acessível em 127.0.0.1:5433 (nunca exposto à net)
+#
+# Usar sempre a partir de /opt/onnex/app com o env em /opt/onnex/.env:
+#   docker compose -f deploy/docker-compose.yml --env-file /opt/onnex/.env up -d
+# (o deploy.sh já faz isto tudo)
+# =============================================================================
+
+name: onnex
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: runner
+      # network: host permite ao build falar com o Postgres em 127.0.0.1:5433
+      # (algumas páginas ISR consultam a BD durante o next build).
+      network: host
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        SENTRY_DSN: ${SENTRY_DSN:-}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+    image: onnex-app:latest
+    restart: unless-stopped
+    env_file:
+      - ${ONNEX_ENV_FILE:-/opt/onnex/.env}
+    environment:
+      # Dentro da rede do compose a BD chama-se "db" (o 127.0.0.1:5433 é só p/ host)
+      DATABASE_URL: ${DATABASE_URL_DOCKER}
+      DIRECT_URL: ${DATABASE_URL_DOCKER}
+    # Tempo para o Next terminar pedidos em curso e callbacks after()
+    # (notificações pós-resposta) antes de o container ser morto.
+    stop_grace_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "3000"
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: onnex
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: onnex
+    # SÓ localhost do VPS — nunca 0.0.0.0. Serve para pg_dump/restore/psql do host.
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onnex -d onnex"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # Serviço one-off para migrações do Prisma (não arranca com o stack):
+  #   docker compose -f deploy/docker-compose.yml --env-file /opt/onnex/.env run --rm migrate
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: migrator
+    environment:
+      DATABASE_URL: ${DATABASE_URL_DOCKER}
+      DIRECT_URL: ${DATABASE_URL_DOCKER}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
