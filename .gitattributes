@@ -1,0 +1,2 @@
+# Scripts e configs do deploy correm em Linux: forçar LF mesmo em checkout Windows
+deploy/** text eol=lf
