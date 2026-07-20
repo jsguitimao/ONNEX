@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     ".claude/**",
+    // Scripts utilitários (marketing/vídeo) corridos fora do app — não lintar.
+    "scripts/**",
   ]),
 ]);
 
