@@ -133,6 +133,42 @@ Boa! É só entrares em onnex.pt e criares a conta. Em 5 minutos tens
 a página no ar. Qualquer dúvida estou aqui para ajudar. 💈
 ```
 
+### Abordagem fria no Instagram (barbearias que ainda não conhecem a ONNEX)
+
+> Regras de ouro: personaliza SEMPRE a primeira linha com algo real do perfil
+> (um corte publicado, a decoração, os stories). Envia manualmente, 10–20 por
+> dia no máximo, espaçadas, variando o texto — DMs automáticas ou em massa
+> dão bloqueio/ban no Instagram.
+
+**Mensagem principal:**
+```
+Olá! 👋 Vi a página da [nome da barbearia] e o trabalho está top.
+
+Deixo só uma ideia: criei a ONNEX, uma plataforma onde a tua barbearia
+tem página própria e os clientes marcam sozinhos — com confirmação e
+lembrete automáticos por WhatsApp. Menos chamadas, menos faltas.
+
+Sem comissões por marcação e podes testar 7 dias grátis, sem compromisso.
+
+Se fizer sentido, é só espreitar: onnex.pt 💈
+```
+
+**Versão ultra-curta:**
+```
+Olá! 👋 Trabalho top na [nome da barbearia].
+
+Criei a ONNEX — página própria para a tua barbearia onde os clientes
+marcam sozinhos, com lembretes automáticos por WhatsApp. 7 dias grátis,
+sem comissões. Espreitar: onnex.pt 💈
+```
+
+**Follow-up (um único, se não responderem em 3–4 dias):**
+```
+Olá de novo! 👋 Só para não ficar perdida a mensagem — se quiseres ver
+como ficaria a página da [nome da barbearia], diz-me e mostro-te um
+exemplo em 1 minuto. Abraço!
+```
+
 ---
 
 ## 4. Respostas a objeções comuns
