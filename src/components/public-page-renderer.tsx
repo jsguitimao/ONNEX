@@ -147,7 +147,7 @@ export function PublicPageRenderer({ viewModel }: Props) {
             <header className="flex flex-col items-center px-4 text-center">
               <h1
                 className="font-bold"
-                style={{ fontSize: "34px", lineHeight: "41px", letterSpacing: "-0.4px" }}
+                style={{ fontSize: "24px", lineHeight: "29px", letterSpacing: "-0.4px" }}
               >
                 {viewModel.name || "—"}
               </h1>
