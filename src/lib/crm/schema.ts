@@ -36,6 +36,9 @@ export const createCustomerSchema = z
     email: optionalEmail,
     phone: optionalPhone,
     notes: optionalString(280),
+    // Profissional a quem a ficha é atribuída. "" = sem profissional. A pertença
+    // ao negócio é validada na camada de dados (createCustomer/updateCustomer).
+    assignedStaffMemberId: optionalString(40),
   })
   .refine((value) => value.email !== "" || value.phone !== "", {
     message: "Indica pelo menos email ou telefone",

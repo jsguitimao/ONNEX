@@ -7,6 +7,7 @@ import {
   CrmCustomerError,
   createCustomer,
   deleteCustomer,
+  listCustomers,
   toCrmCustomerRowDto,
   updateCustomer,
   type CrmCustomerRowDto,
@@ -18,9 +19,28 @@ import {
   acceptPendingBooking,
   cancelConfirmedBooking,
   completeConfirmedBooking,
+  listDailyBookings,
+  listPendingBookings,
+  listWeeklyBookings,
   markBookingNoShow,
   rejectPendingBooking,
+  toCrmBookingRowDto,
+  toCrmPendingBookingDto,
+  type CrmBookingRowDto,
+  type CrmPendingBookingDto,
 } from "@/lib/crm/bookings";
+import {
+  CrmClientListLockError,
+  changeClientListLock,
+  confirmClientListLockReset,
+  getClientListLockState,
+  removeClientListLock,
+  requestClientListLockReset,
+  setClientListLock,
+  verifyClientListLock,
+} from "@/lib/crm/client-list-lock";
+import { db } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
 import {
   CrmAvailabilityError,
   countFutureBookingsOutsideShifts,
@@ -618,12 +638,13 @@ export async function deleteScheduleBlockAction(
 
 export type FinancialSummaryResult =
   | { ok: true; summary: CrmFinancialSummary }
-  | { ok: false; error: string };
+  | { ok: false; error: string; locked?: true };
 
 export async function getFinancialSummaryAction(
   period: unknown,
   staffMemberId: unknown,
   customMonth: unknown = null,
+  pin: unknown = null,
 ): Promise<FinancialSummaryResult> {
   const { userId } = await auth();
   if (!userId) {
@@ -662,6 +683,36 @@ export async function getFinancialSummaryAction(
 
   try {
     const business = await getCurrentBusiness();
+
+    // Cadeado: os valores do 1.º profissional só saem com o código de segurança.
+    // "Todos" (staffId null) e os restantes profissionais não são protegidos.
+    if (staffId) {
+      const lockState = await getClientListLockState(business.id);
+      if (lockState.enabled && staffId === lockState.firstStaffId) {
+        // Rate limit apertado só nesta via (verificação de código) para não a
+        // transformar num oráculo de brute-force ao PIN. O limite de 60/min acima
+        // continua a valer para a navegação normal (Todos / outros profissionais).
+        const verifyLimit = await consumeRateLimit({
+          namespace: "crm-finance-lock-verify",
+          identifier: userId,
+          limit: 10,
+          windowMs: 60_000,
+        });
+        if (!verifyLimit.ok) {
+          return { ok: false, error: "Demasiadas tentativas. Aguarda um momento.", locked: true };
+        }
+        try {
+          await verifyClientListLock(business.id, pin);
+        } catch {
+          return {
+            ok: false,
+            error: "Estes valores estão protegidos. Introduz o código de segurança.",
+            locked: true,
+          };
+        }
+      }
+    }
+
     const summary = await computeFinancialSummary(business.id, {
       period: period as CrmFinancePeriod,
       staffMemberId: staffId,
@@ -889,4 +940,293 @@ function sanitizeShiftsInput(value: unknown): CrmShift[] | null {
     result.push({ startTime: start, endTime: end });
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Cadeado da lista de clientes do primeiro profissional (secção agendamento)
+// ---------------------------------------------------------------------------
+
+export type ClientListLockMutationResult = { ok: true } | { ok: false; error: string };
+
+function mapClientListLockError(error: unknown): string | null {
+  if (error instanceof CrmClientListLockError) {
+    return error.message;
+  }
+  if (error instanceof Error && error.message === "AUTH_REQUIRED") {
+    return "Sessão expirada. Inicia sessão novamente.";
+  }
+  return null;
+}
+
+export async function setClientListLockAction(
+  pin: unknown,
+): Promise<ClientListLockMutationResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { ok: false, error: "Sessão expirada. Inicia sessão novamente." };
+  }
+
+  const rateLimit = await consumeRateLimit({
+    namespace: "crm-client-list-lock-set",
+    identifier: userId,
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) {
+    return { ok: false, error: "Demasiadas tentativas. Aguarda um momento." };
+  }
+
+  try {
+    const business = await getCurrentBusiness();
+    await setClientListLock(business.id, pin);
+    revalidatePath("/crm");
+    return { ok: true };
+  } catch (error) {
+    const mapped = mapClientListLockError(error);
+    if (mapped) return { ok: false, error: mapped };
+    captureException("crm.client_list_lock.set_failed", error, { userId });
+    return { ok: false, error: "Erro ao proteger a lista. Tenta novamente." };
+  }
+}
+
+export async function changeClientListLockAction(
+  currentPin: unknown,
+  newPin: unknown,
+): Promise<ClientListLockMutationResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { ok: false, error: "Sessão expirada. Inicia sessão novamente." };
+  }
+
+  const rateLimit = await consumeRateLimit({
+    namespace: "crm-client-list-lock-change",
+    identifier: userId,
+    // Verifica o código atual → limite apertado contra brute-force.
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) {
+    return { ok: false, error: "Demasiadas tentativas. Aguarda um momento." };
+  }
+
+  try {
+    const business = await getCurrentBusiness();
+    await changeClientListLock(business.id, currentPin, newPin);
+    revalidatePath("/crm");
+    return { ok: true };
+  } catch (error) {
+    const mapped = mapClientListLockError(error);
+    if (mapped) return { ok: false, error: mapped };
+    captureException("crm.client_list_lock.change_failed", error, { userId });
+    return { ok: false, error: "Erro ao alterar o código. Tenta novamente." };
+  }
+}
+
+export async function removeClientListLockAction(
+  currentPin: unknown,
+): Promise<ClientListLockMutationResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { ok: false, error: "Sessão expirada. Inicia sessão novamente." };
+  }
+
+  const rateLimit = await consumeRateLimit({
+    namespace: "crm-client-list-lock-remove",
+    identifier: userId,
+    // Verifica o código atual → limite apertado contra brute-force.
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) {
+    return { ok: false, error: "Demasiadas tentativas. Aguarda um momento." };
+  }
+
+  try {
+    const business = await getCurrentBusiness();
+    await removeClientListLock(business.id, currentPin);
+    revalidatePath("/crm");
+    return { ok: true };
+  } catch (error) {
+    const mapped = mapClientListLockError(error);
+    if (mapped) return { ok: false, error: mapped };
+    captureException("crm.client_list_lock.remove_failed", error, { userId });
+    return { ok: false, error: "Erro ao remover a proteção. Tenta novamente." };
+  }
+}
+
+export type UnlockClientListResult =
+  | {
+      ok: true;
+      pendingBookings: CrmPendingBookingDto[];
+      weeklyBookings: CrmBookingRowDto[];
+      dailyBookings: CrmBookingRowDto[];
+      customers: CrmCustomerRowDto[];
+    }
+  | { ok: false; error: string };
+
+export async function unlockClientListAction(
+  pin: unknown,
+): Promise<UnlockClientListResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { ok: false, error: "Sessão expirada. Inicia sessão novamente." };
+  }
+
+  // Limite apertado: é uma verificação de código, protege contra brute-force.
+  const rateLimit = await consumeRateLimit({
+    namespace: "crm-client-list-lock-unlock",
+    identifier: userId,
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) {
+    return { ok: false, error: "Demasiadas tentativas. Aguarda um momento." };
+  }
+
+  try {
+    const business = await getCurrentBusiness();
+    const firstStaffId = await verifyClientListLock(business.id, pin);
+
+    const [pending, weekly, daily, customers] = await Promise.all([
+      listPendingBookings(business.id),
+      listWeeklyBookings(business.id, { timezone: business.timezone }),
+      listDailyBookings(business.id, { timezone: business.timezone }),
+      listCustomers(business.id),
+    ]);
+
+    return {
+      ok: true,
+      pendingBookings: pending
+        .filter((booking) => booking.staffMemberId === firstStaffId)
+        .map(toCrmPendingBookingDto),
+      weeklyBookings: weekly
+        .filter((booking) => booking.staffMemberId === firstStaffId)
+        .map(toCrmBookingRowDto),
+      dailyBookings: daily
+        .filter((booking) => booking.staffMemberId === firstStaffId)
+        .map(toCrmBookingRowDto),
+      // Clientes que marcaram com o 1.º barbeiro (exclusivos + partilhados).
+      // O merge no cliente repõe os exclusivos que foram escondidos do payload.
+      customers: customers
+        .filter((customer) => customer.staffMemberIds.includes(firstStaffId))
+        .map(toCrmCustomerRowDto),
+    };
+  } catch (error) {
+    const mapped = mapClientListLockError(error);
+    if (mapped) return { ok: false, error: mapped };
+    captureException("crm.client_list_lock.unlock_failed", error, { userId });
+    return { ok: false, error: "Erro ao desbloquear. Tenta novamente." };
+  }
+}
+
+// --- Recuperação do código de segurança por email (secção Conta) ---------------
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return email;
+  const shown = local.slice(0, 1);
+  return `${shown}${"*".repeat(Math.max(local.length - 1, 1))}@${domain}`;
+}
+
+function buildLockResetEmailHtml(code: string, businessName: string): string {
+  return `<!doctype html><html lang="pt"><body style="margin:0;background:#f4f4f5;padding:24px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#0a0a0a">
+  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border:1px solid #e4e4e7">
+    <h1 style="font-size:18px;margin:0 0 8px">Redefinir o código de segurança</h1>
+    <p style="font-size:14px;color:#52525b;margin:0 0 24px">Pediste para redefinir o código que protege as listas de ${businessName} no ONNEX. Introduz este código na secção Conta:</p>
+    <div style="font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;padding:16px;background:#0a0a0a;color:#fff;border-radius:10px">${code}</div>
+    <p style="font-size:12px;color:#71717a;margin:24px 0 0">O código é válido durante 15 minutos. Se não foste tu, ignora este email — a proteção mantém-se.</p>
+  </div></body></html>`;
+}
+
+export type RequestClientListLockResetResult =
+  | { ok: true; delivery: "email"; to: string }
+  | { ok: true; delivery: "dev"; code: string }
+  | { ok: false; error: string };
+
+export async function requestClientListLockResetAction(): Promise<RequestClientListLockResetResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { ok: false, error: "Sessão expirada. Inicia sessão novamente." };
+  }
+
+  const rateLimit = await consumeRateLimit({
+    namespace: "crm-client-list-lock-reset-request",
+    identifier: userId,
+    limit: 5,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) {
+    return { ok: false, error: "Demasiados pedidos. Aguarda um momento." };
+  }
+
+  try {
+    const business = await getCurrentBusiness();
+    const code = await requestClientListLockReset(business.id);
+
+    const owner = await db.user.findUnique({
+      where: { id: business.ownerId },
+      select: { email: true },
+    });
+    const to = owner?.email?.trim();
+    if (!to) {
+      return { ok: false, error: "Não encontrámos o email da tua conta." };
+    }
+
+    const emailResult = await sendEmail({
+      to,
+      subject: "ONNEX — código para redefinir a proteção das listas",
+      html: buildLockResetEmailHtml(code, business.name),
+    });
+
+    if (emailResult.ok) {
+      return { ok: true, delivery: "email", to: maskEmail(to) };
+    }
+
+    // Ambiente sem Resend (ex.: localhost): mostramos o código só em desenvolvimento
+    // para permitir testar. Em produção o Resend está configurado.
+    if (emailResult.skipped && process.env.NODE_ENV !== "production") {
+      return { ok: true, delivery: "dev", code };
+    }
+
+    captureException("crm.client_list_lock.reset_email_failed", new Error(emailResult.reason), {
+      userId,
+    });
+    return { ok: false, error: "Não foi possível enviar o email. Tenta novamente." };
+  } catch (error) {
+    const mapped = mapClientListLockError(error);
+    if (mapped) return { ok: false, error: mapped };
+    captureException("crm.client_list_lock.reset_request_failed", error, { userId });
+    return { ok: false, error: "Erro ao pedir a recuperação. Tenta novamente." };
+  }
+}
+
+export async function confirmClientListLockResetAction(
+  code: unknown,
+): Promise<ClientListLockMutationResult> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { ok: false, error: "Sessão expirada. Inicia sessão novamente." };
+  }
+
+  const rateLimit = await consumeRateLimit({
+    namespace: "crm-client-list-lock-reset-confirm",
+    identifier: userId,
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) {
+    return { ok: false, error: "Demasiadas tentativas. Aguarda um momento." };
+  }
+
+  try {
+    const business = await getCurrentBusiness();
+    await confirmClientListLockReset(business.id, code);
+    revalidatePath("/crm");
+    return { ok: true };
+  } catch (error) {
+    const mapped = mapClientListLockError(error);
+    if (mapped) return { ok: false, error: mapped };
+    captureException("crm.client_list_lock.reset_confirm_failed", error, { userId });
+    return { ok: false, error: "Erro ao confirmar o código. Tenta novamente." };
+  }
 }

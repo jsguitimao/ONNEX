@@ -20,7 +20,8 @@ import {
   listScheduleBlocks,
   toCrmScheduleBlockRowDto,
 } from "@/lib/crm/schedule-blocks";
-import { computeFinancialSummary } from "@/lib/crm/finance";
+import { computeFinancialSummary, type CrmFinancialSummary } from "@/lib/crm/finance";
+import { getClientListLockState } from "@/lib/crm/client-list-lock";
 import { loadEditorDraft } from "@/lib/page-editor/load";
 import { hasActiveAccess } from "@/lib/subscription-access";
 import { syncSubscriptionFromStripe } from "@/lib/stripe-sync";
@@ -119,8 +120,8 @@ export default async function CrmPage() {
     weeklyBookings,
     dailyBookings,
     scheduleBlocks,
-    financialSummary,
     editorDraft,
+    clientListLockState,
   ] = await Promise.all([
     listCustomers(business.id),
     computeCustomerKpis(business.id),
@@ -129,13 +130,49 @@ export default async function CrmPage() {
     listWeeklyBookings(business.id, { timezone: business.timezone }),
     listDailyBookings(business.id, { timezone: business.timezone }),
     listScheduleBlocks(business.id),
-    computeFinancialSummary(business.id, {
-      period: "semanal",
-      staffMemberId: null,
-      timezone: business.timezone,
-    }),
     loadEditorDraft(),
+    getClientListLockState(business.id),
   ]);
+
+  // O Financeiro já não tem "Todos": arranca no 1.º profissional. O valor inicial
+  // é o dele — MAS se estiver protegido, mandamos zeros (o painel mostra o cadeado
+  // e só busca os valores reais depois do código, via getFinancialSummaryAction).
+  const financeFirstStaffId = staff[0]?.id ?? null;
+  const financeFirstLocked =
+    clientListLockState.enabled &&
+    clientListLockState.firstStaffId != null &&
+    clientListLockState.firstStaffId === financeFirstStaffId;
+  const financialSummary: CrmFinancialSummary = financeFirstLocked
+    ? { totalCents: 0, count: 0, period: "semanal", rangeStart: "", rangeEnd: "", customMonth: null }
+    : await computeFinancialSummary(business.id, {
+        period: "semanal",
+        staffMemberId: financeFirstStaffId,
+        timezone: business.timezone,
+      });
+
+  // Cadeado da lista de clientes: quando o primeiro profissional tem código
+  // definido, as marcações dele NÃO viajam para o browser. Só são enviadas depois
+  // de o código ser confirmado (unlockClientListAction). Assim o cadeado é real —
+  // os dados nem sequer estão no HTML da página.
+  const lockedStaffId = clientListLockState.enabled ? clientListLockState.firstStaffId : null;
+  // Na secção Clientes escondemos apenas os clientes EXCLUSIVOS do 1.º barbeiro
+  // (que só marcaram com ele). Os partilhados continuam visíveis nos outros.
+  const visibleCustomers = lockedStaffId
+    ? customers.filter(
+        (customer) =>
+          customer.staffMemberIds.length === 0 ||
+          !customer.staffMemberIds.every((id) => id === lockedStaffId),
+      )
+    : customers;
+  const visiblePendingBookings = lockedStaffId
+    ? pendingBookings.filter((booking) => booking.staffMemberId !== lockedStaffId)
+    : pendingBookings;
+  const visibleWeeklyBookings = lockedStaffId
+    ? weeklyBookings.filter((booking) => booking.staffMemberId !== lockedStaffId)
+    : weeklyBookings;
+  const visibleDailyBookings = lockedStaffId
+    ? dailyBookings.filter((booking) => booking.staffMemberId !== lockedStaffId)
+    : dailyBookings;
 
   const availabilityByStaff = await listWeeklyAvailabilityForStaffIds(
     business.id,
@@ -151,13 +188,17 @@ export default async function CrmPage() {
 
   return (
     <CrmWorkspace
-      customers={customers.map(toCrmCustomerRowDto)}
+      customers={visibleCustomers.map(toCrmCustomerRowDto)}
       customerKpis={customerKpis}
       staff={staff}
       businessAutoAccept={business.autoAcceptBookings}
-      pendingBookings={pendingBookings.map(toCrmPendingBookingDto)}
-      weeklyBookings={weeklyBookings.map(toCrmBookingRowDto)}
-      dailyBookings={dailyBookings.map(toCrmBookingRowDto)}
+      pendingBookings={visiblePendingBookings.map(toCrmPendingBookingDto)}
+      weeklyBookings={visibleWeeklyBookings.map(toCrmBookingRowDto)}
+      dailyBookings={visibleDailyBookings.map(toCrmBookingRowDto)}
+      clientListLock={{
+        firstStaffId: clientListLockState.firstStaffId,
+        enabled: clientListLockState.enabled,
+      }}
       businessTimezone={business.timezone}
       availabilityByStaff={availabilityByStaff}
       scheduleBlocks={scheduleBlocks.map(toCrmScheduleBlockRowDto)}

@@ -1,18 +1,27 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Clock3, Loader2, Pencil, Trash2, TrendingUp, UsersRound, X } from "lucide-react";
+import { Clock3, Loader2, Lock, Pencil, Trash2, TrendingUp, UsersRound, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { deleteCustomerAction, updateCustomerAction } from "@/app/crm/actions";
 import type { CrmCustomerKpis, CrmCustomerRowDto } from "@/lib/crm/customers";
+import type { CrmStaffRow } from "@/lib/crm/staff";
+import {
+  ClientListLockCard,
+  type ClientListUnlockPayload,
+} from "./crm-client-list-lock";
 
 type Props = {
   customers: CrmCustomerRowDto[];
   kpis: CrmCustomerKpis;
+  staff: CrmStaffRow[];
+  clientListLock: { firstStaffId: string | null; enabled: boolean; unlocked: boolean };
   onCustomerDeleted: (customerId: string) => void;
   onCustomerUpdated: (customer: CrmCustomerRowDto) => void;
+  onClientListUnlocked: (payload: ClientListUnlockPayload) => void;
+  onClientListEnabledChange: (next: { enabled: boolean; unlocked: boolean }) => void;
 };
 
 type CustomerFormState = {
@@ -20,6 +29,7 @@ type CustomerFormState = {
   email: string;
   phone: string;
   notes: string;
+  assignedStaffMemberId: string;
 };
 
 const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
@@ -28,25 +38,59 @@ const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
   year: "numeric",
 });
 
-export function CustomersPanel({ customers, kpis, onCustomerDeleted, onCustomerUpdated }: Props) {
+// Separador para clientes sem barbeiro associado (criados à mão / marcação sem
+// profissional). Só aparece quando existem clientes nessa situação.
+const NO_STAFF_TAB = "__no_staff__";
+
+export function CustomersPanel({
+  customers,
+  kpis,
+  staff,
+  clientListLock,
+  onCustomerDeleted,
+  onCustomerUpdated,
+  onClientListUnlocked,
+  onClientListEnabledChange,
+}: Props) {
   const [search, setSearch] = useState("");
+  // Cada barbeiro tem a sua secção. Arranca no primeiro barbeiro da equipa.
+  const [selectedTab, setSelectedTab] = useState<string>(() => staff[0]?.id ?? NO_STAFF_TAB);
   const [pendingConfirmId, setPendingConfirmId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Existem clientes sem barbeiro (criados à mão / marcação sem profissional)?
+  const hasOrphans = useMemo(
+    () => customers.some((customer) => customer.staffMemberIds.length === 0),
+    [customers],
+  );
+  const isNoStaffTab = selectedTab === NO_STAFF_TAB;
+
+  // Clientes do barbeiro escolhido (quem marcou com ele), ou os sem profissional.
+  const scoped = useMemo(() => {
+    if (isNoStaffTab) return customers.filter((customer) => customer.staffMemberIds.length === 0);
+    return customers.filter((customer) => customer.staffMemberIds.includes(selectedTab));
+  }, [customers, selectedTab, isNoStaffTab]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return customers;
-    return customers.filter((customer) => {
+    if (!term) return scoped;
+    return scoped.filter((customer) => {
       return (
         customer.fullName.toLowerCase().includes(term) ||
         (customer.email ?? "").toLowerCase().includes(term) ||
         (customer.phone ?? "").toLowerCase().includes(term)
       );
     });
-  }, [customers, search]);
+  }, [scoped, search]);
+
+  const selectedStaff = staff.find((member) => member.id === selectedTab) ?? null;
+  const isFirstBarberSelected = selectedTab === clientListLock.firstStaffId;
+  // Lista do 1.º barbeiro por desbloquear → escondida (dados nem vieram do servidor).
+  const clientListHidden =
+    isFirstBarberSelected && clientListLock.enabled && !clientListLock.unlocked;
 
   const editingCustomer = editingId ? customers.find((row) => row.id === editingId) ?? null : null;
 
@@ -104,23 +148,91 @@ export function CustomersPanel({ customers, kpis, onCustomerDeleted, onCustomerU
         />
       </div>
 
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Lista por profissional</h3>
+            <p className="text-xs text-muted-foreground">
+              Vê os clientes de cada barbeiro (quem marcou com ele) ou todos de uma vez.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {staff.map((member) => {
+              const isLockedBarber =
+                member.id === clientListLock.firstStaffId && clientListLock.enabled;
+              return (
+                <Button
+                  key={member.id}
+                  type="button"
+                  size="sm"
+                  variant={selectedTab === member.id ? "default" : "outline"}
+                  onClick={() => setSelectedTab(member.id)}
+                >
+                  {isLockedBarber ? <Lock className="size-3.5" /> : null}
+                  {member.fullName}
+                </Button>
+              );
+            })}
+            {hasOrphans ? (
+              <Button
+                type="button"
+                size="sm"
+                variant={isNoStaffTab ? "default" : "outline"}
+                onClick={() => setSelectedTab(NO_STAFF_TAB)}
+              >
+                Sem profissional
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {isFirstBarberSelected ? (
+        <ClientListLockCard
+          staffName={selectedStaff?.fullName ?? "este profissional"}
+          enabled={clientListLock.enabled}
+          unlocked={clientListLock.unlocked}
+          onUnlocked={onClientListUnlocked}
+          onEnabledChange={onClientListEnabledChange}
+        />
+      ) : null}
+
       {editingCustomer ? (
         <EditCustomerForm
           key={editingCustomer.id}
           customer={editingCustomer}
+          staff={staff}
           onDone={handleEditDone}
           onCancel={() => setEditingId(null)}
         />
       ) : null}
 
+      {clientListHidden ? (
+        <div className="rounded-lg border border-border bg-card">
+          <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+            <Lock className="size-6 text-muted-foreground" />
+            <p className="text-sm font-medium">Lista de clientes protegida</p>
+            <p className="max-w-sm text-xs text-muted-foreground">
+              Os clientes de {selectedStaff?.fullName ?? "este profissional"} só aparecem depois de
+              introduzir o código de segurança no cartão acima.
+            </p>
+          </div>
+        </div>
+      ) : (
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-sm font-semibold">Clientes</h3>
+            <h3 className="text-sm font-semibold">
+              {selectedStaff
+                ? `Clientes de ${selectedStaff.fullName}`
+                : isNoStaffTab
+                  ? "Clientes sem profissional"
+                  : "Clientes"}
+            </h3>
             <p className="text-xs text-muted-foreground">
-              {customers.length === 0
-                ? "Ainda não tens clientes registados."
-                : `Lista das ${customers.length} fichas mais recentes.`}
+              {scoped.length === 0
+                ? "Sem clientes nesta lista."
+                : `${scoped.length} ${scoped.length === 1 ? "ficha" : "fichas"}.`}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -146,8 +258,10 @@ export function CustomersPanel({ customers, kpis, onCustomerDeleted, onCustomerU
 
         {filtered.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            {customers.length === 0
-              ? "Cria o primeiro cliente em \"Novo cliente\"."
+            {scoped.length === 0
+              ? selectedStaff
+                ? "Este profissional ainda não tem clientes."
+                : "Nenhum cliente sem profissional."
               : "Nenhum resultado para a tua procura."}
           </p>
         ) : (
@@ -261,16 +375,19 @@ export function CustomersPanel({ customers, kpis, onCustomerDeleted, onCustomerU
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
 
 function EditCustomerForm({
   customer,
+  staff,
   onDone,
   onCancel,
 }: {
   customer: CrmCustomerRowDto;
+  staff: CrmStaffRow[];
   onDone: (updated: CrmCustomerRowDto) => void;
   onCancel: () => void;
 }) {
@@ -279,6 +396,7 @@ function EditCustomerForm({
     email: customer.email ?? "",
     phone: customer.phone ?? "",
     notes: customer.notes ?? "",
+    assignedStaffMemberId: customer.assignedStaffMemberId ?? "",
   });
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof CustomerFormState, string>>>({});
@@ -366,6 +484,23 @@ function EditCustomerForm({
             inputMode="email"
             maxLength={120}
           />
+        </FormField>
+        <FormField label="Profissional" className="md:col-span-2">
+          <select
+            value={form.assignedStaffMemberId}
+            onChange={(event) => update("assignedStaffMemberId", event.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          >
+            <option value="">Sem profissional</option>
+            {staff.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.fullName}
+              </option>
+            ))}
+          </select>
+          <span className="text-[11px] font-normal text-muted-foreground">
+            Muda a lista de profissional em que esta ficha aparece.
+          </span>
         </FormField>
         <FormField label="Notas" error={fieldErrors.notes} className="md:col-span-2">
           <textarea

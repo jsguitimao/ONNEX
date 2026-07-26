@@ -1,11 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { Download, Loader2, LogOut, Mail, Trash2, TriangleAlert } from "lucide-react";
+import { useState, useTransition } from "react";
+import {
+  Check,
+  Download,
+  KeyRound,
+  Loader2,
+  LogOut,
+  Mail,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ManageSubscriptionButton } from "@/components/billing/manage-subscription-button";
+import {
+  confirmClientListLockResetAction,
+  requestClientListLockResetAction,
+} from "@/app/crm/actions";
 
 export type CrmSubscriptionInfo = {
   statusLabel: string;
@@ -20,13 +34,15 @@ const DELETE_CONFIRMATION = "APAGAR CONTA";
 
 type Props = {
   subscription: CrmSubscriptionInfo;
+  clientListLockEnabled: boolean;
+  onClientListLockReset: () => void;
 };
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("pt-PT", { dateStyle: "long" }).format(new Date(iso));
 }
 
-export function AccountPanel({ subscription }: Props) {
+export function AccountPanel({ subscription, clientListLockEnabled, onClientListLockReset }: Props) {
   const { signOut } = useClerk();
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
@@ -179,6 +195,11 @@ export function AccountPanel({ subscription }: Props) {
         </div>
       </section>
 
+      <ClientListLockResetSection
+        enabled={clientListLockEnabled}
+        onReset={onClientListLockReset}
+      />
+
       <section className="rounded-lg border border-border bg-card p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
@@ -292,5 +313,129 @@ export function AccountPanel({ subscription }: Props) {
         </div>
       </section>
     </div>
+  );
+}
+
+function ClientListLockResetSection({
+  enabled,
+  onReset,
+}: {
+  enabled: boolean;
+  onReset: () => void;
+}) {
+  const [step, setStep] = useState<"idle" | "sent" | "done">("idle");
+  const [info, setInfo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [requesting, startRequest] = useTransition();
+  const [confirming, startConfirm] = useTransition();
+
+  // Só faz sentido com proteção ativa (ou logo a seguir a repor, p/ ver o sucesso).
+  if (!enabled && step !== "done") return null;
+
+  function handleRequest() {
+    setError(null);
+    startRequest(async () => {
+      const result = await requestClientListLockResetAction();
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setInfo(
+        result.delivery === "email"
+          ? `Enviámos um código de 6 dígitos para ${result.to}. Vê o email (e a pasta de spam).`
+          : `Ambiente de teste (sem email configurado). O teu código é: ${result.code}`,
+      );
+      setStep("sent");
+    });
+  }
+
+  function handleConfirm(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (confirming || code.length !== 6) return;
+    setError(null);
+    startConfirm(async () => {
+      const result = await confirmClientListLockResetAction(code);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setCode("");
+      setStep("done");
+      onReset();
+      // A lista do 1.º profissional foi escondida no carregamento (server-gated) e
+      // nunca chegou ao browser. Recarrega para o servidor reenviar tudo agora que
+      // a proteção foi removida.
+      window.setTimeout(() => window.location.reload(), 1800);
+    });
+  }
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
+          <KeyRound className="size-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold">Código de segurança das listas</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Esqueceste o código que protege as listas de Clientes, Financeiro e Agendamento?
+            Enviamos um código para o email da tua conta para o poderes redefinir.
+          </p>
+
+          {step === "done" ? (
+            <div className="mt-4 flex items-start gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700">
+              <Check className="size-4 shrink-0" />
+              <span>
+                Proteção removida. Vai a <strong>Agendamento</strong> (ou Clientes/Financeiro) e
+                define um novo código quando quiseres.
+              </span>
+            </div>
+          ) : step === "idle" ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4"
+              disabled={requesting}
+              onClick={handleRequest}
+            >
+              {requesting ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />}
+              Enviar código por email
+            </Button>
+          ) : (
+            <div className="mt-4 grid gap-3">
+              {info ? <p className="text-xs text-muted-foreground">{info}</p> : null}
+              <form onSubmit={handleConfirm} className="flex flex-wrap items-center gap-2">
+                <Input
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={code}
+                  onChange={(event) => {
+                    setCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+                    if (error) setError(null);
+                  }}
+                  placeholder="Código de 6 dígitos"
+                  className="h-9 w-44"
+                  aria-label="Código recebido por email"
+                />
+                <Button type="submit" size="sm" disabled={confirming || code.length !== 6}>
+                  {confirming ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Confirmar
+                </Button>
+                <Button type="button" size="sm" variant="ghost" disabled={requesting} onClick={handleRequest}>
+                  Reenviar
+                </Button>
+              </form>
+            </div>
+          )}
+
+          {error ? (
+            <p role="alert" className="mt-2 text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </section>
   );
 }

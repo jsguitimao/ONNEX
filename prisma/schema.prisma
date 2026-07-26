@@ -148,16 +148,26 @@ model StaffMember {
   isActive           Boolean   @default(true)
   autoAcceptBookings Boolean   @default(false)
   displayOrder       Int       @default(0)
+  // Código de segurança (scrypt "salt:hash") com que o PRIMEIRO profissional da
+  // equipa protege a sua lista de clientes na secção de agendamento. Só o primeiro
+  // profissional o usa; nos restantes fica sempre null. null = sem proteção.
+  clientListLockHash String?
+  // Recuperação por email do código acima (secção Conta): código de uso único
+  // (scrypt) enviado ao email do dono, com validade. Confirmar remove a proteção
+  // para o dono definir um novo código. null = sem pedido de recuperação ativo.
+  clientListLockResetCodeHash  String?
+  clientListLockResetExpiresAt DateTime?
   deletedAt          DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
   business       Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
   location       Location?            @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  services       StaffService[]
-  availabilities WeeklyAvailability[]
-  bookings       Booking[]
-  scheduleBlocks ScheduleBlock[]
+  services          StaffService[]
+  availabilities    WeeklyAvailability[]
+  bookings          Booking[]
+  scheduleBlocks    ScheduleBlock[]
+  assignedCustomers Customer[]           @relation("CustomerAssignedStaff")
 
   @@index([businessId])
   @@index([businessId, deletedAt])
@@ -230,23 +240,30 @@ model WeeklyAvailability {
 }
 
 model Customer {
-  id             String    @id @default(cuid())
-  businessId     String
-  fullName       String
-  email          String?
-  phone          String?
-  notes          String?
-  marketingOptIn Boolean   @default(false)
-  lastBookedAt   DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  businessId            String
+  fullName              String
+  email                 String?
+  phone                 String?
+  notes                 String?
+  marketingOptIn        Boolean   @default(false)
+  lastBookedAt          DateTime?
+  // Profissional atribuído à ficha quando ela é criada/editada à mão no CRM (o
+  // "Novo cliente" não passa por uma marcação). Coloca o cliente na lista desse
+  // barbeiro na secção Clientes. null = "Sem profissional". As marcações também
+  // ligam o cliente a barbeiros — a lista de um barbeiro é a união das duas vias.
+  assignedStaffMemberId String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  bookings Booking[]
+  business      Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  assignedStaff StaffMember? @relation("CustomerAssignedStaff", fields: [assignedStaffMemberId], references: [id], onDelete: SetNull)
+  bookings      Booking[]
 
   @@index([businessId])
   @@index([businessId, email])
   @@index([businessId, phone])
+  @@index([businessId, assignedStaffMemberId])
 }
 
 model Booking {

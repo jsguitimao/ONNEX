@@ -24,6 +24,7 @@ type CustomerFormState = {
   email: string;
   phone: string;
   notes: string;
+  assignedStaffMemberId: string;
 };
 
 const emptyCustomerForm: CustomerFormState = {
@@ -31,6 +32,7 @@ const emptyCustomerForm: CustomerFormState = {
   email: "",
   phone: "",
   notes: "",
+  assignedStaffMemberId: "",
 };
 
 export function ActionConfigPanel({
@@ -41,19 +43,28 @@ export function ActionConfigPanel({
   onCustomerCreated,
 }: Props) {
   if (action === "clientes") {
-    return <NewCustomerPanel onClose={onClose} onCustomerCreated={onCustomerCreated} />;
+    return (
+      <NewCustomerPanel staff={staff} onClose={onClose} onCustomerCreated={onCustomerCreated} />
+    );
   }
   return <ManualBookingForm staff={staff} services={services} onClose={onClose} />;
 }
 
 function NewCustomerPanel({
+  staff,
   onClose,
   onCustomerCreated,
 }: {
+  staff: CrmStaffRow[];
   onClose: () => void;
   onCustomerCreated: (customer: CrmCustomerRowDto) => void;
 }) {
-  const [form, setForm] = useState<CustomerFormState>(emptyCustomerForm);
+  // Arranca no 1.º barbeiro para a ficha ir direto à lista dele; podes trocar
+  // para outro profissional ou "Sem profissional".
+  const [form, setForm] = useState<CustomerFormState>(() => ({
+    ...emptyCustomerForm,
+    assignedStaffMemberId: staff[0]?.id ?? "",
+  }));
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof CustomerFormState, string>>>({});
   const [pending, startTransition] = useTransition();
@@ -78,7 +89,7 @@ function NewCustomerPanel({
       const result = await createCustomerAction(form);
       if (result.ok) {
         onCustomerCreated(result.customer);
-        setForm(emptyCustomerForm);
+        setForm({ ...emptyCustomerForm, assignedStaffMemberId: staff[0]?.id ?? "" });
         return;
       }
       setError(result.error);
@@ -143,6 +154,23 @@ function NewCustomerPanel({
             inputMode="email"
             maxLength={120}
           />
+        </FormField>
+        <FormField label="Profissional" className="md:col-span-2">
+          <select
+            value={form.assignedStaffMemberId}
+            onChange={(event) => update("assignedStaffMemberId", event.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          >
+            <option value="">Sem profissional</option>
+            {staff.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.fullName}
+              </option>
+            ))}
+          </select>
+          <span className="text-[11px] font-normal text-muted-foreground">
+            A ficha entra na lista deste profissional na secção Clientes.
+          </span>
         </FormField>
         <FormField label="Notas" error={fieldErrors.notes} className="md:col-span-2">
           <textarea

@@ -22,6 +22,7 @@ export type CrmServiceOption = {
 import { AccountPanel, type CrmSubscriptionInfo } from "./crm-account-panel";
 import { ActionConfigPanel } from "./crm-action-panel";
 import { AppointmentPanel } from "./crm-appointment-panel";
+import type { ClientListUnlockPayload } from "./crm-client-list-lock";
 import { CustomersPanel } from "./crm-customers-panel";
 import { sections } from "./crm-data";
 import { FinancePanel } from "./crm-finance-panel";
@@ -35,6 +36,7 @@ type Props = {
   pendingBookings: CrmPendingBookingDto[];
   weeklyBookings: CrmBookingRowDto[];
   dailyBookings: CrmBookingRowDto[];
+  clientListLock: { firstStaffId: string | null; enabled: boolean };
   businessTimezone: string;
   availabilityByStaff: Record<string, CrmDayAvailability[]>;
   scheduleBlocks: CrmScheduleBlockRowDto[];
@@ -52,6 +54,7 @@ export function CrmWorkspace({
   pendingBookings,
   weeklyBookings,
   dailyBookings,
+  clientListLock,
   businessTimezone,
   availabilityByStaff,
   scheduleBlocks,
@@ -67,9 +70,28 @@ export function CrmWorkspace({
   const [pendingBookingsList, setPendingBookingsList] = useState(pendingBookings);
   const [availabilityState, setAvailabilityState] = useState(availabilityByStaff);
   const [scheduleBlocksList, setScheduleBlocksList] = useState(scheduleBlocks);
+  // Cadeado da lista de clientes do primeiro profissional. `enabled` reflete o
+  // estado guardado; `unlocked` é por sessão. As marcações do primeiro profissional
+  // só chegam ao browser após desbloqueio (vêm em `unlockedFirstStaff*`).
+  const [clientListLockEnabled, setClientListLockEnabled] = useState(clientListLock.enabled);
+  const [clientListUnlocked, setClientListUnlocked] = useState(false);
+  const [unlockedFirstStaffWeekly, setUnlockedFirstStaffWeekly] = useState<CrmBookingRowDto[]>([]);
+  const [unlockedFirstStaffDaily, setUnlockedFirstStaffDaily] = useState<CrmBookingRowDto[]>([]);
   const activeSection = sections.find((section) => section.id === active) ?? sections[0];
   const Icon = activeSection.icon;
   const showActionButton = active === "clientes" || active === "agendamentos";
+
+  // As marcações do primeiro profissional só existem no cliente depois do
+  // desbloqueio (buffers `unlockedFirstStaff*`). Voltamos a juntá-las às listas
+  // base (que vieram sem elas quando o cadeado está ativo).
+  const effectiveWeeklyBookings = unlockedFirstStaffWeekly.length
+    ? [...weeklyBookings, ...unlockedFirstStaffWeekly]
+    : weeklyBookings;
+  const effectiveDailyBookings = unlockedFirstStaffDaily.length
+    ? [...dailyBookings, ...unlockedFirstStaffDaily].sort((a, b) =>
+        a.startsAt.localeCompare(b.startsAt),
+      )
+    : dailyBookings;
 
   function handleCustomerCreated(customer: CrmCustomerRowDto) {
     setCustomerList((current) => [customer, ...current.filter((row) => row.id !== customer.id)]);
@@ -97,6 +119,45 @@ export function CrmWorkspace({
       if (current.some((row) => row.id === booking.id)) return current;
       return [...current, booking].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
     });
+  }
+
+  function handleClientListUnlocked(payload: ClientListUnlockPayload) {
+    setClientListUnlocked(true);
+    setUnlockedFirstStaffWeekly(payload.weeklyBookings);
+    setUnlockedFirstStaffDaily(payload.dailyBookings);
+    setPendingBookingsList((current) => {
+      const existing = new Set(current.map((row) => row.id));
+      const merged = [
+        ...current,
+        ...payload.pendingBookings.filter((row) => !existing.has(row.id)),
+      ];
+      return merged.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    });
+    // Repõe os clientes do 1.º barbeiro que tinham sido escondidos do payload
+    // (upsert por id: substitui os já presentes, adiciona os exclusivos ocultos).
+    setCustomerList((current) => {
+      const byId = new Map(current.map((row) => [row.id, row]));
+      for (const customer of payload.customers) {
+        byId.set(customer.id, customer);
+      }
+      return [...byId.values()].sort((a, b) => {
+        const aTime = a.lastBookedAt ?? a.createdAt;
+        const bTime = b.lastBookedAt ?? b.createdAt;
+        return bTime.localeCompare(aTime);
+      });
+    });
+  }
+
+  function handleClientListEnabledChange(next: { enabled: boolean; unlocked: boolean }) {
+    setClientListLockEnabled(next.enabled);
+    setClientListUnlocked(next.unlocked);
+  }
+
+  // Recuperação por email (secção Conta) removeu a proteção. O AccountPanel recarrega
+  // a página a seguir — aqui só refletimos o estado para o intervalo antes disso.
+  function handleClientListLockReset() {
+    setClientListLockEnabled(false);
+    setClientListUnlocked(false);
   }
 
   function handleScheduleBlockCreated(block: CrmScheduleBlockRowDto) {
@@ -228,30 +289,56 @@ export function CrmWorkspace({
             <CustomersPanel
               customers={customerList}
               kpis={customerKpis}
+              staff={staffList}
+              clientListLock={{
+                firstStaffId: clientListLock.firstStaffId,
+                enabled: clientListLockEnabled,
+                unlocked: clientListUnlocked,
+              }}
               onCustomerDeleted={handleCustomerDeleted}
               onCustomerUpdated={handleCustomerUpdated}
+              onClientListUnlocked={handleClientListUnlocked}
+              onClientListEnabledChange={handleClientListEnabledChange}
             />
           ) : active === "agendamentos" ? (
             <AppointmentPanel
               staff={staffList}
               businessAutoAccept={businessAutoAccept}
               pendingBookings={pendingBookingsList}
-              weeklyBookings={weeklyBookings}
-              dailyBookings={dailyBookings}
+              weeklyBookings={effectiveWeeklyBookings}
+              dailyBookings={effectiveDailyBookings}
               businessTimezone={businessTimezone}
               availabilityByStaff={availabilityState}
               scheduleBlocks={scheduleBlocksList}
+              clientListLock={{
+                firstStaffId: clientListLock.firstStaffId,
+                enabled: clientListLockEnabled,
+                unlocked: clientListUnlocked,
+              }}
               onStaffUpdated={handleStaffUpdated}
               onPendingBookingResolved={handlePendingBookingResolved}
               onPendingBookingRestored={handlePendingBookingRestored}
               onStaffDayAvailabilityUpdated={handleStaffDayAvailabilityUpdated}
               onScheduleBlockCreated={handleScheduleBlockCreated}
               onScheduleBlockDeleted={handleScheduleBlockDeleted}
+              onClientListUnlocked={handleClientListUnlocked}
+              onClientListEnabledChange={handleClientListEnabledChange}
             />
           ) : active === "conta" ? (
-            <AccountPanel subscription={subscription} />
+            <AccountPanel
+              subscription={subscription}
+              clientListLockEnabled={clientListLockEnabled}
+              onClientListLockReset={handleClientListLockReset}
+            />
           ) : (
-            <FinancePanel staff={staffList} initialSummary={initialFinancialSummary} />
+            <FinancePanel
+              staff={staffList}
+              initialSummary={initialFinancialSummary}
+              clientListLock={{
+                firstStaffId: clientListLock.firstStaffId,
+                enabled: clientListLockEnabled,
+              }}
+            />
           )}
         </section>
       </div>

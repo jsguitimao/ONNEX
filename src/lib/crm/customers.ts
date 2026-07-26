@@ -15,6 +15,11 @@ export type CrmCustomerRow = {
   lastBookedAt: Date | null;
   createdAt: Date;
   bookingCount: number;
+  // Barbeiros (StaffMember) associados ao cliente: união das marcações com o
+  // profissional atribuído à mão. Vazio = cliente sem barbeiro ("Sem profissional").
+  staffMemberIds: string[];
+  // Profissional atribuído à mão à ficha (independente das marcações). null = nenhum.
+  assignedStaffMemberId: string | null;
 };
 
 export type CrmCustomerKpis = {
@@ -53,6 +58,11 @@ export async function listCustomers(
     },
   });
 
+  const staffLinks = await getCustomerStaffLinks(
+    businessId,
+    customers.map((customer) => customer.id),
+  );
+
   return customers.map((customer) => ({
     id: customer.id,
     fullName: customer.fullName,
@@ -62,7 +72,53 @@ export async function listCustomers(
     lastBookedAt: customer.lastBookedAt,
     createdAt: customer.createdAt,
     bookingCount: customer._count.bookings,
+    staffMemberIds: mergeStaffIds(staffLinks.get(customer.id), customer.assignedStaffMemberId),
+    assignedStaffMemberId: customer.assignedStaffMemberId,
   }));
+}
+
+/**
+ * Barbeiros de um cliente = união dos das marcações com o profissional atribuído
+ * à mão (se houver). Sem duplicados.
+ */
+function mergeStaffIds(fromBookings: string[] | undefined, assigned: string | null): string[] {
+  const set = new Set(fromBookings ?? []);
+  if (assigned) set.add(assigned);
+  return [...set];
+}
+
+/**
+ * Barbeiros com quem cada cliente já marcou. Ligação cliente→barbeiro derivada
+ * das marcações (os clientes não têm barbeiro fixo no schema).
+ */
+async function getCustomerStaffLinks(
+  businessId: string,
+  customerIds: string[],
+): Promise<Map<string, string[]>> {
+  if (customerIds.length === 0) return new Map();
+
+  const grouped = await db.booking.groupBy({
+    by: ["customerId", "staffMemberId"],
+    where: {
+      businessId,
+      customerId: { in: customerIds },
+      staffMemberId: { not: null },
+    },
+  });
+
+  const sets = new Map<string, Set<string>>();
+  for (const row of grouped) {
+    if (!row.customerId || !row.staffMemberId) continue;
+    const set = sets.get(row.customerId) ?? new Set<string>();
+    set.add(row.staffMemberId);
+    sets.set(row.customerId, set);
+  }
+
+  const result = new Map<string, string[]>();
+  for (const [customerId, set] of sets) {
+    result.set(customerId, [...set]);
+  }
+  return result;
 }
 
 export async function computeCustomerKpis(businessId: string): Promise<CrmCustomerKpis> {
@@ -101,6 +157,24 @@ async function countRecurringCustomers(businessId: string) {
   return grouped.filter((row) => row._count._all >= RECURRING_BOOKINGS_THRESHOLD).length;
 }
 
+/**
+ * Valida o profissional atribuído: só aceita um barbeiro ativo do próprio negócio.
+ * "" / inválido → null (sem profissional). Evita atribuir a um id de outra
+ * barbearia ou inexistente.
+ */
+async function resolveAssignedStaffId(
+  businessId: string,
+  raw: string | null | undefined,
+): Promise<string | null> {
+  const id = typeof raw === "string" ? raw.trim() : "";
+  if (!id) return null;
+  const staff = await db.staffMember.findFirst({
+    where: { id, businessId, isActive: true, deletedAt: null },
+    select: { id: true },
+  });
+  return staff?.id ?? null;
+}
+
 export async function createCustomer(
   businessId: string,
   input: CreateCustomerInput,
@@ -133,6 +207,8 @@ export async function createCustomer(
     }
   }
 
+  const assignedStaffMemberId = await resolveAssignedStaffId(businessId, input.assignedStaffMemberId);
+
   const created = await db.customer.create({
     data: {
       businessId,
@@ -140,6 +216,7 @@ export async function createCustomer(
       email,
       phone,
       notes,
+      assignedStaffMemberId,
     },
     include: { _count: { select: { bookings: true } } },
   });
@@ -153,6 +230,9 @@ export async function createCustomer(
     lastBookedAt: created.lastBookedAt,
     createdAt: created.createdAt,
     bookingCount: created._count.bookings,
+    // Sem marcações ainda: a lista dele vem do profissional atribuído (se houver).
+    staffMemberIds: assignedStaffMemberId ? [assignedStaffMemberId] : [],
+    assignedStaffMemberId,
   };
 }
 
@@ -198,11 +278,17 @@ export async function updateCustomer(
     }
   }
 
+  const assignedStaffMemberId = await resolveAssignedStaffId(businessId, input.assignedStaffMemberId);
+
   const updated = await db.customer.update({
     where: { id: existing.id },
-    data: { fullName, email, phone, notes },
+    data: { fullName, email, phone, notes, assignedStaffMemberId },
     include: { _count: { select: { bookings: true } } },
   });
+
+  // A edição não mexe nas marcações; juntamos o profissional atribuído aos
+  // barbeiros das marcações para a linha aparecer na secção certa.
+  const staffLinks = await getCustomerStaffLinks(businessId, [updated.id]);
 
   return {
     id: updated.id,
@@ -213,6 +299,8 @@ export async function updateCustomer(
     lastBookedAt: updated.lastBookedAt,
     createdAt: updated.createdAt,
     bookingCount: updated._count.bookings,
+    staffMemberIds: mergeStaffIds(staffLinks.get(updated.id), assignedStaffMemberId),
+    assignedStaffMemberId,
   };
 }
 
@@ -242,6 +330,8 @@ export function toCrmCustomerRowDto(row: CrmCustomerRow) {
     lastBookedAt: row.lastBookedAt ? row.lastBookedAt.toISOString() : null,
     createdAt: row.createdAt.toISOString(),
     bookingCount: row.bookingCount,
+    staffMemberIds: row.staffMemberIds,
+    assignedStaffMemberId: row.assignedStaffMemberId,
   };
 }
 

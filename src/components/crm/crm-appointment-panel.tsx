@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Clock3, Loader2, X } from "lucide-react";
+import { CheckCircle2, Clock3, Loader2, Lock, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,10 @@ import type { CrmDayAvailability } from "@/lib/crm/availability";
 import type { CrmScheduleBlockRowDto } from "@/lib/crm/schedule-blocks";
 import type { CrmStaffRow } from "@/lib/crm/staff";
 import { BookingsTable } from "./crm-bookings-table";
+import {
+  ClientListLockCard,
+  type ClientListUnlockPayload,
+} from "./crm-client-list-lock";
 import type { AcceptanceMode } from "./crm-types";
 import { TimeOffPanel } from "./crm-time-off-panel";
 import { WeeklySchedulePanel } from "./crm-weekly-schedule-panel";
@@ -27,12 +31,15 @@ type Props = {
   businessTimezone: string;
   availabilityByStaff: Record<string, CrmDayAvailability[]>;
   scheduleBlocks: CrmScheduleBlockRowDto[];
+  clientListLock: { firstStaffId: string | null; enabled: boolean; unlocked: boolean };
   onStaffUpdated: (updated: CrmStaffRow) => void;
   onPendingBookingResolved: (bookingId: string) => void;
   onPendingBookingRestored: (booking: CrmPendingBookingDto) => void;
   onStaffDayAvailabilityUpdated: (staffId: string, day: CrmDayAvailability) => void;
   onScheduleBlockCreated: (block: CrmScheduleBlockRowDto) => void;
   onScheduleBlockDeleted: (blockId: string) => void;
+  onClientListUnlocked: (payload: ClientListUnlockPayload) => void;
+  onClientListEnabledChange: (next: { enabled: boolean; unlocked: boolean }) => void;
 };
 
 const dateTimeFormatter = new Intl.DateTimeFormat("pt-PT", {
@@ -63,12 +70,15 @@ function AppointmentPanelContent({
   businessTimezone,
   availabilityByStaff,
   scheduleBlocks,
+  clientListLock,
   onStaffUpdated,
   onPendingBookingResolved,
   onPendingBookingRestored,
   onStaffDayAvailabilityUpdated,
   onScheduleBlockCreated,
   onScheduleBlockDeleted,
+  onClientListUnlocked,
+  onClientListEnabledChange,
 }: Props) {
   const [selectedViewerId, setSelectedViewerId] = useState<string | null>(null);
   const [acceptanceError, setAcceptanceError] = useState<string | null>(null);
@@ -78,6 +88,20 @@ function AppointmentPanelContent({
   const viewer = staff.find((member) => member.id === selectedViewerId) ?? staff[0];
   const currentMode: AcceptanceMode = viewer.autoAcceptBookings ? "automatico" : "manual";
   const isSavingThis = savingStaffId === viewer.id && isStaffPending;
+
+  // Cadeado da lista de clientes: só se aplica ao primeiro profissional da equipa.
+  const isFirstStaffViewer =
+    clientListLock.firstStaffId != null && viewer.id === clientListLock.firstStaffId;
+  // Enquanto por desbloquear, a lista de clientes do primeiro profissional fica
+  // escondida (as marcações dele nem foram enviadas pelo servidor).
+  const clientListHidden = isFirstStaffViewer && clientListLock.enabled && !clientListLock.unlocked;
+  // A "Vista geral do dia" mostra todos os profissionais. Enquanto a lista do
+  // primeiro profissional estiver por desbloquear, as marcações dele não vêm do
+  // servidor — avisamos para não parecer que faltam marcações.
+  const dailyOverviewHasHiddenRows =
+    clientListLock.firstStaffId != null && clientListLock.enabled && !clientListLock.unlocked;
+  const lockedStaffName =
+    staff.find((member) => member.id === clientListLock.firstStaffId)?.fullName ?? "outro profissional";
 
   const viewerPendingBookings = pendingBookings.filter(
     (booking) => booking.staffMemberId === viewer.id,
@@ -175,24 +199,52 @@ function AppointmentPanelContent({
                 {acceptanceError}
               </p>
             ) : null}
-            <PendingBookingsPanel
-              bookings={viewerPendingBookings}
-              viewerName={viewer.fullName}
-              onResolved={onPendingBookingResolved}
-              onRestored={onPendingBookingRestored}
-            />
+            {clientListHidden ? (
+              <div className="mt-4 flex items-center gap-2 rounded-lg border border-dashed border-border bg-card p-3 text-xs text-muted-foreground">
+                <Lock className="size-4 shrink-0" />
+                Pedidos pendentes protegidos. Introduz o código de segurança para os ver.
+              </div>
+            ) : (
+              <PendingBookingsPanel
+                bookings={viewerPendingBookings}
+                viewerName={viewer.fullName}
+                onResolved={onPendingBookingResolved}
+                onRestored={onPendingBookingRestored}
+              />
+            )}
           </div>
 
           <div className="rounded-lg border border-border bg-background p-3">
             <p className="text-xs text-muted-foreground">Resumo de {viewer.fullName}</p>
-            <p className="mt-1 text-2xl font-semibold">{viewerPendingBookings.length}</p>
-            <p className="text-xs text-muted-foreground">
-              {viewerPendingBookings.length === 1 ? "pedido pendente" : "pedidos pendentes"}
-            </p>
-            <p className="mt-3 text-xs text-muted-foreground">{viewerWeeklyBookings.length} marcações esta semana</p>
+            {clientListHidden ? (
+              <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                <Lock className="size-4 shrink-0" />
+                <span>Protegido</span>
+              </div>
+            ) : (
+              <>
+                <p className="mt-1 text-2xl font-semibold">{viewerPendingBookings.length}</p>
+                <p className="text-xs text-muted-foreground">
+                  {viewerPendingBookings.length === 1 ? "pedido pendente" : "pedidos pendentes"}
+                </p>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {viewerWeeklyBookings.length} marcações esta semana
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      {isFirstStaffViewer ? (
+        <ClientListLockCard
+          staffName={viewer.fullName}
+          enabled={clientListLock.enabled}
+          unlocked={clientListLock.unlocked}
+          onUnlocked={onClientListUnlocked}
+          onEnabledChange={onClientListEnabledChange}
+        />
+      ) : null}
 
       <WeeklySchedulePanel
         viewerId={viewer.id}
@@ -210,19 +262,44 @@ function AppointmentPanelContent({
         onDeleted={onScheduleBlockDeleted}
       />
 
-      <BookingsTable
-        title={`Lista semanal de ${viewer.fullName}`}
-        bookings={viewerWeeklyBookings}
-        timezone={businessTimezone}
-        showStaffColumn={false}
-        emptyMessage={`Sem marcações esta semana para ${viewer.fullName}.`}
-      />
-      <BookingsTable
-        title="Vista geral do dia"
-        bookings={dailyBookings}
-        timezone={businessTimezone}
-        emptyMessage="Sem marcações para hoje."
-      />
+      {clientListHidden ? (
+        <div className="rounded-lg border border-border bg-card">
+          <div className="border-b border-border px-4 py-3">
+            <h3 className="text-sm font-semibold">Lista semanal de {viewer.fullName}</h3>
+          </div>
+          <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+            <Lock className="size-6 text-muted-foreground" />
+            <p className="text-sm font-medium">Lista de clientes protegida</p>
+            <p className="max-w-sm text-xs text-muted-foreground">
+              As marcações e os dados dos clientes de {viewer.fullName} só aparecem depois de
+              introduzir o código de segurança no cartão de proteção desta secção.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <BookingsTable
+          title={`Lista semanal de ${viewer.fullName}`}
+          bookings={viewerWeeklyBookings}
+          timezone={businessTimezone}
+          showStaffColumn={false}
+          emptyMessage={`Sem marcações esta semana para ${viewer.fullName}.`}
+        />
+      )}
+      <div>
+        {dailyOverviewHasHiddenRows ? (
+          <p className="mb-2 flex items-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+            <Lock className="size-3.5 shrink-0" />
+            As marcações de {lockedStaffName} estão protegidas e não aparecem aqui até
+            introduzires o código na secção dele.
+          </p>
+        ) : null}
+        <BookingsTable
+          title="Vista geral do dia"
+          bookings={dailyBookings}
+          timezone={businessTimezone}
+          emptyMessage="Sem marcações para hoje."
+        />
+      </div>
     </div>
   );
 }

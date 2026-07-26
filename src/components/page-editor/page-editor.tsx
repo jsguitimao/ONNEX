@@ -16,6 +16,7 @@ import { SectionAppearance } from "@/components/page-editor/section-appearance";
 import { SectionOperations } from "@/components/page-editor/section-operations";
 import { SectionSeo } from "@/components/page-editor/section-seo";
 import { DraftPreviewFrame } from "@/components/page-editor/draft-preview-frame";
+import { QrShare } from "@/components/page-editor/qr-share";
 import type { EditorDraft } from "@/lib/page-editor/draft";
 
 type Props = {
@@ -115,6 +116,7 @@ export function PageEditor({ initialDraft, embedded = false }: Props) {
               <ExternalLink className="size-3.5" />
               Ver página
             </Button>
+            <QrShare slug={draft.slug} businessName={draft.name} />
             <Button
               type="button"
               size="sm"

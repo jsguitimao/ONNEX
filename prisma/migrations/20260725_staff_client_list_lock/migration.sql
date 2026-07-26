@@ -1,0 +1,15 @@
+-- Adiciona a coluna "clientListLockHash" a StaffMember.
+--
+-- Guarda o código de segurança (formato scrypt "salt:hashHex") com que o PRIMEIRO
+-- profissional da equipa protege a sua lista de clientes na secção de agendamento
+-- do CRM. Só o primeiro profissional o usa; nos restantes permanece NULL.
+-- NULL = lista sem proteção.
+--
+-- Operação ADITIVA e cirúrgica: apenas ADD COLUMN. Não toca em tabelas existentes
+-- nem em índices — em particular NÃO mexe nos índices parciais geridos à mão
+-- (Booking_reminder_scan_idx, NotificationLog_delivery_dedupe_active_key).
+--
+-- `IF NOT EXISTS` torna a operação idempotente (aplicável à mão via
+-- `prisma db execute` nas branches Neon dev e prod, tal como as migrações aditivas
+-- anteriores do projeto).
+ALTER TABLE "StaffMember" ADD COLUMN IF NOT EXISTS "clientListLockHash" TEXT;
