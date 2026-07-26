@@ -6,6 +6,7 @@ import {
   Download,
   KeyRound,
   Loader2,
+  Lock,
   LogOut,
   Mail,
   Trash2,
@@ -46,16 +47,20 @@ export function AccountPanel({ subscription, clientListLockEnabled, onClientList
   const { signOut } = useClerk();
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
+  const [exportCodeOpen, setExportCodeOpen] = useState(false);
+  const [exportCode, setExportCode] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
-  async function handleExport() {
+  async function handleExport(code?: string) {
     setExporting(true);
     setExportError("");
     try {
-      const response = await fetch("/api/account/export");
+      const response = await fetch("/api/account/export", {
+        headers: code ? { "x-onnex-code": code } : undefined,
+      });
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
         setExportError(body?.error ?? "Não foi possível exportar os dados.");
@@ -70,6 +75,8 @@ export function AccountPanel({ subscription, clientListLockEnabled, onClientList
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+      setExportCodeOpen(false);
+      setExportCode("");
     } catch {
       setExportError("Não foi possível exportar os dados. Tenta novamente.");
     } finally {
@@ -181,11 +188,63 @@ export function AccountPanel({ subscription, clientListLockEnabled, onClientList
               Descarrega uma cópia de todos os dados da tua conta em formato JSON (RGPD).
             </p>
           </div>
-          <div className="flex flex-col items-start gap-1 lg:items-end">
-            <Button type="button" variant="outline" onClick={handleExport} disabled={exporting}>
-              {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-              {exporting ? "A exportar…" : "Exportar dados"}
-            </Button>
+          <div className="flex flex-col items-start gap-2 lg:items-end">
+            {clientListLockEnabled && exportCodeOpen ? (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!exporting && exportCode.length >= 4) handleExport(exportCode);
+                }}
+                className="flex flex-wrap items-center gap-2"
+              >
+                <Input
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={exportCode}
+                  onChange={(event) => {
+                    setExportCode(event.target.value.replace(/\D/g, "").slice(0, 8));
+                    if (exportError) setExportError("");
+                  }}
+                  placeholder="Código"
+                  className="h-9 w-32"
+                  aria-label="Código de segurança"
+                />
+                <Button type="submit" variant="outline" disabled={exporting || exportCode.length < 4}>
+                  {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                  {exporting ? "A exportar…" : "Confirmar"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={exporting}
+                  onClick={() => {
+                    setExportCodeOpen(false);
+                    setExportCode("");
+                    setExportError("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </form>
+            ) : clientListLockEnabled ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setExportError("");
+                  setExportCodeOpen(true);
+                }}
+              >
+                <Lock className="size-4" />
+                Exportar dados
+              </Button>
+            ) : (
+              <Button type="button" variant="outline" onClick={() => handleExport()} disabled={exporting}>
+                {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                {exporting ? "A exportar…" : "Exportar dados"}
+              </Button>
+            )}
             {exportError ? (
               <p role="alert" className="text-sm text-destructive">
                 {exportError}
