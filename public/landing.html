@@ -485,6 +485,128 @@ body::before {
   font-size: 12px;
 }
 
+/* ============ FINDER — consumidor procura barbearia perto de si ============ */
+.hero-finder {
+  max-width: 520px;
+  margin: 0 auto 40px;
+  width: 100%;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.6s forwards;
+}
+
+.hero-finder-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.finder-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.finder-input {
+  flex: 1;
+  min-width: 200px;
+  height: 48px;
+  padding: 0 16px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.finder-input::placeholder { color: var(--text-muted); }
+.finder-input:focus { border-color: var(--text-primary); }
+
+.finder-form .btn { height: 48px; }
+
+.finder-results {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.finder-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.finder-card:hover {
+  border-color: var(--accent-border-hover);
+  transform: translateY(-1px);
+}
+
+/* Barbearia ONNEX: destacada com fundo/borda mais fortes. */
+.finder-card--onnex {
+  border-color: var(--text-primary);
+}
+
+.finder-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.finder-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.finder-card-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.finder-badge {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.finder-badge--onnex {
+  background: var(--gradient-cta);
+  color: var(--text-inverse);
+}
+
+.finder-badge--external {
+  background: var(--bg-surface);
+  color: var(--text-muted);
+}
+
+.finder-attribution {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: left;
+}
+
+.finder-msg {
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: 4px 2px;
+}
+
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
@@ -2139,6 +2261,22 @@ footer {
       <a href="/sign-up" class="btn btn-filled btn-lg">Começar grátis →</a>
     </div>
 
+    <div class="hero-finder">
+      <p class="hero-finder-label">És cliente? Encontra uma barbearia perto de ti</p>
+      <form class="finder-form" id="finderForm">
+        <input
+          type="text"
+          class="finder-input"
+          id="finderInput"
+          placeholder="A tua cidade ou morada (ex.: Lisboa)"
+          autocomplete="off"
+          aria-label="A tua cidade ou morada"
+        >
+        <button type="submit" class="btn btn-filled">Procurar</button>
+      </form>
+      <div class="finder-results" id="finderResults" aria-live="polite"></div>
+    </div>
+
     <div class="hero-proof">
       <span class="stars">★★★★★</span>
       <span>Usado por +200 barbearias em Portugal</span>
@@ -2888,6 +3026,7 @@ footer {
           <li><a href="#features">Funcionalidades</a></li>
           <li><a href="#how">Como Funciona</a></li>
           <li><a href="#pricing">Preços</a></li>
+          <li><a href="/barbearias">Encontrar barbearias</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -3104,6 +3243,124 @@ document.querySelectorAll('.faq-q').forEach(q => {
     q.parentElement.classList.toggle('open');
   });
 });
+</script>
+
+<script>
+/* Finder do consumidor: procura barbearias perto da localizacao escrita.
+   Pesquisa ao vivo enquanto se escreve (debounce), a partir de 3 letras. */
+(function () {
+  var form = document.getElementById('finderForm');
+  var input = document.getElementById('finderInput');
+  var out = document.getElementById('finderResults');
+  if (!form || !input || !out) return;
+
+  var MIN_CHARS = 3;
+  var DEBOUNCE_MS = 600;
+  var debounceTimer = null;
+  var requestToken = 0; // ignora respostas de pesquisas ja ultrapassadas
+  var lastQuery = '';
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function message(text) {
+    out.innerHTML = '<p class="finder-msg">' + escapeHtml(text) + '</p>';
+  }
+
+  function render(data) {
+    if (data.notFound) {
+      message('Não encontrámos essa localização. Tenta escrever só a cidade.');
+      return;
+    }
+    if (!data.results || data.results.length === 0) {
+      message('Ainda não há barbearias registadas perto daí. Volta em breve!');
+      return;
+    }
+
+    var hasExternal = false;
+    out.innerHTML = data.results.map(function (business) {
+      var km = business.distanceKm != null
+        ? String(business.distanceKm).replace('.', ',') + ' km'
+        : '';
+      var city = business.city ? ' · ' + escapeHtml(business.city) : '';
+      var meta = '<span class="finder-card-meta">' + km + city + '</span>';
+      var name = '<span class="finder-card-name">' + escapeHtml(business.name) + '</span>';
+      var main = '<span class="finder-card-main">' + name + meta + '</span>';
+
+      if (business.source === 'onnex') {
+        return '<a class="finder-card finder-card--onnex" href="/' + encodeURIComponent(business.slug) + '">' +
+          main +
+          '<span class="finder-badge finder-badge--onnex">Marcar →</span>' +
+        '</a>';
+      }
+
+      hasExternal = true;
+      return '<a class="finder-card finder-card--external" href="' + escapeHtml(business.mapsUrl) + '" target="_blank" rel="noopener noreferrer">' +
+        main +
+        '<span class="finder-badge finder-badge--external">No Google</span>' +
+      '</a>';
+    }).join('');
+
+    if (hasExternal) {
+      out.innerHTML += '<p class="finder-attribution">Barbearias “No Google” via OpenStreetMap. Ainda não reservam pelo ONNEX.</p>';
+    }
+  }
+
+  async function runSearch(query) {
+    if (!query) return;
+    var token = ++requestToken;
+    message('A procurar…');
+
+    try {
+      var response = await fetch('/api/barbershops/nearby?q=' + encodeURIComponent(query));
+      if (token !== requestToken) return; // chegou uma pesquisa mais recente
+      var data = await response.json();
+      if (token !== requestToken) return;
+
+      if (!response.ok) {
+        message(data && data.error ? data.error : 'Não foi possível procurar agora. Tenta novamente.');
+        return;
+      }
+      render(data);
+    } catch (error) {
+      if (token === requestToken) {
+        message('Não foi possível procurar agora. Tenta novamente.');
+      }
+    }
+  }
+
+  // Pesquisa ao vivo: dispara sozinha pouco depois de parares de escrever.
+  input.addEventListener('input', function () {
+    var query = input.value.trim();
+    if (debounceTimer) clearTimeout(debounceTimer);
+
+    if (query.length < MIN_CHARS) {
+      requestToken++; // cancela qualquer pesquisa em curso
+      lastQuery = '';
+      out.innerHTML = '';
+      return;
+    }
+    if (query === lastQuery) return; // nada mudou de relevante
+
+    debounceTimer = setTimeout(function () {
+      lastQuery = query;
+      runSearch(query);
+    }, DEBOUNCE_MS);
+  });
+
+  // Botao/Enter: pesquisa já, sem esperar pelo debounce.
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    if (debounceTimer) clearTimeout(debounceTimer);
+    var query = input.value.trim();
+    if (!query) return;
+    lastQuery = query;
+    runSearch(query);
+  });
+})();
 </script>
 
 </body>

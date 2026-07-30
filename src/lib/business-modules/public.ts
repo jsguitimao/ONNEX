@@ -21,6 +21,7 @@ import {
   zonedTimeToUtc,
 } from "@/lib/timezone";
 import { upsertBookingCustomer } from "./customers";
+import { deriveBusinessAddress } from "./derive-address";
 import { getBusinessBySlug } from "./core";
 import type { BookingSlot, PublicBookingDetails, PublicBusinessPayload } from "./types";
 
@@ -284,27 +285,44 @@ export async function listPublicBusinessSlugs(): Promise<{ slug: string; updated
     .map(({ slug, updatedAt }) => ({ slug, updatedAt }));
 }
 
+// Diretório público /barbearias: nome + cidade das barbearias listáveis (mesma
+// regra do sitemap — ACTIVE com acesso ativo). Renderizado no servidor, por
+// isso é conteúdo indexável pelo Google (ajuda o SEO), ao contrário da pesquisa
+// da landing que corre por JavaScript.
+export async function listPublicBarbershops(): Promise<
+  { slug: string; name: string; city: string | null }[]
+> {
+  const businesses = await db.business.findMany({
+    where: { status: "ACTIVE" },
+    orderBy: { name: "asc" },
+    select: {
+      slug: true,
+      name: true,
+      locations: { where: { isDefault: true }, take: 1, select: { city: true } },
+      subscription: { select: { status: true, providerCustomerId: true, currentPeriodEnd: true } },
+    },
+  });
+
+  return businesses
+    .filter((business) => hasActiveAccess(business.subscription))
+    .map((business) => ({
+      slug: business.slug,
+      name: business.name,
+      city: business.locations[0]?.city ?? null,
+    }));
+}
+
 export async function getPublicBusinessPayload(slug: string): Promise<PublicBusinessPayload | null> {
   const business = await getBusinessBySlug(slug);
   if (!business) return null;
   const policy = getBookingPolicySettings(business);
 
   const primaryLocation = business.locations[0];
-  const derivedLocationAddress = primaryLocation
-    ? [
-        primaryLocation.addressLine1,
-        primaryLocation.addressLine2,
-        [primaryLocation.postalCode, primaryLocation.city].filter(Boolean).join(" "),
-        primaryLocation.countryCode,
-      ]
-        .filter((part): part is string => Boolean(part?.trim()))
-        .join(", ") || null
-    : null;
   // A secção "Onde estamos" mostra o campo de texto livre que o dono escreve no
   // editor (bookingPage.mapsAddress). O editor prioriza-o (page-editor/load.ts);
   // a página pública TEM de fazer o mesmo, senão ignora a morada escrita e mostra
   // só a cidade derivada do registo estruturado de localização.
-  const mapsAddress = business.bookingPage?.mapsAddress?.trim() || derivedLocationAddress;
+  const mapsAddress = deriveBusinessAddress(business);
 
   return {
     id: business.id,
