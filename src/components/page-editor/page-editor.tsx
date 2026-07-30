@@ -85,14 +85,14 @@ export function PageEditor({ initialDraft, embedded = false }: Props) {
             : "sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur"
         }
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-3">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3">
           <div>
             <h1 className="text-sm font-semibold">Página pública</h1>
             <p className="text-xs text-muted-foreground">
               Edita à esquerda · vê em tempo real à direita
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
             {save.status === "error" ? (
               <p role="alert" className="text-xs text-destructive">
                 {save.message}
