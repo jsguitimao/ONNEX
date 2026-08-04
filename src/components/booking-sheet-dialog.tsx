@@ -52,6 +52,10 @@ export function BookingSheetDialog({
   const [slot, setSlot] = useState<string>("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  // Indicativo do país (DDI) escolhido no seletor + número local digitado.
+  // Guardamos separados e compomos o E.164 (`dialCode + número`) só na hora de
+  // enviar/procurar, para o WhatsApp chegar tanto a Portugal como ao Brasil.
+  const [dialCode, setDialCode] = useState("+351");
   const [customerPhone, setCustomerPhone] = useState("");
 
   const [activeStep, setActiveStep] = useState<StepId>("service");
@@ -238,6 +242,10 @@ export function BookingSheetDialog({
     advance("time");
   };
 
+  // Número em formato internacional: DDI + número local. O backend normaliza
+  // para E.164 (remove espaços/traços e mantém o `+`), por isso basta juntar.
+  const composedPhone = customerPhone.trim() ? `${dialCode} ${customerPhone.trim()}` : "";
+
   const canSubmit =
     !!serviceId &&
     !!staffMemberId &&
@@ -280,7 +288,7 @@ export function BookingSheetDialog({
           startsAt: slot,
           customerName,
           customerEmail,
-          customerPhone,
+          customerPhone: composedPhone,
         }),
       });
       const data = (await res.json()) as {
@@ -316,7 +324,7 @@ export function BookingSheetDialog({
       const res = await fetch(`/api/public/${business.slug}/find-booking`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: customerPhone }),
+        body: JSON.stringify({ phone: composedPhone }),
       });
       const data = (await res.json()) as { found?: boolean; token?: string; error?: string };
       if (data.found && data.token) {
@@ -470,9 +478,11 @@ export function BookingSheetDialog({
                     name={customerName}
                     email={customerEmail}
                     phone={customerPhone}
+                    dialCode={dialCode}
                     onName={setCustomerName}
                     onEmail={setCustomerEmail}
                     onPhone={setCustomerPhone}
+                    onDialCode={setDialCode}
                   />
 
                   {error ? (
@@ -1019,23 +1029,36 @@ function TimeStep({
   );
 }
 
+// Indicativos suportados. Portugal fica primeiro (default); Brasil disponível
+// para os clientes brasileiros. Cada país tem o seu exemplo de número local.
+const DIAL_CODES = [
+  { code: "+351", flag: "🇵🇹", placeholder: "912 345 678" },
+  { code: "+55", flag: "🇧🇷", placeholder: "(11) 98765-4321" },
+] as const;
+
 function ContactStep({
   name,
   email,
   phone,
+  dialCode,
   onName,
   onEmail,
   onPhone,
+  onDialCode,
 }: {
   name: string;
   email: string;
   phone: string;
+  dialCode: string;
   onName: (v: string) => void;
   onEmail: (v: string) => void;
   onPhone: (v: string) => void;
+  onDialCode: (v: string) => void;
 }) {
   const inputClass =
     "h-12 w-full rounded-xl border border-border bg-foreground/[0.04] px-3.5 text-[15px] leading-5 text-foreground outline-none transition placeholder:text-muted-foreground focus-visible:border-foreground/35 focus-visible:bg-foreground/[0.08]";
+  const phonePlaceholder =
+    DIAL_CODES.find((c) => c.code === dialCode)?.placeholder ?? "912 345 678";
   return (
     <div className="flex flex-col gap-2">
       <label className="grid gap-1">
@@ -1063,15 +1086,29 @@ function ContactStep({
       </label>
       <label className="grid gap-1">
         <span className="text-[13px] leading-[18px] text-muted-foreground">Telefone</span>
-        <input
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="+351 …"
-          value={phone}
-          onChange={(e) => onPhone(e.target.value)}
-          className={inputClass}
-        />
+        <div className="flex gap-2">
+          <select
+            aria-label="Indicativo do país"
+            value={dialCode}
+            onChange={(e) => onDialCode(e.target.value)}
+            className="h-12 shrink-0 rounded-xl border border-border bg-foreground/[0.04] px-2.5 text-[15px] leading-5 text-foreground outline-none transition focus-visible:border-foreground/35 focus-visible:bg-foreground/[0.08]"
+          >
+            {DIAL_CODES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag} {c.code}
+              </option>
+            ))}
+          </select>
+          <input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            placeholder={phonePlaceholder}
+            value={phone}
+            onChange={(e) => onPhone(e.target.value)}
+            className={inputClass}
+          />
+        </div>
       </label>
       <p className="text-[13px] leading-[18px] text-muted-foreground">
         Enviamos a confirmação da reserva para o teu email e WhatsApp.
