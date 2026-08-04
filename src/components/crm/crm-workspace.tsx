@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PageEditor } from "@/components/page-editor/page-editor";
+import { WhatsappSupportButton } from "@/components/whatsapp-support-button";
 import type { EditorDraft } from "@/lib/page-editor/draft";
 import type { CrmCustomerKpis, CrmCustomerRowDto } from "@/lib/crm/customers";
 import type { CrmStaffRow } from "@/lib/crm/staff";
@@ -342,6 +343,8 @@ export function CrmWorkspace({
           )}
         </section>
       </div>
+
+      <WhatsappSupportButton />
     </main>
   );
 }
